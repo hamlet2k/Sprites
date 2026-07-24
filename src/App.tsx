@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   RARITY_LABEL,
+  sortFamilies,
   SPRITE_FAMILIES,
   SPRITES,
   VARIANT_ORDER,
+  type SortMode,
   type SpriteEntry,
 } from './data/sprites'
 import {
@@ -45,6 +47,7 @@ export default function App() {
   const [query, setQuery] = useState('')
   const [variantFilter, setVariantFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [sortMode, setSortMode] = useState<SortMode>('type')
   const [plan, setPlan] = useState<SuggestionPlan | null>(null)
 
   const [roomCode, setRoomCode] = useState<string | null>(() => roomFromUrl() ?? loadRoomCode())
@@ -190,27 +193,34 @@ export default function App() {
   const filteredByFamily = useMemo(() => {
     if (!selectedPlayer) return []
     const q = query.trim().toLowerCase()
-    return SPRITE_FAMILIES.map((family) => {
-      const sprites = SPRITES.filter((s) => {
-        if (s.familyId !== family.id) return false
-        if (variantFilter !== 'all' && s.variant !== variantFilter) return false
-        if (q && !s.name.toLowerCase().includes(q) && !family.name.toLowerCase().includes(q))
-          return false
-        if (statusFilter !== 'all') {
-          const st = getPlayerSprite(selectedPlayer, s.id)
-          if (statusFilter === 'mastered' && !st.mastered) return false
-          if (statusFilter === 'missing' && st.status !== 'none') return false
-          if (statusFilter === 'available' && st.status !== 'available') return false
-          if (statusFilter === 'lost' && st.status !== 'lost') return false
-        }
-        return true
-      }).sort(
-        (a, b) =>
-          VARIANT_ORDER.indexOf(a.variant) - VARIANT_ORDER.indexOf(b.variant),
-      )
-      return { family, sprites }
-    }).filter((g) => g.sprites.length > 0)
-  }, [selectedPlayer, query, variantFilter, statusFilter])
+    const families = sortFamilies(SPRITE_FAMILIES, sortMode)
+    return families
+      .map((family) => {
+        const sprites = SPRITES.filter((s) => {
+          if (s.familyId !== family.id) return false
+          if (variantFilter !== 'all' && s.variant !== variantFilter) return false
+          if (
+            q &&
+            !s.name.toLowerCase().includes(q) &&
+            !family.name.toLowerCase().includes(q)
+          )
+            return false
+          if (statusFilter !== 'all') {
+            const st = getPlayerSprite(selectedPlayer, s.id)
+            if (statusFilter === 'mastered' && !st.mastered) return false
+            if (statusFilter === 'missing' && st.status !== 'none') return false
+            if (statusFilter === 'available' && st.status !== 'available') return false
+            if (statusFilter === 'lost' && st.status !== 'lost') return false
+          }
+          return true
+        }).sort(
+          (a, b) =>
+            VARIANT_ORDER.indexOf(a.variant) - VARIANT_ORDER.indexOf(b.variant),
+        )
+        return { family, sprites }
+      })
+      .filter((g) => g.sprites.length > 0)
+  }, [selectedPlayer, query, variantFilter, statusFilter, sortMode])
 
   function onSpriteTap(sprite: SpriteEntry) {
     if (!selectedPlayer) return
@@ -455,6 +465,15 @@ export default function App() {
             />
             <select
               className="filter-select"
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value as SortMode)}
+              title="Sort families"
+            >
+              <option value="type">Sort: In-game type</option>
+              <option value="rarity">Sort: Rarity</option>
+            </select>
+            <select
+              className="filter-select"
               value={variantFilter}
               onChange={(e) => setVariantFilter(e.target.value)}
             >
@@ -482,6 +501,7 @@ export default function App() {
             <section key={family.id} className="family">
               <h2 className="family-head">
                 <span className={`badge ${family.rarity}`}>{family.name}</span>
+                <span className={`badge ${family.rarity}`}>{RARITY_LABEL[family.rarity]}</span>
                 <span className="ability">{family.ability}</span>
               </h2>
               <div className="variant-grid">
@@ -499,7 +519,18 @@ export default function App() {
                           : sprite.ability
                       }
                     >
-                      <div className="sprite-name">{sprite.name}</div>
+                      <div className="sprite-art">
+                        <img
+                          src={sprite.imageUrl}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          draggable={false}
+                        />
+                      </div>
+                      <div className={`sprite-name name-${sprite.familyRarity}`}>
+                        {sprite.name}
+                      </div>
                       <div className="badge-row">
                         <span className={`badge ${sprite.rarity}`}>
                           {RARITY_LABEL[sprite.rarity]}

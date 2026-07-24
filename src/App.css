@@ -272,7 +272,7 @@ button {
 
 .variant-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
   gap: 8px;
 }
 
@@ -282,11 +282,11 @@ button {
   border-radius: var(--radius);
   border: 2px solid var(--border);
   background: var(--bg-card);
-  padding: 10px;
-  min-height: 108px;
+  padding: 8px 10px 10px;
+  min-height: 148px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   text-align: left;
   transition: border-color 0.12s, background 0.12s, transform 0.08s;
   user-select: none;
@@ -308,7 +308,11 @@ button {
 }
 
 .sprite-card.status-none {
-  opacity: 0.72;
+  opacity: 0.78;
+}
+
+.sprite-card.status-none .sprite-art {
+  filter: grayscale(0.35) brightness(0.92);
 }
 
 .sprite-card.mastered::after {
@@ -318,6 +322,28 @@ button {
   right: 8px;
   color: var(--mastered);
   font-size: 1rem;
+  z-index: 2;
+  text-shadow: 0 0 4px #000;
+}
+
+.sprite-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 72px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.sprite-art img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  image-rendering: auto;
+  pointer-events: none;
 }
 
 .sprite-name {
@@ -325,6 +351,19 @@ button {
   font-weight: 700;
   line-height: 1.25;
   padding-right: 16px;
+}
+
+.sprite-name.name-rare {
+  color: var(--rare);
+}
+.sprite-name.name-epic {
+  color: var(--epic);
+}
+.sprite-name.name-legendary {
+  color: var(--legendary);
+}
+.sprite-name.name-mythic {
+  color: var(--mythic);
 }
 
 .badge-row {

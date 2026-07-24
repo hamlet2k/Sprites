@@ -1,7 +1,7 @@
 /**
  * Fortnite Chapter 7 Season 3 — Sprite catalog
- * Data compiled from fortnite.gg/sprites, IGN checklist, Fortnite Wiki (as of 2026-07-24).
- * 91 collectible sprite combinations currently tracked.
+ * Type order matches in-game collection (fortnite.gg / client), July 2026.
+ * Icons: https://fortnite.gg/img/x/sprites/icons/...
  */
 
 export type Rarity = 'rare' | 'epic' | 'legendary' | 'mythic' | 'special'
@@ -15,6 +15,8 @@ export type Variant =
   | 'gem'
   | 'quack'
 
+export type SortMode = 'type' | 'rarity'
+
 export interface SpriteFamily {
   id: string
   name: string
@@ -22,6 +24,8 @@ export interface SpriteFamily {
   ability: string
   /** Base summon cost in Sprite Dust (special variants cost more). */
   summonCost: number
+  /** In-game catalog order (lower = earlier). */
+  sortOrder: number
   location?: string
 }
 
@@ -30,14 +34,20 @@ export interface SpriteEntry {
   familyId: string
   name: string
   variant: Variant
-  /** Display rarity: base uses family rarity; variants are "special". */
+  /** Display rarity of this specific card (base = family tier; variants = special). */
   rarity: Rarity
-  /** Approximate drop rate % (0 = extremely rare / event / unknown). Used for difficulty scoring. */
+  /** Family base rarity — used for name color so types stay recognizable. */
+  familyRarity: Exclude<Rarity, 'special'>
   dropRate: number
   ability: string
   variantBonus?: string
   summonCost: number
+  sortOrder: number
+  /** Full URL to official icon art. */
+  imageUrl: string
 }
+
+const ICON_BASE = 'https://fortnite.gg/img/x/sprites/icons'
 
 const VARIANT_BONUS: Record<Exclude<Variant, 'base'>, string> = {
   gold: '3× bonus XP from eliminations',
@@ -49,7 +59,6 @@ const VARIANT_BONUS: Record<Exclude<Variant, 'base'>, string> = {
   quack: 'Special Quack themed variant',
 }
 
-/** Special-variant summon multiplier vs base (approx. from community guides). */
 const SPECIAL_SUMMON: Record<Exclude<Rarity, 'special'>, number> = {
   rare: 4000,
   epic: 6000,
@@ -57,13 +66,27 @@ const SPECIAL_SUMMON: Record<Exclude<Rarity, 'special'>, number> = {
   mythic: 15000,
 }
 
+/**
+ * In-game type order. Grim sits after Boss / before Air (catalog order on fortnite.gg;
+ * user did not have Grim to confirm in-client).
+ */
 const FAMILIES: SpriteFamily[] = [
+  {
+    id: 'batman',
+    name: 'Batman',
+    rarity: 'mythic',
+    ability: 'Bat Cape — boosted midair glide',
+    summonCost: 7500,
+    sortOrder: 0,
+    location: 'Sprite chests or DC boss duels',
+  },
   {
     id: 'water',
     name: 'Water',
     rarity: 'rare',
     ability: 'Replenishes Shield for you and squadmates while in water',
     summonCost: 100,
+    sortOrder: 1,
     location: 'Rivers, beaches, water POIs',
   },
   {
@@ -72,6 +95,7 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'rare',
     ability: 'Increased chance to find additional rare items in chests',
     summonCost: 100,
+    sortOrder: 2,
     location: 'Forests, wooded regions',
   },
   {
@@ -80,23 +104,8 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'rare',
     ability: 'Creates a fire burst after dealing enough damage to an enemy',
     summonCost: 100,
+    sortOrder: 3,
     location: 'Urban areas',
-  },
-  {
-    id: 'fishy',
-    name: 'Fishy',
-    rarity: 'rare',
-    ability: 'Increased swim speed; speed boost after taking damage',
-    summonCost: 100,
-    location: 'Water and mountainous areas',
-  },
-  {
-    id: 'air',
-    name: 'Air',
-    rarity: 'rare',
-    ability: 'Increased jump height and sprint speed; removes fall damage',
-    summonCost: 100,
-    location: 'High / mountainous areas',
   },
   {
     id: 'duck',
@@ -104,6 +113,7 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'epic',
     ability: 'Emoting or jamming replenishes Shield',
     summonCost: 3000,
+    sortOrder: 4,
     location: 'Cluster Coast / mogul vault',
   },
   {
@@ -112,37 +122,8 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'epic',
     ability: 'Grants cloak for a short duration upon reloading',
     summonCost: 3000,
+    sortOrder: 5,
     location: 'World at nighttime',
-  },
-  {
-    id: 'demon',
-    name: 'Demon',
-    rarity: 'epic',
-    ability: 'Siphon Health and Shield on elimination',
-    summonCost: 3000,
-  },
-  {
-    id: 'king',
-    name: 'King',
-    rarity: 'epic',
-    ability: 'Increases Pickaxe damage',
-    summonCost: 3000,
-  },
-  {
-    id: 'aura',
-    name: 'Aura',
-    rarity: 'epic',
-    ability: 'Shock Rock charge after dealing enough damage (shockwave effect)',
-    summonCost: 3000,
-    location: 'High / mountainous areas',
-  },
-  {
-    id: 'striker',
-    name: 'Striker',
-    rarity: 'epic',
-    ability: 'Brief Overdrive when you mantle, hurdle, or wall scramble',
-    summonCost: 3000,
-    location: 'Soccer pitch POI',
   },
   {
     id: 'dream',
@@ -151,7 +132,16 @@ const FAMILIES: SpriteFamily[] = [
     ability:
       'Random item each level-up; at Level 5 explodes with Legendary loot, auto-extracts, resets to 1',
     summonCost: 5000,
+    sortOrder: 6,
     location: 'Storage crates',
+  },
+  {
+    id: 'demon',
+    name: 'Demon',
+    rarity: 'epic',
+    ability: 'Siphon Health and Shield on elimination',
+    summonCost: 3000,
+    sortOrder: 7,
   },
   {
     id: 'punk',
@@ -159,29 +149,15 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'legendary',
     ability: 'At Level 5, can grant infinite ammo buff',
     summonCost: 5000,
+    sortOrder: 8,
   },
   {
-    id: 'boss',
-    name: 'Boss',
-    rarity: 'legendary',
-    ability: 'Increases max Health and Shield',
-    summonCost: 5000,
-    location: 'After defeating a powerful adversary',
-  },
-  {
-    id: 'seven',
-    name: 'Seven',
-    rarity: 'legendary',
-    ability: "Reveals opponents' foot trails for a few seconds",
-    summonCost: 5000,
-    location: 'High / mountainous areas',
-  },
-  {
-    id: 'zero-point',
-    name: 'Zero Point',
-    rarity: 'mythic',
-    ability: 'Shield Bubble Jr. when you use a healing item on yourself',
-    summonCost: 7500,
+    id: 'king',
+    name: 'King',
+    rarity: 'epic',
+    ability: 'Increases Pickaxe damage',
+    summonCost: 3000,
+    sortOrder: 9,
   },
   {
     id: 'burnt-peanut',
@@ -189,22 +165,8 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'mythic',
     ability: 'Chance of extra rare loot (sometimes Mythic) on eliminations',
     summonCost: 7500,
+    sortOrder: 10,
     location: 'Relic Chests',
-  },
-  {
-    id: 'grim',
-    name: 'Grim',
-    rarity: 'mythic',
-    ability: 'Players who damage you become marked for a short duration',
-    summonCost: 7500,
-  },
-  {
-    id: 'batman',
-    name: 'Batman',
-    rarity: 'mythic',
-    ability: 'Bat Cape — boosted midair glide',
-    summonCost: 7500,
-    location: 'Sprite chests or DC boss duels',
   },
   {
     id: 'vini-jr',
@@ -213,7 +175,78 @@ const FAMILIES: SpriteFamily[] = [
     ability:
       'Sprinting enables damaging slide; slide into enemies boosts reload and fire rate',
     summonCost: 7500,
+    sortOrder: 11,
     location: 'Relic Chests',
+  },
+  {
+    id: 'zero-point',
+    name: 'Zero Point',
+    rarity: 'mythic',
+    ability: 'Shield Bubble Jr. when you use a healing item on yourself',
+    summonCost: 7500,
+    sortOrder: 12,
+  },
+  {
+    id: 'fishy',
+    name: 'Fishy',
+    rarity: 'rare',
+    ability: 'Increased swim speed; speed boost after taking damage',
+    summonCost: 100,
+    sortOrder: 13,
+    location: 'Water and mountainous areas',
+  },
+  {
+    id: 'striker',
+    name: 'Striker',
+    rarity: 'epic',
+    ability: 'Brief Overdrive when you mantle, hurdle, or wall scramble',
+    summonCost: 3000,
+    sortOrder: 14,
+    location: 'Soccer pitch POI',
+  },
+  {
+    id: 'aura',
+    name: 'Aura',
+    rarity: 'epic',
+    ability: 'Shock Rock charge after dealing enough damage (shockwave effect)',
+    summonCost: 3000,
+    sortOrder: 15,
+    location: 'High / mountainous areas',
+  },
+  {
+    id: 'boss',
+    name: 'Boss',
+    rarity: 'legendary',
+    ability: 'Increases max Health and Shield',
+    summonCost: 5000,
+    sortOrder: 16,
+    location: 'After defeating a powerful adversary',
+  },
+  {
+    id: 'grim',
+    name: 'Grim',
+    rarity: 'mythic',
+    ability: 'Players who damage you become marked for a short duration',
+    summonCost: 7500,
+    sortOrder: 17,
+  },
+  {
+    id: 'air',
+    name: 'Air',
+    rarity: 'rare',
+    ability: 'Increased jump height and sprint speed; removes fall damage',
+    summonCost: 100,
+    sortOrder: 18,
+    location: 'High / mountainous areas',
+  },
+  {
+    id: 'seven',
+    name: 'Seven',
+    rarity: 'legendary',
+    ability: "Reveals opponents' foot trails for a few seconds",
+    summonCost: 5000,
+    sortOrder: 19,
+    location: 'High / mountainous areas',
   },
   {
     id: 'pollo',
@@ -221,16 +254,21 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'mythic',
     ability: "Slowly replenishes Shield for you and teammates after an elimination",
     summonCost: 7500,
+    sortOrder: 20,
     location: 'Primarily trade / player drops',
   },
 ]
 
-/** Variants known live for each family (from fortnite.gg, July 2026). */
-const FAMILY_VARIANTS: Record<
-  string,
-  Partial<Record<Variant, number>>
-> = {
-  // drop rates from fortnite.gg (approximate %)
+/** Live variants + drop rates (%). */
+const FAMILY_VARIANTS: Record<string, Partial<Record<Variant, number>>> = {
+  batman: {
+    base: 2.23,
+    gold: 0.1,
+    gummy: 0.07,
+    galaxy: 0.04,
+    holofoil: 0.01,
+    cube: 0.005,
+  },
   water: { base: 13.92, gold: 0.75, gummy: 0.62, galaxy: 0.5, holofoil: 0.25 },
   earth: { base: 13.92, gold: 0.75, gummy: 0.62, galaxy: 0.5, cube: 0.01 },
   fire: {
@@ -241,25 +279,24 @@ const FAMILY_VARIANTS: Record<
     holofoil: 0.25,
     cube: 0.01,
   },
-  fishy: { base: 13.79, gold: 0.75, gummy: 0.62, galaxy: 0.5, cube: 0.01 },
-  air: { base: 10, gold: 0.75, gummy: 0.62, galaxy: 0.5, holofoil: 0.25 },
   duck: { base: 9, gold: 0.4, gummy: 0.3, galaxy: 0.16 },
   ghost: { base: 9, gold: 0.4, gummy: 0.3, galaxy: 0.16, holofoil: 0.06 },
-  demon: { base: 9, gold: 0.4, gummy: 0.3, galaxy: 0.16 },
-  king: { base: 9, gold: 0.4, gummy: 0.3, galaxy: 0.16, holofoil: 0.06 },
-  aura: { base: 6.98, gold: 0.31, gummy: 0.23, galaxy: 0.12 },
-  striker: { base: 6.98, gold: 0.31, gummy: 0.23, galaxy: 0.12, holofoil: 0.05 },
   dream: { base: 6.98, gold: 0.31, gummy: 0.23, galaxy: 0.12, cube: 0.01 },
+  demon: { base: 9, gold: 0.4, gummy: 0.3, galaxy: 0.16 },
   punk: { base: 6.98, gold: 0.31, gummy: 0.23, galaxy: 0.12, cube: 0.01 },
-  boss: { base: 6.98, gold: 0.31, gummy: 0.23, galaxy: 0.12, cube: 0.01 },
-  seven: { base: 6.98, gold: 0.31, gummy: 0.23, galaxy: 0.12, holofoil: 0.05 },
+  king: { base: 9, gold: 0.4, gummy: 0.3, galaxy: 0.16, holofoil: 0.06 },
+  'burnt-peanut': { base: 0.5 },
+  'vini-jr': { base: 0.3 },
   'zero-point': {
     base: 0.00093,
     gold: 0.000041,
     gummy: 0.000031,
     galaxy: 0.000016,
   },
-  'burnt-peanut': { base: 0.5 },
+  fishy: { base: 13.79, gold: 0.75, gummy: 0.62, galaxy: 0.5, cube: 0.01 },
+  striker: { base: 6.98, gold: 0.31, gummy: 0.23, galaxy: 0.12, holofoil: 0.05 },
+  aura: { base: 6.98, gold: 0.31, gummy: 0.23, galaxy: 0.12 },
+  boss: { base: 6.98, gold: 0.31, gummy: 0.23, galaxy: 0.12, cube: 0.01 },
   grim: {
     base: 0.09,
     gold: 0.01,
@@ -267,16 +304,154 @@ const FAMILY_VARIANTS: Record<
     galaxy: 0.005,
     cube: 0.001,
   },
-  batman: {
-    base: 2.23,
-    gold: 0.1,
-    gummy: 0.07,
-    galaxy: 0.04,
-    holofoil: 0.01,
-    cube: 0.005,
-  },
-  'vini-jr': { base: 0.3 },
+  air: { base: 10, gold: 0.75, gummy: 0.62, galaxy: 0.5, holofoil: 0.25 },
+  seven: { base: 6.98, gold: 0.31, gummy: 0.23, galaxy: 0.12, holofoil: 0.05 },
   pollo: { base: 0.05 },
+}
+
+/** Icon file names on fortnite.gg (released variants only). */
+const ICONS: Record<string, Partial<Record<Variant, string>>> = {
+  batman: {
+    base: 'T_Icon_BR_FossilMeal_Default_L.webp',
+    gold: 'T_Icon_BR_FossilMeal_Gold_L.webp',
+    gummy: 'T_Icon_BR_FossilMeal_Candy_L.webp',
+    galaxy: 'T_Icon_BR_FossilMeal_Galaxy_L.webp',
+    holofoil: 'T_Icon_BR_FossilMeal_Holofoil_L.webp',
+    cube: 'T_Icon_BR_FossilMeal_Cube_L.webp',
+  },
+  water: {
+    base: 'T_Icon_BR_Creature_Sprite_Water_Unvault_Ch7S3_ui_L.webp',
+    gold: 'T_Icon_BR_Creature_Sprite_Water_Gold_ui_L.webp',
+    gummy: 'T_Icon_BR_Creature_Sprite_Water_Candy_ui_L.webp',
+    galaxy: 'T_Icon_BR_Creature_Sprite_Water_Galaxy_ui_L.webp',
+    holofoil: 'T_Icon_BR_Creature_Sprite_Water_Holofoil_ui_L.webp',
+  },
+  earth: {
+    base: 'T_Icon_BR_Creature_Sprite_Earth_Ch7S3_UI_L.webp',
+    gold: 'T_Icon_BR_Creature_Sprite_Earth_Gold_ui_L.webp',
+    gummy: 'T_Icon_BR_Creature_Sprite_Earth_Candy_ui_L.webp',
+    galaxy: 'T_Icon_BR_Creature_Sprite_Earth_Galaxy_ui_L.webp',
+    cube: 'T_Icon_BR_Creature_Sprite_Earth_Cube_ui_L.webp',
+  },
+  fire: {
+    base: 'T_Icon_BR_Creature_Sprite_Fire_Unvault_Ch7S3_ui_L.webp',
+    gold: 'T_Icon_BR_Creature_Sprite_Fire_Gold_ui_L.webp',
+    gummy: 'T_Icon_BR_Creature_Sprite_Fire_Candy_ui_L.webp',
+    galaxy: 'T_Icon_BR_Creature_Sprite_Fire_Galaxy_ui_L.webp',
+    holofoil: 'T_Icon_BR_Creature_Sprite_Fire_Holofoil_ui_L.webp',
+    cube: 'T_Icon_BR_Creature_Sprite_Fire_Cube_ui_L.webp',
+  },
+  duck: {
+    base: 'T_Icon_BR_Duck_Default_L.webp',
+    gold: 'T_Icon_BR_Duck_Gold_L.webp',
+    gummy: 'T_Icon_BR_Duck_Candy_L.webp',
+    galaxy: 'T_Icon_BR_Duck_Galaxy_L.webp',
+  },
+  ghost: {
+    base: 'T_Icon_BR_Creature_Sprite_Ghost_Unvault_L.webp',
+    gold: 'T_Icon_BR_Creature_Sprite_Ghost_Gold_L.webp',
+    gummy: 'T_Icon_BR_Creature_Sprite_Ghost_Candy_L.webp',
+    galaxy: 'T_Icon_BR_Creature_Sprite_Ghost_Galaxy_L.webp',
+    holofoil: 'T_Icon_BR_Creature_Sprite_Ghost_Holo_L.webp',
+  },
+  dream: {
+    base: 'T_Icon_BR_Creature_Sprite_Sleepy_ui_L.webp',
+    gold: 'T_Icon_BR_Creature_Sprite_Sleepy_Gold_ui_L.webp',
+    gummy: 'T_Icon_BR_Creature_Sprite_Sleepy_Candy_ui_L.webp',
+    galaxy: 'T_Icon_BR_Creature_Sprite_Sleepy_Galaxy_ui_L.webp',
+    cube: 'T_Icon_BR_Creature_Sprite_Sleepy_Cube_ui_L.webp',
+  },
+  demon: {
+    base: 'T_Icon_BR_RedDemon_Default_L.webp',
+    gold: 'T_Icon_BR_RedDemon_Gold_L.webp',
+    gummy: 'T_Icon_BR_RedDemon_Candy_L.webp',
+    galaxy: 'T_Icon_BR_RedDemon_Galaxy_L.webp',
+  },
+  punk: {
+    base: 'T_Icon_BR_Creature_Sprite_Punk_ui_L.webp',
+    gold: 'T_Icon_BR_Creature_Sprite_Punk_Gold_ui_L.webp',
+    gummy: 'T_Icon_BR_Creature_Sprite_Punk_Candy_ui_L.webp',
+    galaxy: 'T_Icon_BR_Creature_Sprite_Punk_Galaxy_ui_L.webp',
+    cube: 'T_Icon_BR_Creature_Sprite_Punk_Cube_ui_L.webp',
+  },
+  king: {
+    base: 'T_Icon_BR_Creature_Sprite_King_ui_L.webp',
+    gold: 'T_Icon_BR_Creature_Sprite_King_Gold_ui_L.webp',
+    gummy: 'T_Icon_BR_Creature_Sprite_King_Candy_ui_L.webp',
+    galaxy: 'T_Icon_BR_Creature_Sprite_King_Galaxy_ui_L.webp',
+    holofoil: 'T_Icon_BR_Creature_Sprite_King_Holofoil_ui_L.webp',
+  },
+  'burnt-peanut': {
+    base: 'T_Icon_BR_Creature_Sprite_BurntPeanut_ui_L.webp',
+  },
+  'vini-jr': {
+    base: 'T_Icon_BR_CokeParmesan_Default_L.webp',
+  },
+  'zero-point': {
+    base: 'T_Icon_BR_Creature_Sprite_ZeroPoint_ui_L.webp',
+    gold: 'T_Icon_BR_Creature_Sprite_ZeroPoint_Gold_ui_L.webp',
+    gummy: 'T_Icon_BR_Creature_Sprite_ZeroPoint_Candy_ui_L.webp',
+    galaxy: 'T_Icon_BR_Creature_Sprite_ZeroPoint_Galaxy_ui_L.webp',
+  },
+  fishy: {
+    base: 'T_Icon_BR_Creature_Sprite_Fishy_ui_L.webp',
+    gold: 'T_Icon_BR_Creature_Sprite_Fishy_Gold_ui_L.webp',
+    gummy: 'T_Icon_BR_Creature_Sprite_Fishy_Candy_ui_L.webp',
+    galaxy: 'T_Icon_BR_Creature_Sprite_Fishy_Galaxy_ui_L.webp',
+    cube: 'T_Icon_BR_Creature_Sprite_Fishy_Cube_L.webp',
+  },
+  striker: {
+    base: 'T_Icon_BR_Creature_Sprite_Soccer_ui_L.webp',
+    gold: 'T_Icon_BR_Creature_Sprite_Soccer_Gold_L.webp',
+    gummy: 'T_Icon_BR_Creature_Sprite_Soccer_Candy_L.webp',
+    galaxy: 'T_Icon_BR_Creature_Sprite_Soccer_Galaxy_L.webp',
+    holofoil: 'T_Icon_BR_Creature_Sprite_Soccer_Holofoil_L.webp',
+  },
+  aura: {
+    base: 'T_Icon_BR_Creature_Sprite_Drifter_ui_L.webp',
+    gold: 'T_Icon_BR_Creature_Sprite_Drifter_Gold_ui_L.webp',
+    gummy: 'T_Icon_BR_Creature_Sprite_Drifter_Candy_ui_L.webp',
+    galaxy: 'T_Icon_BR_Creature_Sprite_Drifter_Galaxy_ui_L.webp',
+  },
+  boss: {
+    base: 'T_Icon_BR_Creature_Sprite_Boss_ui_L.webp',
+    gold: 'T_Icon_BR_Creature_Sprite_Boss_Gold_ui_L.webp',
+    gummy: 'T_Icon_BR_Creature_Sprite_Boss_Candy_ui_L.webp',
+    galaxy: 'T_Icon_BR_Creature_Sprite_Boss_Galaxy_ui_L.webp',
+    cube: 'T_Icon_BR_Creature_Sprite_Boss_Cube_ui_L.webp',
+  },
+  grim: {
+    base: 'T_Icon_BR_GrimReaper_Default_L.webp',
+    gold: 'T_Icon_BR_GrimReaper_Gold_L.webp',
+    gummy: 'T_Icon_BR_GrimReaper_Candy_L.webp',
+    galaxy: 'T_Icon_BR_GrimReaper_Galaxy_L.webp',
+    cube: 'T_Icon_BR_GrimReaper_Cube_L.webp',
+  },
+  air: {
+    base: 'T_Icon_BR_Air_Default_L.webp',
+    gold: 'T_Icon_BR_Air_Gold_L.webp',
+    gummy: 'T_Icon_BR_Air_Candy_L.webp',
+    galaxy: 'T_Icon_BR_Air_Galaxy_L.webp',
+    holofoil: 'T_Icon_BR_Air_Holo_L.webp',
+  },
+  seven: {
+    base: 'T_Icon_BR_Creature_Sprite_Seven_ui_L.webp',
+    gold: 'T_Icon_BR_Creature_Sprite_Seven_Gold_ui_L.webp',
+    gummy: 'T_Icon_BR_Creature_Sprite_Seven_Candy_ui_L.webp',
+    galaxy: 'T_Icon_BR_Creature_Sprite_Seven_Galaxy_ui_L.webp',
+    holofoil: 'T_Icon_BR_Creature_Sprite_Seven_Holofoil_ui_L.webp',
+  },
+  pollo: {
+    base: 'T_Icon_BR_CompanyStargazer_Default_L.webp',
+  },
+}
+
+function iconUrl(familyId: string, variant: Variant): string {
+  const file = ICONS[familyId]?.[variant]
+  if (file) return `${ICON_BASE}/${file}`
+  // Fallback to base icon of the family
+  const base = ICONS[familyId]?.base
+  return base ? `${ICON_BASE}/${base}` : `${ICON_BASE}/T_Icon_BR_Creature_Sprite_Water_Unvault_Ch7S3_ui_L.webp`
 }
 
 function buildCatalog(): SpriteEntry[] {
@@ -290,7 +465,9 @@ function buildCatalog(): SpriteEntry[] {
     ][]) {
       const isBase = variant === 'base'
       const id = isBase ? family.id : `${variant}-${family.id}`
-      const name = isBase ? `${family.name} Sprite` : `${capitalize(variant)} ${family.name} Sprite`
+      const name = isBase
+        ? `${family.name} Sprite`
+        : `${capitalize(variant)} ${family.name} Sprite`
       const rarity: Rarity = isBase ? family.rarity : 'special'
       const summonCost = isBase
         ? family.summonCost
@@ -301,10 +478,13 @@ function buildCatalog(): SpriteEntry[] {
         name,
         variant,
         rarity,
+        familyRarity: family.rarity,
         dropRate,
         ability: family.ability,
         variantBonus: isBase ? undefined : VARIANT_BONUS[variant],
         summonCost,
+        sortOrder: family.sortOrder,
+        imageUrl: iconUrl(family.id, variant),
       })
     }
   }
@@ -319,10 +499,16 @@ export const SPRITE_FAMILIES = FAMILIES
 export const SPRITES: SpriteEntry[] = buildCatalog()
 export const SPRITE_BY_ID = Object.fromEntries(SPRITES.map((s) => [s.id, s]))
 
-/** Higher = harder to find. Uses inverse log drop rate. */
+/** Rarity rank for sorting (lower = higher rarity first when sorting by rarity). */
+export const RARITY_RANK: Record<Exclude<Rarity, 'special'>, number> = {
+  mythic: 0,
+  legendary: 1,
+  epic: 2,
+  rare: 3,
+}
+
 export function difficultyScore(sprite: SpriteEntry): number {
   const rate = Math.max(sprite.dropRate, 0.000001)
-  // Log scale so ultra-rares dominate without ignoring mid-tier
   return Math.log10(100 / rate) * 10 + rarityWeight(sprite)
 }
 
@@ -366,4 +552,22 @@ export const RARITY_LABEL: Record<Rarity, string> = {
   legendary: 'Legendary',
   mythic: 'Mythic',
   special: 'Special',
+}
+
+/** Sort families for the collection view. */
+export function sortFamilies(
+  families: SpriteFamily[],
+  mode: SortMode,
+): SpriteFamily[] {
+  const copy = [...families]
+  if (mode === 'type') {
+    copy.sort((a, b) => a.sortOrder - b.sortOrder)
+  } else {
+    copy.sort((a, b) => {
+      const r = RARITY_RANK[a.rarity] - RARITY_RANK[b.rarity]
+      if (r !== 0) return r
+      return a.sortOrder - b.sortOrder
+    })
+  }
+  return copy
 }
