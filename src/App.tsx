@@ -539,6 +539,15 @@ export default function App() {
                           <span className="badge">{sprite.variant}</span>
                         )}
                       </div>
+                      <div
+                        className={`dust-cost ${st.status === 'lost' ? 'dust-needed' : ''}`}
+                        title="Sprite Dust to re-summon after loss"
+                      >
+                        <span className="dust-icon" aria-hidden>
+                          ✦
+                        </span>
+                        {sprite.summonCost.toLocaleString()} dust
+                      </div>
                       <div className="card-footer">
                         <span className={`status-label ${st.status}`}>
                           {st.status === 'none'
