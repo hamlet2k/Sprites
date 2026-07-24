@@ -242,6 +242,7 @@ export default function App() {
           if (statusFilter !== 'all') {
             const st = getPlayerSprite(selectedPlayer, s.id)
             if (statusFilter === 'mastered' && !st.mastered) return false
+            if (statusFilter === 'unmastered' && st.mastered) return false
             if (statusFilter === 'missing' && st.status !== 'none') return false
             if (statusFilter === 'available' && st.status !== 'available') return false
             if (statusFilter === 'lost' && st.status !== 'lost') return false
@@ -536,6 +537,7 @@ export default function App() {
               <option value="available">Available</option>
               <option value="lost">Lost</option>
               <option value="mastered">Mastered</option>
+              <option value="unmastered">Not mastered</option>
             </select>
           </div>
 
