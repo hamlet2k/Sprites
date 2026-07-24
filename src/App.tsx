@@ -9,6 +9,7 @@ import {
 import {
   createRoom,
   fetchRoom,
+  getCloudConfigHint,
   isCloudConfigured,
   normalizeRoomCode,
   pushRoom,
@@ -760,6 +761,7 @@ export default function App() {
           <p className="muted">
             Cloud configured on this build:{' '}
             <strong>{cloudReady ? 'yes' : 'no — local only'}</strong>
+            {cloudReady ? ` · ${getCloudConfigHint()}` : ''}
           </p>
           <h3 style={{ marginTop: 16 }}>Suggestion rules</h3>
           <ul>

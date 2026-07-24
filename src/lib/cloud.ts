@@ -2,8 +2,24 @@ import { createClient, type RealtimeChannel, type SupabaseClient } from '@supaba
 import type { SquadState } from '../types'
 import { emptySquad } from './storage'
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
+/**
+ * Supabase JS expects the project root only, e.g.
+ *   https://xxxx.supabase.co
+ * NOT the REST path (.../rest/v1/). If /rest/v1 is included, requests become
+ * /rest/v1/rest/v1/... and PostgREST returns PGRST125 "Invalid path specified".
+ */
+function normalizeSupabaseUrl(raw: string | undefined): string | undefined {
+  if (!raw) return undefined
+  let u = raw.trim().replace(/\/+$/, '')
+  // Strip accidental API suffixes from the dashboard copy/paste
+  u = u.replace(/\/rest\/v1$/i, '')
+  u = u.replace(/\/auth\/v1$/i, '')
+  u = u.replace(/\/realtime\/v1$/i, '')
+  return u || undefined
+}
+
+const url = normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL as string | undefined)
+const anonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim()
 
 let client: SupabaseClient | null = null
 
@@ -17,6 +33,12 @@ export function getSupabase(): SupabaseClient | null {
     client = createClient(url!, anonKey!)
   }
   return client
+}
+
+/** Exposed for diagnostics in the UI. */
+export function getCloudConfigHint(): string {
+  if (!isCloudConfigured()) return 'Cloud env vars missing.'
+  return `API host: ${url}`
 }
 
 /** Easy-to-read room codes (no 0/O/1/I). */

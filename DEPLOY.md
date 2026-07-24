@@ -16,8 +16,10 @@ Without Supabase, the site still works, but each browser keeps its own local dat
 3. Open **SQL Editor** → **New query**.
 4. Paste everything from [`supabase/schema.sql`](./supabase/schema.sql) → **Run**.
 5. Open **Project Settings → API** and copy:
-   - **Project URL** → `VITE_SUPABASE_URL`
-   - **anon public** key → `VITE_SUPABASE_ANON_KEY`
+   - **Project URL** → `VITE_SUPABASE_URL`  
+     Use only the host, e.g. `https://xxxx.supabase.co`  
+     **Do not** append `/rest/v1/` (that causes “Invalid path specified in request URL”).
+   - **anon public** key (or the new **publishable** key) → `VITE_SUPABASE_ANON_KEY`
 
 Local test (optional):
 
