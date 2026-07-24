@@ -471,6 +471,7 @@ export default function App() {
             >
               <option value="type">Sort: In-game type</option>
               <option value="rarity">Sort: Rarity</option>
+              <option value="dust">Sort: Sprite Dust cost</option>
             </select>
             <select
               className="filter-select"

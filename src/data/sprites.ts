@@ -15,7 +15,7 @@ export type Variant =
   | 'gem'
   | 'quack'
 
-export type SortMode = 'type' | 'rarity'
+export type SortMode = 'type' | 'rarity' | 'dust'
 
 export interface SpriteFamily {
   id: string
@@ -562,10 +562,17 @@ export function sortFamilies(
   const copy = [...families]
   if (mode === 'type') {
     copy.sort((a, b) => a.sortOrder - b.sortOrder)
-  } else {
+  } else if (mode === 'rarity') {
     copy.sort((a, b) => {
       const r = RARITY_RANK[a.rarity] - RARITY_RANK[b.rarity]
       if (r !== 0) return r
+      return a.sortOrder - b.sortOrder
+    })
+  } else {
+    // Cheapest base re-summon cost first; type order as tiebreaker
+    copy.sort((a, b) => {
+      const d = a.summonCost - b.summonCost
+      if (d !== 0) return d
       return a.sortOrder - b.sortOrder
     })
   }
