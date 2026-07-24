@@ -535,13 +535,14 @@ function familyRarityWeight(familyId: string): number {
   return { rare: 1, epic: 4, legendary: 8, mythic: 14 }[f.rarity]
 }
 
+/** Left-to-right order as shown in the in-game collection. */
 export const VARIANT_ORDER: Variant[] = [
   'base',
+  'cube',
   'gold',
   'gummy',
   'galaxy',
   'holofoil',
-  'cube',
   'gem',
   'quack',
 ]
