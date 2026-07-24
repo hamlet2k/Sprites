@@ -21,6 +21,11 @@ export interface SquadState {
   players: Player[]
   /** Player ids selected for the next match suggestion. */
   activePlayerIds: string[]
+  /**
+   * Monotonic cloud revision. Bumped on each successful room save so clients
+   * can detect stale pushes. Optional for older local saves.
+   */
+  revision?: number
 }
 
 export type SuggestionKind = 'gift' | 'repurchase' | 'mastery'

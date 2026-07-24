@@ -57,10 +57,19 @@ export default function App() {
   )
   const [syncError, setSyncError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  /**
+   * Only push after we have loaded/created the room on this session.
+   * Without this, a fresh browser with empty localStorage + ?room=CODE
+   * would overwrite the cloud room with blank data within ~450ms.
+   */
+  const [roomHydrated, setRoomHydrated] = useState(false)
 
   /** Skip next cloud push after applying a remote snapshot. */
   const skipPushRef = useRef(false)
   const pushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  /** Latest state for async push callbacks (avoid stale closures). */
+  const stateRef = useRef(state)
+  stateRef.current = state
 
   useEffect(() => {
     if (!selectedPlayerId && state.players[0]) {
@@ -73,7 +82,7 @@ export default function App() {
     saveSquad(state)
   }, [state])
 
-  // Join room from URL / saved code on first load
+  // Join room from URL / saved code on first load — never push until this finishes
   useEffect(() => {
     const code = roomFromUrl() ?? loadRoomCode()
     if (!code || !cloudReady) {
@@ -81,10 +90,12 @@ export default function App() {
         setSyncStatus('local')
         setSyncError('This site is not connected to cloud yet (missing Supabase env).')
       }
+      setRoomHydrated(false)
       return
     }
 
     let cancelled = false
+    setRoomHydrated(false)
     setSyncStatus('connecting')
     void (async () => {
       const result = await fetchRoom(code)
@@ -95,6 +106,7 @@ export default function App() {
         setRoomCode(null)
         saveRoomCode(null)
         writeRoomToUrl(null)
+        setRoomHydrated(false)
         return
       }
       skipPushRef.current = true
@@ -103,6 +115,7 @@ export default function App() {
       setRoomCode(normalizeRoomCode(code))
       saveRoomCode(normalizeRoomCode(code))
       writeRoomToUrl(normalizeRoomCode(code))
+      setRoomHydrated(true)
       setSyncStatus('synced')
       setSyncError(null)
     })()
@@ -115,11 +128,16 @@ export default function App() {
 
   // Live subscription while in a room
   useEffect(() => {
-    if (!roomCode || !cloudReady) return
+    if (!roomCode || !cloudReady || !roomHydrated) return
 
     const sub = subscribeRoom(
       roomCode,
       (remote) => {
+        // Ignore older/equal revisions when possible
+        const localRev = stateRef.current.revision ?? 0
+        const remoteRev = remote.revision ?? 0
+        if (remoteRev > 0 && remoteRev < localRev) return
+
         skipPushRef.current = true
         setState(remote)
         setSyncStatus('synced')
@@ -132,11 +150,11 @@ export default function App() {
     )
 
     return () => sub.unsubscribe()
-  }, [roomCode])
+  }, [roomCode, roomHydrated])
 
-  // Debounced push of local edits to the room
+  // Debounced push of local edits — only after room is hydrated
   useEffect(() => {
-    if (!roomCode || !cloudReady) return
+    if (!roomCode || !cloudReady || !roomHydrated) return
     if (skipPushRef.current) {
       skipPushRef.current = false
       return
@@ -144,14 +162,30 @@ export default function App() {
 
     if (pushTimerRef.current) clearTimeout(pushTimerRef.current)
     setSyncStatus('saving')
+    const code = roomCode
+    const snapshot = state
     pushTimerRef.current = setTimeout(() => {
       void (async () => {
-        const result = await pushRoom(roomCode, state)
+        const result = await pushRoom(code, snapshot)
         if (!result.ok) {
+          // If we blocked a wipe, re-fetch room so UI recovers
+          if (result.error.includes('Blocked overwrite')) {
+            const reloaded = await fetchRoom(code)
+            if (reloaded.ok) {
+              skipPushRef.current = true
+              setState(reloaded.data)
+              setSyncStatus('synced')
+              setSyncError('Recovered room data (blocked empty overwrite from this device).')
+              return
+            }
+          }
           setSyncError(result.error)
           setSyncStatus('error')
           return
         }
+        // Keep local revision in sync with what we saved
+        skipPushRef.current = true
+        setState(result.data)
         setSyncStatus('synced')
         setSyncError(null)
       })()
@@ -160,7 +194,7 @@ export default function App() {
     return () => {
       if (pushTimerRef.current) clearTimeout(pushTimerRef.current)
     }
-  }, [state, roomCode])
+  }, [state, roomCode, roomHydrated])
 
   const selectedPlayer = useMemo(
     () => state.players.find((p) => p.id === selectedPlayerId) ?? state.players[0],
@@ -280,6 +314,7 @@ export default function App() {
     }
     setBusy(true)
     setSyncError(null)
+    setRoomHydrated(false)
     const result = await createRoom(state)
     setBusy(false)
     if (!result.ok) {
@@ -287,9 +322,12 @@ export default function App() {
       setSyncStatus('error')
       return
     }
+    // Create already wrote current state — skip the first push echo
+    skipPushRef.current = true
     setRoomCode(result.data)
     saveRoomCode(result.data)
     writeRoomToUrl(result.data)
+    setRoomHydrated(true)
     setSyncStatus('synced')
   }
 
@@ -305,6 +343,7 @@ export default function App() {
     }
     setBusy(true)
     setSyncError(null)
+    setRoomHydrated(false)
     setSyncStatus('connecting')
     const result = await fetchRoom(code)
     setBusy(false)
@@ -320,11 +359,13 @@ export default function App() {
     saveRoomCode(code)
     writeRoomToUrl(code)
     setJoinInput('')
+    setRoomHydrated(true)
     setSyncStatus('synced')
     setPlan(null)
   }
 
   function handleLeaveRoom() {
+    setRoomHydrated(false)
     setRoomCode(null)
     saveRoomCode(null)
     writeRoomToUrl(null)

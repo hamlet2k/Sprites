@@ -1,6 +1,7 @@
 import { createClient, type RealtimeChannel, type SupabaseClient } from '@supabase/supabase-js'
 import type { SquadState } from '../types'
 import { emptySquad } from './storage'
+import { isSparseSquad, wouldWipeRoom } from './squadScore'
 
 /**
  * Supabase JS expects the project root only, e.g.
@@ -11,7 +12,6 @@ import { emptySquad } from './storage'
 function normalizeSupabaseUrl(raw: string | undefined): string | undefined {
   if (!raw) return undefined
   let u = raw.trim().replace(/\/+$/, '')
-  // Strip accidental API suffixes from the dashboard copy/paste
   u = u.replace(/\/rest\/v1$/i, '')
   u = u.replace(/\/auth\/v1$/i, '')
   u = u.replace(/\/realtime\/v1$/i, '')
@@ -35,13 +35,11 @@ export function getSupabase(): SupabaseClient | null {
   return client
 }
 
-/** Exposed for diagnostics in the UI. */
 export function getCloudConfigHint(): string {
   if (!isCloudConfigured()) return 'Cloud env vars missing.'
   return `API host: ${url}`
 }
 
-/** Easy-to-read room codes (no 0/O/1/I). */
 export function generateRoomCode(): string {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
   let code = ''
@@ -62,12 +60,12 @@ export async function createRoom(state: SquadState): Promise<CloudResult<string>
   const sb = getSupabase()
   if (!sb) return { ok: false, error: 'Cloud is not configured on this deployment.' }
 
-  // Retry a few times on code collision
   for (let i = 0; i < 5; i++) {
     const code = generateRoomCode()
+    const payload = withRevision(state, (state.revision ?? 0) + 1)
     const { error } = await sb.from('squad_rooms').insert({
       code,
-      state,
+      state: payload,
       updated_at: new Date().toISOString(),
     })
     if (!error) return { ok: true, data: code }
@@ -78,9 +76,7 @@ export async function createRoom(state: SquadState): Promise<CloudResult<string>
   return { ok: false, error: 'Could not allocate a room code. Try again.' }
 }
 
-export async function fetchRoom(
-  code: string,
-): Promise<CloudResult<SquadState>> {
+export async function fetchRoom(code: string): Promise<CloudResult<SquadState>> {
   const sb = getSupabase()
   if (!sb) return { ok: false, error: 'Cloud is not configured on this deployment.' }
 
@@ -98,40 +94,64 @@ export async function fetchRoom(
   if (error) return { ok: false, error: error.message }
   if (!data) return { ok: false, error: 'Room not found. Check the code.' }
 
-  const state = data.state as SquadState
+  const state = normalizeSquad(data.state)
   if (!state?.players?.length) {
     return { ok: false, error: 'Room data is empty or invalid.' }
   }
   return { ok: true, data: state }
 }
 
+/**
+ * Push local squad to the room.
+ * Safety: never overwrite a room that has real progress with empty/sparse local data
+ * (the main cause of "room wiped after deploy / new device").
+ */
 export async function pushRoom(
   code: string,
   state: SquadState,
-): Promise<CloudResult<true>> {
+): Promise<CloudResult<SquadState>> {
   const sb = getSupabase()
   if (!sb) return { ok: false, error: 'Cloud is not configured.' }
+
+  const normalized = normalizeRoomCode(code)
+
+  const { data: existing, error: readError } = await sb
+    .from('squad_rooms')
+    .select('state')
+    .eq('code', normalized)
+    .maybeSingle()
+
+  if (readError) return { ok: false, error: readError.message }
+  if (!existing) return { ok: false, error: 'Room not found. It may have been deleted.' }
+
+  const remote = normalizeSquad(existing.state)
+  if (remote && wouldWipeRoom(state, remote)) {
+    return {
+      ok: false,
+      error:
+        'Blocked overwrite: this device has almost no collection data vs the room. Reloading room instead of wiping it.',
+    }
+  }
+
+  const nextRevision = Math.max(state.revision ?? 0, remote?.revision ?? 0) + 1
+  const payload = withRevision(state, nextRevision)
 
   const { error } = await sb
     .from('squad_rooms')
     .update({
-      state,
+      state: payload,
       updated_at: new Date().toISOString(),
     })
-    .eq('code', normalizeRoomCode(code))
+    .eq('code', normalized)
 
   if (error) return { ok: false, error: error.message }
-  return { ok: true, data: true }
+  return { ok: true, data: payload }
 }
 
 export type RoomSubscription = {
   unsubscribe: () => void
 }
 
-/**
- * Live updates when anyone in the room changes the squad.
- * Returns empty unsubscribe if cloud is off.
- */
 export function subscribeRoom(
   code: string,
   onRemote: (state: SquadState) => void,
@@ -154,10 +174,12 @@ export function subscribeRoom(
         filter: `code=eq.${normalized}`,
       },
       (payload) => {
-        const row = payload.new as { state?: SquadState }
-        if (row?.state?.players) {
-          onRemote(row.state)
-        }
+        const row = payload.new as { state?: unknown }
+        const state = normalizeSquad(row?.state)
+        if (!state?.players?.length) return
+        // Ignore empty realtime payloads that would wipe a filled client
+        if (isSparseSquad(state)) return
+        onRemote(state)
       },
     )
     .subscribe((status) => {
@@ -191,11 +213,25 @@ export function writeRoomToUrl(code: string | null): void {
 export function shareUrl(code: string): string {
   const url = new URL(window.location.href)
   url.searchParams.set('room', normalizeRoomCode(code))
-  // Drop hash if any
   url.hash = ''
   return url.toString()
 }
 
 export function localOnlySquad(): SquadState {
   return emptySquad()
+}
+
+function withRevision(state: SquadState, revision: number): SquadState {
+  return { ...state, revision }
+}
+
+function normalizeSquad(raw: unknown): SquadState | null {
+  if (!raw || typeof raw !== 'object') return null
+  const s = raw as SquadState
+  if (!Array.isArray(s.players) || s.players.length === 0) return null
+  return {
+    players: s.players,
+    activePlayerIds: Array.isArray(s.activePlayerIds) ? s.activePlayerIds : [],
+    revision: typeof s.revision === 'number' ? s.revision : 0,
+  }
 }
