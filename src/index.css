@@ -1,0 +1,5 @@
+/* Base reset lives mostly in App.css; keep body clean. */
+body {
+  margin: 0;
+  min-width: 320px;
+}
