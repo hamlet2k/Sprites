@@ -321,8 +321,48 @@ export default function App() {
     )
     if (!ok) return
 
-    setState((s) => applyExchangeRound(s, roundItems))
+    // Apply against latest state; resolve players by id or name if cloud rotated ids
+    let applied = 0
+    let skipped: string[] = []
+    let nextState: SquadState | null = null
+    setState((s) => {
+      const result = applyExchangeRound(s, roundItems)
+      applied = result.applied
+      skipped = result.skipped
+      nextState = result.state
+      return result.state
+    })
     setConfirmedRounds((r) => [...r, round])
+
+    // Push room immediately so another device / reload cannot wipe the confirm
+    if (nextState && applied > 0 && roomCode && cloudReady && roomHydrated) {
+      skipPushRef.current = true
+      void pushRoom(roomCode, nextState).then((res) => {
+        if (res.ok) {
+          skipPushRef.current = true
+          setState(res.data)
+          setSyncStatus('synced')
+        } else {
+          setSyncError(res.error)
+          setSyncStatus('error')
+        }
+      })
+    }
+
+    if (applied === 0) {
+      alert(
+        `No collections were updated for Round ${round}.\n` +
+          (skipped.length
+            ? skipped.join('\n')
+            : 'Player ids may not match — regenerate the plan and try again.'),
+      )
+    } else {
+      alert(
+        `Round ${round}: updated ${applied} exchange${applied === 1 ? '' : 's'}.` +
+          (skipped.length ? `\nSkipped:\n${skipped.join('\n')}` : '') +
+          `\n\nOpen Collection and switch players to verify Ready / Lost.`,
+      )
+    }
   }
 
   function addPlayer() {
@@ -698,8 +738,9 @@ export default function App() {
             <>
               <div className="suggest-summary">{plan.summary}</div>
               <p className="suggest-hint">
-                Rounds are each player&apos;s 1st–4th bring (priority order). Missing fills always
-                beat lost restores. Confirm a round after those trades land in-game.
+                Each round aims for a fair 1:1 — every player gives one and receives one when
+                possible. Missing fills always beat lost restores. After the match, hit{' '}
+                <strong>Confirm exchanges</strong> to set recipients Ready and bringers Lost.
               </p>
 
               {plan.assignments.length === 0 ? (
@@ -1002,20 +1043,17 @@ export default function App() {
           <h3 style={{ marginTop: 16 }}>Suggestion rules</h3>
           <ul>
             <li>
-              <strong>Primary need:</strong> missing (never collected) always before any lost
-              restore — even ultra-rares that only restore a lost copy.
+              <strong>Fair 1:1:</strong> each round prefers that every player both gives and
+              receives one sprite (when the collections allow it).
             </li>
             <li>
-              <strong>Secondary need:</strong> lost restores (trade so they may avoid dust).
+              <strong>Primary need:</strong> missing (never collected) before any lost restore.
             </li>
             <li>
-              <strong>Rounds 1–4:</strong> each player&apos;s bring priority; confirm a round after
-              those trades to update Ready/Lost automatically.
+              <strong>Rounds 1–4:</strong> bring slots; <strong>Confirm exchanges</strong> marks
+              recipients Ready and bringers Lost.
             </li>
             <li>Prefers <em>Ready</em> inventory over repurchase on the bringer.</li>
-            <li>
-              If someone has nothing useful to gift, they bring an unmastered sprite to level.
-            </li>
           </ul>
           <h3 style={{ marginTop: 16 }}>Catalog</h3>
           <ul>
