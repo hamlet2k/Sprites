@@ -246,6 +246,13 @@ export default function App() {
             if (statusFilter === 'missing' && st.status !== 'none') return false
             if (statusFilter === 'available' && st.status !== 'available') return false
             if (statusFilter === 'lost' && st.status !== 'lost') return false
+            // Missing + lost: not ready in inventory
+            if (
+              statusFilter === 'need' &&
+              st.status !== 'none' &&
+              st.status !== 'lost'
+            )
+              return false
           }
           return true
         }).sort(
@@ -533,6 +540,7 @@ export default function App() {
               onChange={(e) => setStatusFilter(e.target.value)}
             >
               <option value="all">All status</option>
+              <option value="need">Missing + lost</option>
               <option value="missing">Missing</option>
               <option value="available">Available</option>
               <option value="lost">Lost</option>
@@ -849,8 +857,16 @@ export default function App() {
           </p>
           <h3 style={{ marginTop: 16 }}>Suggestion rules</h3>
           <ul>
+            <li>
+              <strong>Primary need:</strong> sprites a teammate is still missing from their
+              collection.
+            </li>
+            <li>
+              <strong>Secondary need:</strong> sprites a teammate has <em>lost</em> (restore via
+              trade so they may avoid dust).
+            </li>
             <li>Prioritizes hard-to-find sprites (Mythics, Galaxy, Holofoil, Cube, etc.).</li>
-            <li>Prefers <em>Ready</em> inventory over lost (repurchase) copies.</li>
+            <li>Prefers <em>Ready</em> inventory over lost (repurchase) copies on the bringer.</li>
             <li>
               Shows clearly: <strong>who brings which sprite → who receives it</strong>.
             </li>

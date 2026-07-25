@@ -10,14 +10,20 @@ import { getPlayerSprite } from './storage'
 /** Max sprites to recommend a player bring (equip + inventory). */
 const MAX_BRING_PER_PLAYER = 4
 
+/** How badly the receiver needs this sprite. */
+type NeedKind = 'missing' | 'lost'
+
 /**
  * Build a bring/gift plan for the active squad.
  *
- * Priority:
- * 1. Hard-to-find sprites (low drop rate / high rarity variants)
- * 2. Available inventory (no repurchase) over lost
- * 3. If only lost copies exist for a needed sprite, suggest repurchase
- * 4. If a player has no trade value, suggest an unmastered sprite to level
+ * Receiver needs (priority order):
+ * 1. **Missing** — never collected (primary)
+ * 2. **Lost** — collected before but needs dust / a trade to restore (secondary)
+ *
+ * Giver supply:
+ * - Prefer **available** (ready, no dust) over **lost** (repurchase first)
+ * - Harder-to-find sprites score higher
+ * - If a player has no trade value, suggest an unmastered sprite to level
  */
 export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
   const active = state.players.filter((p) =>
@@ -39,6 +45,7 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
     score: number
     needsRepurchase: boolean
     summonCost: number
+    needKind: NeedKind
   }
 
   const edges: Edge[] = []
@@ -49,14 +56,26 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
       for (const sprite of SPRITES) {
         const g = getPlayerSprite(giver, sprite.id)
         const r = getPlayerSprite(receiver, sprite.id)
-        if (r.status !== 'none') continue // receiver already has it
-        if (g.status === 'none') continue // giver never collected
+
+        // Receiver needs: missing (primary) or lost (secondary restore)
+        let needKind: NeedKind | null = null
+        if (r.status === 'none') needKind = 'missing'
+        else if (r.status === 'lost') needKind = 'lost'
+        if (!needKind) continue
+
+        // Giver must have the sprite in collection (ready or lost-but-can-repurchase)
+        if (g.status === 'none') continue
+
+        // Don't "restore" to someone if the giver would only give away their last
+        // ready copy and also has lost — still allowed; scoring handles preference.
 
         const hard = difficultyScore(sprite)
         const availableBonus = g.status === 'available' ? 40 : 0
-        // Prefer filling gaps for receivers who are missing rare stuff
+        // Primary: fill never-collected gaps. Secondary: restore lost.
+        const needBonus = needKind === 'missing' ? 35 : 12
         const score =
           hard +
+          needBonus +
           availableBonus +
           (g.mastered ? 2 : 0) -
           (g.status === 'lost' ? 15 : 0)
@@ -68,19 +87,17 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
           score,
           needsRepurchase: g.status === 'lost',
           summonCost: sprite.summonCost,
+          needKind,
         })
       }
     }
   }
 
-  // Highest score first
   edges.sort((a, b) => b.score - a.score)
 
   const assignments: BringAssignment[] = []
   const bringCount = new Map<string, number>()
-  /** spriteId -> set of receiver ids already covered */
   const coveredNeed = new Set<string>()
-  /** giverId+spriteId already used */
   const usedGift = new Set<string>()
 
   for (const e of edges) {
@@ -93,9 +110,6 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
     const giftKey = `${e.giver.id}::${e.spriteId}`
     if (usedGift.has(giftKey)) continue
 
-    // Prefer available gifts first pass — skip lost if available alternative exists later?
-    // Score already penalizes lost; still allow if high difficulty.
-
     const sprite = SPRITE_BY_ID[e.spriteId]
     if (!sprite) continue
 
@@ -104,6 +118,12 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
     bringCount.set(e.giver.id, brought + 1)
 
     const kind = e.needsRepurchase ? 'repurchase' : 'gift'
+    const needPhrase =
+      e.needKind === 'missing'
+        ? 'missing from collection'
+        : 'lost — restore without their dust'
+    const difficulty = difficultyLabel(e.score)
+
     assignments.push({
       kind,
       bringerId: e.giver.id,
@@ -113,15 +133,15 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
       recipientId: e.receiver.id,
       recipientName: e.receiver.name,
       reason: e.needsRepurchase
-        ? `Repurchase (${e.summonCost.toLocaleString()} dust) — ${difficultyLabel(e.score)} for ${e.receiver.name}`
-        : `Trade to ${e.receiver.name} — ${difficultyLabel(e.score)}`,
+        ? `Repurchase (${e.summonCost.toLocaleString()} dust) → ${e.receiver.name} (${needPhrase}, ${difficulty})`
+        : `Trade to ${e.receiver.name} — ${needPhrase} (${difficulty})`,
       score: e.score,
       needsRepurchase: e.needsRepurchase,
       summonCost: e.needsRepurchase ? e.summonCost : undefined,
     })
   }
 
-  // Mastery / self-level fallback for players with no (or few) trade assignments
+  // Mastery fallback when a player has nothing useful to gift
   for (const player of active) {
     const count = bringCount.get(player.id) ?? 0
     if (count > 0) continue
@@ -131,7 +151,6 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
       assignments.push(mastery)
       bringCount.set(player.id, 1)
     } else {
-      // Nothing useful in catalog — suggest hunting in world
       assignments.push({
         kind: 'mastery',
         bringerId: player.id,
@@ -146,21 +165,19 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
     }
   }
 
-  // Also top up remaining slots with mastery targets for partial traders
+  // Optional second slot: mastery if they only have one trade
   for (const player of active) {
-    let count = bringCount.get(player.id) ?? 0
-    while (count < 1) {
-      // already handled above
-      break
-    }
+    const count = bringCount.get(player.id) ?? 0
     if (count >= MAX_BRING_PER_PLAYER) continue
-    // Optional: fill one mastery if they only have 1 trade
     if (count >= 1 && count < 2) {
-      const mastery = pickMasterySprite(player, new Set(
-        assignments
-          .filter((a) => a.bringerId === player.id)
-          .map((a) => a.spriteId),
-      ))
+      const mastery = pickMasterySprite(
+        player,
+        new Set(
+          assignments
+            .filter((a) => a.bringerId === player.id)
+            .map((a) => a.spriteId),
+        ),
+      )
       if (mastery) {
         assignments.push(mastery)
         bringCount.set(player.id, count + 1)
@@ -168,7 +185,6 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
     }
   }
 
-  // Sort for display: by bringer name, then score
   assignments.sort((a, b) => {
     if (a.bringerName !== b.bringerName)
       return a.bringerName.localeCompare(b.bringerName)
@@ -178,12 +194,18 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
   const gifts = assignments.filter((a) => a.kind === 'gift').length
   const repurchases = assignments.filter((a) => a.kind === 'repurchase').length
   const mastery = assignments.filter((a) => a.kind === 'mastery').length
+  const restores = assignments.filter((a) =>
+    a.reason.includes('lost — restore'),
+  ).length
+  const missingFills = assignments.filter((a) =>
+    a.reason.includes('missing from collection'),
+  ).length
 
   return {
     generatedAt: new Date().toISOString(),
     activePlayerIds: active.map((p) => p.id),
     assignments,
-    summary: `${active.length} players · ${gifts} gift(s) · ${repurchases} repurchase(s) · ${mastery} mastery grind(s)`,
+    summary: `${active.length} players · ${missingFills} missing fill(s) · ${restores} restore(s) · ${gifts} gift(s) · ${repurchases} repurchase(s) · ${mastery} mastery`,
   }
 }
 
@@ -191,7 +213,6 @@ function pickMasterySprite(
   player: Player,
   exclude: Set<string> = new Set(),
 ): BringAssignment | null {
-  // Prefer available unmastered; then lost unmastered (cheapest first)
   const candidates = SPRITES.map((s) => {
     const st = getPlayerSprite(player, s.id)
     if (exclude.has(s.id)) return null
@@ -206,15 +227,12 @@ function pickMasterySprite(
   if (candidates.length === 0) return null
 
   candidates.sort((a, b) => {
-    // available first
     if (a.st.status !== b.st.status) {
       return a.st.status === 'available' ? -1 : 1
     }
-    // cheaper repurchase if lost
     if (a.st.status === 'lost') {
       return a.sprite.summonCost - b.sprite.summonCost
     }
-    // slightly prefer harder ones still (mastery rewards)
     return difficultyScore(b.sprite) - difficultyScore(a.sprite)
   })
 
