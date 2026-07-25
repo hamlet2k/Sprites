@@ -484,6 +484,120 @@ button {
   font-size: 0.9rem;
 }
 
+.suggest-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.round-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.round-block {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  padding: 12px;
+}
+
+.round-block.round-done {
+  opacity: 0.72;
+}
+
+.round-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.round-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.round-title h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.round-sub {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.round-num {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  font-weight: 800;
+  background: var(--accent);
+  color: #fff;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.round-done .round-num {
+  background: #3a4255;
+}
+
+.round-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.assignment.need-missing {
+  border-left: 4px solid var(--available);
+  background: color-mix(in srgb, var(--available) 10%, var(--bg-card));
+}
+
+.assignment.need-lost {
+  border-left: 4px solid var(--lost);
+  background: color-mix(in srgb, var(--lost) 12%, var(--bg-card));
+}
+
+.assignment.need-mastery {
+  border-left: 4px solid var(--mastered);
+}
+
+.kind-tag.need-missing-tag {
+  background: color-mix(in srgb, var(--available) 22%, transparent);
+  color: var(--available);
+}
+
+.kind-tag.need-lost-tag {
+  background: color-mix(in srgb, var(--lost) 22%, transparent);
+  color: var(--lost);
+}
+
+.bringer-label {
+  font-weight: 800;
+}
+
 .active-select {
   display: flex;
   flex-wrap: wrap;
@@ -516,23 +630,14 @@ button {
 }
 
 .assignment {
+  position: relative;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--bg-card);
-  padding: 10px 12px;
+  padding: 10px 12px 10px 14px;
   display: flex;
   gap: 12px;
   align-items: flex-start;
-}
-
-.assignment.gift {
-  border-left: 4px solid var(--available);
-}
-.assignment.repurchase {
-  border-left: 4px solid var(--lost);
-}
-.assignment.mastery {
-  border-left: 4px solid var(--mastered);
 }
 
 .assignment-art {

@@ -1,29 +1,26 @@
 import { difficultyScore, SPRITE_BY_ID, SPRITES } from '../data/sprites'
 import type {
   BringAssignment,
+  NeedKind,
   Player,
+  PlayerSpriteState,
   SuggestionPlan,
   SquadState,
 } from '../types'
 import { getPlayerSprite } from './storage'
 
 /** Max sprites to recommend a player bring (equip + inventory). */
-const MAX_BRING_PER_PLAYER = 4
-
-/** How badly the receiver needs this sprite. */
-type NeedKind = 'missing' | 'lost'
+export const MAX_BRING_PER_PLAYER = 4
 
 /**
  * Build a bring/gift plan for the active squad.
  *
- * Receiver needs (priority order):
- * 1. **Missing** — never collected (primary)
- * 2. **Lost** — collected before but needs dust / a trade to restore (secondary)
+ * Receiver needs (strict priority):
+ * 1. **Missing** — never collected — always before any lost restore
+ * 2. **Lost** — secondary restore via trade
  *
- * Giver supply:
- * - Prefer **available** (ready, no dust) over **lost** (repurchase first)
- * - Harder-to-find sprites score higher
- * - If a player has no trade value, suggest an unmastered sprite to level
+ * Within each need tier: harder-to-find first; prefer ready givers over repurchase.
+ * Each bringer's trades are numbered round 1–4 (bring order / match rounds).
  */
 export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
   const active = state.players.filter((p) =>
@@ -57,25 +54,20 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
         const g = getPlayerSprite(giver, sprite.id)
         const r = getPlayerSprite(receiver, sprite.id)
 
-        // Receiver needs: missing (primary) or lost (secondary restore)
         let needKind: NeedKind | null = null
         if (r.status === 'none') needKind = 'missing'
         else if (r.status === 'lost') needKind = 'lost'
         if (!needKind) continue
-
-        // Giver must have the sprite in collection (ready or lost-but-can-repurchase)
         if (g.status === 'none') continue
-
-        // Don't "restore" to someone if the giver would only give away their last
-        // ready copy and also has lost — still allowed; scoring handles preference.
 
         const hard = difficultyScore(sprite)
         const availableBonus = g.status === 'available' ? 40 : 0
-        // Primary: fill never-collected gaps. Secondary: restore lost.
-        const needBonus = needKind === 'missing' ? 35 : 12
+        // Missing always outranks lost restores (even ultra-rare lost).
+        // difficultyScore tops out well under ~150, so 1000 is a hard floor.
+        const needTier = needKind === 'missing' ? 1000 : 0
         const score =
+          needTier +
           hard +
-          needBonus +
           availableBonus +
           (g.mastered ? 2 : 0) -
           (g.status === 'lost' ? 15 : 0)
@@ -93,7 +85,13 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
     }
   }
 
-  edges.sort((a, b) => b.score - a.score)
+  // Missing first, then score within tier
+  edges.sort((a, b) => {
+    if (a.needKind !== b.needKind) {
+      return a.needKind === 'missing' ? -1 : 1
+    }
+    return b.score - a.score
+  })
 
   const assignments: BringAssignment[] = []
   const bringCount = new Map<string, number>()
@@ -122,7 +120,7 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
       e.needKind === 'missing'
         ? 'missing from collection'
         : 'lost — restore without their dust'
-    const difficulty = difficultyLabel(e.score)
+    const difficulty = difficultyLabel(hardScore(e.score, e.needKind))
 
     assignments.push({
       kind,
@@ -134,6 +132,8 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
       summonCost: sprite.summonCost,
       recipientId: e.receiver.id,
       recipientName: e.receiver.name,
+      needKind: e.needKind,
+      round: 0, // filled below
       reason: e.needsRepurchase
         ? `Repurchase first (${e.summonCost.toLocaleString()} dust) → ${e.receiver.name} (${needPhrase}, ${difficulty})`
         : `Trade to ${e.receiver.name} — ${needPhrase} (${difficulty})`,
@@ -160,6 +160,8 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
         spriteName: 'Hunt freely',
         imageUrl: undefined,
         summonCost: undefined,
+        needKind: undefined,
+        round: 0,
         reason:
           'No trade or mastery targets — open chests / trade mid-game for new finds',
         score: 0,
@@ -188,7 +190,11 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
     }
   }
 
+  // Assign rounds 1–4 per bringer (priority order already encoded in score)
+  assignRounds(assignments)
+
   assignments.sort((a, b) => {
+    if (a.round !== b.round) return a.round - b.round
     if (a.bringerName !== b.bringerName)
       return a.bringerName.localeCompare(b.bringerName)
     return b.score - a.score
@@ -197,12 +203,8 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
   const gifts = assignments.filter((a) => a.kind === 'gift').length
   const repurchases = assignments.filter((a) => a.kind === 'repurchase').length
   const mastery = assignments.filter((a) => a.kind === 'mastery').length
-  const restores = assignments.filter((a) =>
-    a.reason.includes('lost — restore'),
-  ).length
-  const missingFills = assignments.filter((a) =>
-    a.reason.includes('missing from collection'),
-  ).length
+  const restores = assignments.filter((a) => a.needKind === 'lost').length
+  const missingFills = assignments.filter((a) => a.needKind === 'missing').length
 
   return {
     generatedAt: new Date().toISOString(),
@@ -210,6 +212,75 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
     assignments,
     summary: `${active.length} players · ${missingFills} missing fill(s) · ${restores} restore(s) · ${gifts} gift(s) · ${repurchases} repurchase(s) · ${mastery} mastery`,
   }
+}
+
+function assignRounds(assignments: BringAssignment[]): void {
+  const byBringer = new Map<string, BringAssignment[]>()
+  for (const a of assignments) {
+    const list = byBringer.get(a.bringerId) ?? []
+    list.push(a)
+    byBringer.set(a.bringerId, list)
+  }
+  for (const list of byBringer.values()) {
+    // Missing trades first, then by score, mastery last
+    list.sort((a, b) => {
+      const aMiss = a.needKind === 'missing' ? 0 : a.needKind === 'lost' ? 1 : 2
+      const bMiss = b.needKind === 'missing' ? 0 : b.needKind === 'lost' ? 1 : 2
+      if (aMiss !== bMiss) return aMiss - bMiss
+      return b.score - a.score
+    })
+    list.forEach((a, i) => {
+      a.round = Math.min(i + 1, MAX_BRING_PER_PLAYER)
+    })
+  }
+}
+
+/**
+ * Apply confirmed exchanges for one round:
+ * - Recipient gains the sprite as **available**
+ * - Bringer marks the sprite as **lost**
+ * Mastery-only rows are skipped.
+ */
+export function applyExchangeRound(
+  state: SquadState,
+  roundAssignments: BringAssignment[],
+): SquadState {
+  const players = state.players.map((p) => ({
+    ...p,
+    sprites: { ...p.sprites },
+  }))
+
+  const byId = Object.fromEntries(players.map((p) => [p.id, p]))
+
+  for (const a of roundAssignments) {
+    if (!a.spriteId || !a.recipientId) continue
+    if (a.kind === 'mastery') continue
+
+    const bringer = byId[a.bringerId]
+    const recipient = byId[a.recipientId]
+    if (!bringer || !recipient) continue
+
+    const bringerPrev = getPlayerSprite(bringer, a.spriteId)
+    bringer.sprites[a.spriteId] = {
+      status: 'lost',
+      mastered: bringerPrev.mastered,
+    }
+
+    const recipientPrev = getPlayerSprite(recipient, a.spriteId)
+    recipient.sprites[a.spriteId] = {
+      status: 'available',
+      mastered: recipientPrev.mastered,
+    }
+  }
+
+  return {
+    ...state,
+    players,
+  }
+}
+
+export function isExchangeAssignment(a: BringAssignment): boolean {
+  return Boolean(a.spriteId && a.recipientId && a.kind !== 'mastery')
 }
 
 function pickMasterySprite(
@@ -224,7 +295,7 @@ function pickMasterySprite(
     return { sprite: s, st }
   }).filter(Boolean) as {
     sprite: (typeof SPRITES)[number]
-    st: ReturnType<typeof getPlayerSprite>
+    st: PlayerSpriteState
   }[]
 
   if (candidates.length === 0) return null
@@ -249,12 +320,18 @@ function pickMasterySprite(
     spriteName: best.sprite.name,
     imageUrl: best.sprite.imageUrl,
     summonCost: best.sprite.summonCost,
+    needKind: undefined,
+    round: 0,
     reason: needsRepurchase
       ? `No trades — repurchase & level for mastery (${best.sprite.summonCost.toLocaleString()} dust)`
       : 'No valuable trades — bring to level toward mastery',
     score: difficultyScore(best.sprite),
     needsRepurchase,
   }
+}
+
+function hardScore(score: number, needKind: NeedKind): number {
+  return needKind === 'missing' ? score - 1000 : score
 }
 
 function difficultyLabel(score: number): string {

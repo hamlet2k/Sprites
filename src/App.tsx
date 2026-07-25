@@ -31,7 +31,12 @@ import {
   saveRoomCode,
   saveSquad,
 } from './lib/storage'
-import { buildSuggestionPlan } from './lib/suggest'
+import {
+  applyExchangeRound,
+  buildSuggestionPlan,
+  isExchangeAssignment,
+  MAX_BRING_PER_PLAYER,
+} from './lib/suggest'
 import type { Player, SuggestionPlan, SquadState } from './types'
 import './App.css'
 
@@ -49,6 +54,8 @@ export default function App() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [sortMode, setSortMode] = useState<SortMode>('type')
   const [plan, setPlan] = useState<SuggestionPlan | null>(null)
+  /** Rounds already confirmed this plan (1–4). */
+  const [confirmedRounds, setConfirmedRounds] = useState<number[]>([])
 
   const [roomCode, setRoomCode] = useState<string | null>(() => roomFromUrl() ?? loadRoomCode())
   const [joinInput, setJoinInput] = useState('')
@@ -292,7 +299,30 @@ export default function App() {
   function runSuggest() {
     const next = buildSuggestionPlan(state)
     setPlan(next)
+    setConfirmedRounds([])
     setTab('suggest')
+  }
+
+  function confirmRound(round: number) {
+    if (!plan || confirmedRounds.includes(round)) return
+    const roundItems = plan.assignments.filter(
+      (a) => a.round === round && isExchangeAssignment(a),
+    )
+    if (roundItems.length === 0) {
+      setConfirmedRounds((r) => [...r, round])
+      return
+    }
+    const names = roundItems
+      .map((a) => `${a.bringerName}: ${a.spriteName} → ${a.recipientName}`)
+      .join('\n')
+    const ok = window.confirm(
+      `Confirm Round ${round} exchanges?\n\n${names}\n\n` +
+        `Recipients get Ready; bringers mark those sprites Lost.`,
+    )
+    if (!ok) return
+
+    setState((s) => applyExchangeRound(s, roundItems))
+    setConfirmedRounds((r) => [...r, round])
   }
 
   function addPlayer() {
@@ -667,75 +697,156 @@ export default function App() {
           {plan && (
             <>
               <div className="suggest-summary">{plan.summary}</div>
+              <p className="suggest-hint">
+                Rounds are each player&apos;s 1st–4th bring (priority order). Missing fills always
+                beat lost restores. Confirm a round after those trades land in-game.
+              </p>
 
               {plan.assignments.length === 0 ? (
                 <p className="empty-hint">
                   No assignments yet. Mark collections and select players.
                 </p>
               ) : (
-                <div className="assignment-list">
-                  {groupByBringer(plan, state.players).map((group) => (
-                    <div key={group.player.id} className="by-player">
-                      <h3>
-                        <span className="dot" style={{ background: group.player.color }} />
-                        {group.player.name} brings
-                      </h3>
-                      {group.items.map((a, i) => (
-                        <div key={`${a.spriteId}-${i}`} className={`assignment ${a.kind}`}>
-                          {a.imageUrl ? (
-                            <div className="assignment-art" aria-hidden>
-                              <img
-                                src={a.imageUrl}
-                                alt=""
-                                loading="lazy"
-                                decoding="async"
-                                draggable={false}
-                              />
-                            </div>
-                          ) : (
-                            <div className="assignment-art assignment-art-empty" aria-hidden>
-                              ?
-                            </div>
-                          )}
-                          <div className="assignment-body">
-                            <span className={`kind-tag ${a.kind}`}>
-                              {a.kind === 'gift'
-                                ? 'Gift'
-                                : a.kind === 'repurchase'
-                                  ? 'Repurchase + gift'
-                                  : 'Mastery'}
-                            </span>
-                            <div className="assignment-main">
-                              {a.spriteName || '—'}
-                              {a.recipientName && (
-                                <>
-                                  <span className="arrow">→</span>
-                                  {a.recipientName}
-                                </>
-                              )}
-                            </div>
-                            {typeof a.summonCost === 'number' && (
-                              <div
-                                className={`dust-cost ${a.needsRepurchase ? 'dust-needed' : ''}`}
-                                title={
-                                  a.needsRepurchase
-                                    ? 'Bringer must re-summon with dust before trading'
-                                    : 'Sprite Dust cost if lost / re-summon'
-                                }
-                              >
-                                <span className="dust-icon" aria-hidden>
-                                  ✦
-                                </span>
-                                {a.summonCost.toLocaleString()} dust
-                                {a.needsRepurchase ? ' (bringer pays)' : ''}
+                <div className="round-list">
+                  {Array.from({ length: MAX_BRING_PER_PLAYER }, (_, i) => i + 1)
+                    .filter((round) => plan.assignments.some((a) => a.round === round))
+                    .map((round) => {
+                      const items = plan.assignments.filter((a) => a.round === round)
+                      const exchanges = items.filter(isExchangeAssignment)
+                      const done = confirmedRounds.includes(round)
+                      return (
+                        <section key={round} className={`round-block ${done ? 'round-done' : ''}`}>
+                          <div className="round-header">
+                            <div className="round-title">
+                              <span className="round-num" aria-hidden>
+                                {round}
+                              </span>
+                              <div>
+                                <h3>Round {round}</h3>
+                                <p className="round-sub">
+                                  {exchanges.length} exchange
+                                  {exchanges.length === 1 ? '' : 's'}
+                                  {items.length > exchanges.length
+                                    ? ` · ${items.length - exchanges.length} mastery`
+                                    : ''}
+                                </p>
                               </div>
-                            )}
-                            <div className="assignment-reason">{a.reason}</div>
+                            </div>
+                            <button
+                              type="button"
+                              className={`btn ${done ? '' : 'btn-primary'}`}
+                              disabled={done || exchanges.length === 0}
+                              onClick={() => confirmRound(round)}
+                            >
+                              {done
+                                ? 'Confirmed'
+                                : exchanges.length === 0
+                                  ? 'No exchanges'
+                                  : 'Confirm exchanges'}
+                            </button>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
+
+                          <div className="assignment-list">
+                            {items.map((a, i) => {
+                              const needClass =
+                                a.needKind === 'missing'
+                                  ? 'need-missing'
+                                  : a.needKind === 'lost'
+                                    ? 'need-lost'
+                                    : 'need-mastery'
+                              const bringer = state.players.find((p) => p.id === a.bringerId)
+                              return (
+                                <div
+                                  key={`${round}-${a.bringerId}-${a.spriteId}-${i}`}
+                                  className={`assignment ${a.kind} ${needClass}`}
+                                >
+                                  <span className="round-badge" title={`Round ${round}`}>
+                                    {round}
+                                  </span>
+                                  {a.imageUrl ? (
+                                    <div className="assignment-art" aria-hidden>
+                                      <img
+                                        src={a.imageUrl}
+                                        alt=""
+                                        loading="lazy"
+                                        decoding="async"
+                                        draggable={false}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div
+                                      className="assignment-art assignment-art-empty"
+                                      aria-hidden
+                                    >
+                                      ?
+                                    </div>
+                                  )}
+                                  <div className="assignment-body">
+                                    <div className="badge-row">
+                                      {a.needKind === 'missing' && (
+                                        <span className="kind-tag need-missing-tag">
+                                          New (missing)
+                                        </span>
+                                      )}
+                                      {a.needKind === 'lost' && (
+                                        <span className="kind-tag need-lost-tag">
+                                          Restore lost
+                                        </span>
+                                      )}
+                                      {a.kind === 'mastery' && (
+                                        <span className="kind-tag mastery">Mastery</span>
+                                      )}
+                                      {a.kind === 'repurchase' && (
+                                        <span className="kind-tag repurchase">
+                                          Bringer repurchase
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="assignment-main">
+                                      <span
+                                        className="bringer-label"
+                                        style={
+                                          bringer
+                                            ? { color: bringer.color }
+                                            : undefined
+                                        }
+                                      >
+                                        {a.bringerName}
+                                      </span>
+                                      <span className="arrow">brings</span>
+                                      {a.spriteName || '—'}
+                                      {a.recipientName && (
+                                        <>
+                                          <span className="arrow">→</span>
+                                          {a.recipientName}
+                                        </>
+                                      )}
+                                    </div>
+                                    {typeof a.summonCost === 'number' && (
+                                      <div
+                                        className={`dust-cost ${a.needsRepurchase ? 'dust-needed' : ''}`}
+                                        title={
+                                          a.needsRepurchase
+                                            ? 'Bringer must re-summon with dust before trading'
+                                            : 'Sprite Dust cost if lost / re-summon'
+                                        }
+                                      >
+                                        <span className="dust-icon" aria-hidden>
+                                          ✦
+                                        </span>
+                                        {a.summonCost.toLocaleString()} dust
+                                        {a.needsRepurchase ? ' (bringer pays)' : ''}
+                                      </div>
+                                    )}
+                                    <div className="assignment-reason">{a.reason}</div>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </section>
+                      )
+                    })}
                 </div>
               )}
             </>
@@ -891,18 +1002,17 @@ export default function App() {
           <h3 style={{ marginTop: 16 }}>Suggestion rules</h3>
           <ul>
             <li>
-              <strong>Primary need:</strong> sprites a teammate is still missing from their
-              collection.
+              <strong>Primary need:</strong> missing (never collected) always before any lost
+              restore — even ultra-rares that only restore a lost copy.
             </li>
             <li>
-              <strong>Secondary need:</strong> sprites a teammate has <em>lost</em> (restore via
-              trade so they may avoid dust).
+              <strong>Secondary need:</strong> lost restores (trade so they may avoid dust).
             </li>
-            <li>Prioritizes hard-to-find sprites (Mythics, Galaxy, Holofoil, Cube, etc.).</li>
-            <li>Prefers <em>Ready</em> inventory over lost (repurchase) copies on the bringer.</li>
             <li>
-              Shows clearly: <strong>who brings which sprite → who receives it</strong>.
+              <strong>Rounds 1–4:</strong> each player&apos;s bring priority; confirm a round after
+              those trades to update Ready/Lost automatically.
             </li>
+            <li>Prefers <em>Ready</em> inventory over repurchase on the bringer.</li>
             <li>
               If someone has nothing useful to gift, they bring an unmastered sprite to level.
             </li>
@@ -941,13 +1051,4 @@ function syncLabel(status: SyncStatus, roomCode: string): string {
   }
 }
 
-function groupByBringer(plan: SuggestionPlan, players: Player[]) {
-  const map = new Map<string, { player: Player; items: typeof plan.assignments }>()
-  for (const a of plan.assignments) {
-    const player = players.find((p) => p.id === a.bringerId)
-    if (!player) continue
-    if (!map.has(player.id)) map.set(player.id, { player, items: [] })
-    map.get(player.id)!.items.push(a)
-  }
-  return [...map.values()]
-}
+

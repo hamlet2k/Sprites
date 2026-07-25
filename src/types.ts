@@ -30,6 +30,9 @@ export interface SquadState {
 
 export type SuggestionKind = 'gift' | 'repurchase' | 'mastery'
 
+/** Why the recipient needs this sprite. */
+export type NeedKind = 'missing' | 'lost'
+
 export interface BringAssignment {
   kind: SuggestionKind
   bringerId: string
@@ -43,6 +46,13 @@ export interface BringAssignment {
   /** Recipient when kind is gift or repurchase-for-trade */
   recipientId?: string
   recipientName?: string
+  /** Recipient need: never collected vs lost restore */
+  needKind?: NeedKind
+  /**
+   * Bring slot / match round for this player (1–4).
+   * Round 1 = first priority trade for each player, etc.
+   */
+  round: number
   /** Why this was chosen */
   reason: string
   score: number
