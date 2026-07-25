@@ -25,13 +25,12 @@ type Edge = {
 /**
  * Build a bring/gift plan for the active squad.
  *
- * Fairness (per round 1–4):
- * - Prefer that **each player both gives and receives** one sprite
- * - Missing fills always before lost restores
- * - Within that: harder-to-find + ready (no dust) first
- *
- * Only if a balanced exchange is impossible do we leave someone without a receive
- * or allow an unbalanced gift.
+ * Priority (strict tiers):
+ * 1. Receiver **missing** before receiver **lost** restore
+ * 2. Giver **Ready** (no dust) before giver **Lost** (repurchase) — never gift a
+ *    lost copy while the same giver still has a Ready gift for someone's need
+ * 3. Fair 1:1 give+receive per round when possible
+ * 4. Harder-to-find sprites within the same tier
  */
 export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
   const active = state.players.filter((p) =>
@@ -55,8 +54,10 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
     const giveThisRound = new Set<string>()
     const receiveThisRound = new Set<string>()
 
-    const available = () =>
+    const openEdges = (readyOnly: boolean) =>
       edges.filter((e) => {
+        if (readyOnly && e.needsRepurchase) return false
+        if (!readyOnly && !e.needsRepurchase) return false
         if (usedGift.has(`${e.giver.id}::${e.spriteId}`)) return false
         if (coveredNeed.has(`${e.receiver.id}::${e.spriteId}`)) return false
         if (giveThisRound.has(e.giver.id)) return false
@@ -65,8 +66,13 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
 
     const sortFair = (list: Edge[], preferUnreceived: boolean) =>
       [...list].sort((a, b) => {
+        // 1) Receiver missing before lost-restore
         if (a.needKind !== b.needKind) {
           return a.needKind === 'missing' ? -1 : 1
+        }
+        // 2) Ready gifts before repurchase (belt-and-suspenders with pass order)
+        if (a.needsRepurchase !== b.needsRepurchase) {
+          return a.needsRepurchase ? 1 : -1
         }
         if (preferUnreceived) {
           const aR = receiveThisRound.has(a.receiver.id) ? 1 : 0
@@ -76,32 +82,35 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
         return b.score - a.score
       })
 
-    // Pass A: balanced 1-give + 1-receive (nobody who already received this round)
-    for (const e of sortFair(available(), true)) {
-      if (giveThisRound.has(e.giver.id)) continue
-      if (receiveThisRound.has(e.receiver.id)) continue
-      takeEdge(e, round, assignments, usedGift, coveredNeed, giveThisRound, receiveThisRound)
+    const runBalanced = (list: Edge[]) => {
+      for (const e of sortFair(list, true)) {
+        if (giveThisRound.has(e.giver.id)) continue
+        if (receiveThisRound.has(e.receiver.id)) continue
+        takeEdge(e, round, assignments, usedGift, coveredNeed, giveThisRound, receiveThisRound)
+      }
     }
 
-    // Pass B: players who still need to give → only to players who have not received yet
-    for (const e of sortFair(available(), true)) {
-      if (giveThisRound.has(e.giver.id)) continue
-      if (receiveThisRound.has(e.receiver.id)) continue
-      takeEdge(e, round, assignments, usedGift, coveredNeed, giveThisRound, receiveThisRound)
+    const runUnbalanced = (list: Edge[]) => {
+      for (const e of sortFair(list, false)) {
+        if (giveThisRound.has(e.giver.id)) continue
+        takeEdge(e, round, assignments, usedGift, coveredNeed, giveThisRound, receiveThisRound)
+      }
     }
 
-    // Pass C: remaining givers fill anyone (unbalanced, last resort)
-    for (const e of sortFair(available(), false)) {
-      if (giveThisRound.has(e.giver.id)) continue
-      takeEdge(e, round, assignments, usedGift, coveredNeed, giveThisRound, receiveThisRound)
-    }
+    // --- Ready inventory first (no dust) ---
+    runBalanced(openEdges(true))
+    runBalanced(openEdges(true))
+    runUnbalanced(openEdges(true))
 
-    // Pass D: mastery / hunt for active players not bringing this round
+    // --- Only then allow lost / repurchase gifts ---
+    runBalanced(openEdges(false))
+    runBalanced(openEdges(false))
+    runUnbalanced(openEdges(false))
+
+    // Mastery / hunt for active players not bringing this round
     for (const player of active) {
       if (giveThisRound.has(player.id)) continue
-      // Only add mastery on early rounds if they have zero trades overall so far
       const alreadyBringing = assignments.some((a) => a.bringerId === player.id)
-      if (alreadyBringing && round > 1) continue
       if (alreadyBringing) continue
 
       const mastery = pickMasterySprite(
@@ -172,14 +181,16 @@ function buildEdges(active: Player[]): Edge[] {
         if (g.status === 'none') continue
 
         const hard = difficultyScore(sprite)
-        const availableBonus = g.status === 'available' ? 40 : 0
-        const needTier = needKind === 'missing' ? 1000 : 0
+        // Hard tiers so rarity never overrides Ready vs Lost or Missing vs restore.
+        // difficultyScore tops out well under ~200.
+        const needTier = needKind === 'missing' ? 100_000 : 0
+        const readyTier = g.status === 'available' ? 10_000 : 0
         const score =
           needTier +
+          readyTier +
           hard +
-          availableBonus +
           (g.mastered ? 2 : 0) -
-          (g.status === 'lost' ? 15 : 0)
+          (g.status === 'lost' ? 50 : 0)
 
         edges.push({
           giver,
@@ -380,7 +391,11 @@ function pickMasterySprite(
 }
 
 function hardScore(score: number, needKind: NeedKind): number {
-  return needKind === 'missing' ? score - 1000 : score
+  // Strip priority tiers for human-readable rarity label
+  let s = score
+  if (needKind === 'missing') s -= 100_000
+  if (s >= 10_000) s -= 10_000
+  return s
 }
 
 function difficultyLabel(score: number): string {
