@@ -36,6 +36,10 @@ export interface BringAssignment {
   bringerName: string
   spriteId: string
   spriteName: string
+  /** Icon URL for the sprite (empty when no specific sprite). */
+  imageUrl?: string
+  /** Sprite Dust re-summon cost for this sprite. */
+  summonCost?: number
   /** Recipient when kind is gift or repurchase-for-trade */
   recipientId?: string
   recipientName?: string
@@ -43,7 +47,6 @@ export interface BringAssignment {
   reason: string
   score: number
   needsRepurchase: boolean
-  summonCost?: number
 }
 
 export interface SuggestionPlan {

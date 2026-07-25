@@ -130,14 +130,15 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
       bringerName: e.giver.name,
       spriteId: e.spriteId,
       spriteName: sprite.name,
+      imageUrl: sprite.imageUrl,
+      summonCost: sprite.summonCost,
       recipientId: e.receiver.id,
       recipientName: e.receiver.name,
       reason: e.needsRepurchase
-        ? `Repurchase (${e.summonCost.toLocaleString()} dust) → ${e.receiver.name} (${needPhrase}, ${difficulty})`
+        ? `Repurchase first (${e.summonCost.toLocaleString()} dust) → ${e.receiver.name} (${needPhrase}, ${difficulty})`
         : `Trade to ${e.receiver.name} — ${needPhrase} (${difficulty})`,
       score: e.score,
       needsRepurchase: e.needsRepurchase,
-      summonCost: e.needsRepurchase ? e.summonCost : undefined,
     })
   }
 
@@ -157,6 +158,8 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
         bringerName: player.name,
         spriteId: '',
         spriteName: 'Hunt freely',
+        imageUrl: undefined,
+        summonCost: undefined,
         reason:
           'No trade or mastery targets — open chests / trade mid-game for new finds',
         score: 0,
@@ -244,12 +247,13 @@ function pickMasterySprite(
     bringerName: player.name,
     spriteId: best.sprite.id,
     spriteName: best.sprite.name,
+    imageUrl: best.sprite.imageUrl,
+    summonCost: best.sprite.summonCost,
     reason: needsRepurchase
       ? `No trades — repurchase & level for mastery (${best.sprite.summonCost.toLocaleString()} dust)`
       : 'No valuable trades — bring to level toward mastery',
     score: difficultyScore(best.sprite),
     needsRepurchase,
-    summonCost: needsRepurchase ? best.sprite.summonCost : undefined,
   }
 }
 

@@ -682,23 +682,56 @@ export default function App() {
                       </h3>
                       {group.items.map((a, i) => (
                         <div key={`${a.spriteId}-${i}`} className={`assignment ${a.kind}`}>
-                          <span className={`kind-tag ${a.kind}`}>
-                            {a.kind === 'gift'
-                              ? 'Gift'
-                              : a.kind === 'repurchase'
-                                ? 'Repurchase + gift'
-                                : 'Mastery'}
-                          </span>
-                          <div className="assignment-main">
-                            {a.spriteName || '—'}
-                            {a.recipientName && (
-                              <>
-                                <span className="arrow">→</span>
-                                {a.recipientName}
-                              </>
+                          {a.imageUrl ? (
+                            <div className="assignment-art" aria-hidden>
+                              <img
+                                src={a.imageUrl}
+                                alt=""
+                                loading="lazy"
+                                decoding="async"
+                                draggable={false}
+                              />
+                            </div>
+                          ) : (
+                            <div className="assignment-art assignment-art-empty" aria-hidden>
+                              ?
+                            </div>
+                          )}
+                          <div className="assignment-body">
+                            <span className={`kind-tag ${a.kind}`}>
+                              {a.kind === 'gift'
+                                ? 'Gift'
+                                : a.kind === 'repurchase'
+                                  ? 'Repurchase + gift'
+                                  : 'Mastery'}
+                            </span>
+                            <div className="assignment-main">
+                              {a.spriteName || '—'}
+                              {a.recipientName && (
+                                <>
+                                  <span className="arrow">→</span>
+                                  {a.recipientName}
+                                </>
+                              )}
+                            </div>
+                            {typeof a.summonCost === 'number' && (
+                              <div
+                                className={`dust-cost ${a.needsRepurchase ? 'dust-needed' : ''}`}
+                                title={
+                                  a.needsRepurchase
+                                    ? 'Bringer must re-summon with dust before trading'
+                                    : 'Sprite Dust cost if lost / re-summon'
+                                }
+                              >
+                                <span className="dust-icon" aria-hidden>
+                                  ✦
+                                </span>
+                                {a.summonCost.toLocaleString()} dust
+                                {a.needsRepurchase ? ' (bringer pays)' : ''}
+                              </div>
                             )}
+                            <div className="assignment-reason">{a.reason}</div>
                           </div>
-                          <div className="assignment-reason">{a.reason}</div>
                         </div>
                       ))}
                     </div>

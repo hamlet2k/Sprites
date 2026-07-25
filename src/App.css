@@ -519,9 +519,10 @@ button {
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--bg-card);
-  padding: 12px 14px;
-  display: grid;
-  gap: 6px;
+  padding: 10px 12px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
 }
 
 .assignment.gift {
@@ -534,9 +535,44 @@ button {
   border-left: 4px solid var(--mastered);
 }
 
+.assignment-art {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.assignment-art img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.assignment-art-empty {
+  color: var(--text-muted);
+  font-weight: 800;
+  font-size: 1.25rem;
+}
+
+.assignment-body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .assignment-main {
   font-size: 1rem;
   font-weight: 700;
+  line-height: 1.3;
 }
 
 .assignment-main .arrow {
@@ -548,6 +584,10 @@ button {
 .assignment-reason {
   font-size: 0.82rem;
   color: var(--text-muted);
+}
+
+.assignment-body .dust-cost {
+  font-size: 0.78rem;
 }
 
 .kind-tag {
