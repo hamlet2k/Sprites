@@ -11,6 +11,7 @@
   --available: #3ecf8e;
   --lost: #f0a030;
   --mastered: #b48ef0;
+  --master-gold: #f5d76e;
   --none: #3a4255;
   --danger: #e85d75;
   --rare: #4aa3ff;
@@ -321,45 +322,20 @@ button {
   filter: grayscale(0.35) brightness(0.92);
 }
 
-.sprite-card.mastered::after {
-  content: '★';
+.mastered-badge {
   position: absolute;
   top: 6px;
-  right: 8px;
-  color: var(--mastered);
-  font-size: 1rem;
+  left: 8px;
   z-index: 2;
-  text-shadow: 0 0 4px #000;
+  color: var(--master-gold);
+  display: flex;
   pointer-events: none;
+  filter: drop-shadow(0 0 3px #000) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.7));
 }
 
-.missing-btn {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  z-index: 3;
-  min-width: 32px;
-  min-height: 32px;
-  padding: 0;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  line-height: 1;
-  backdrop-filter: blur(4px);
-}
-
-.missing-btn:hover {
-  border-color: var(--text-muted);
-  color: var(--text);
-}
-
-.missing-btn.on {
-  color: var(--text-muted);
-  border-color: var(--none);
-  background: color-mix(in srgb, var(--none) 35%, var(--bg-elevated));
+.mastered-badge .card-icon {
+  width: 22px;
+  height: 22px;
 }
 
 .sprite-art {
@@ -386,9 +362,6 @@ button {
   font-size: 0.82rem;
   font-weight: 700;
   line-height: 1.25;
-  padding-right: 16px;
-  /* room for missing control when layout is tight */
-  padding-left: 2px;
 }
 
 .sprite-name.name-rare {
@@ -491,20 +464,48 @@ button {
   color: var(--text-muted);
 }
 
-.master-btn {
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.card-action-btn {
   min-width: 36px;
   min-height: 32px;
+  padding: 0;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--bg-elevated);
-  font-size: 0.9rem;
   color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.card-action-btn:hover {
+  border-color: color-mix(in srgb, var(--text-muted) 55%, var(--border));
+  color: var(--text);
+}
+
+.card-action-btn .card-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.missing-btn.on {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--border));
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
 }
 
 .master-btn.on {
-  color: var(--mastered);
-  border-color: var(--mastered);
-  background: color-mix(in srgb, var(--mastered) 18%, transparent);
+  color: var(--master-gold);
+  border-color: color-mix(in srgb, var(--master-gold) 60%, var(--border));
+  background: color-mix(in srgb, var(--master-gold) 16%, transparent);
 }
 
 /* Suggestions */

@@ -5,9 +5,9 @@ Local-first Fortnite **Chapter 7 Season 3** squad tool for tracking Sprite colle
 ## Features
 
 - **Per-player collection** for all **91** known sprite combinations (21 families × live variants)
-- Quick in-game updates: tap to toggle **Ready ↔ Lost** (Missing first becomes Ready); **∅** marks Missing
+- Quick in-game updates: tap to toggle **Ready ↔ Lost** (Missing first becomes Ready); **✕** marks Missing
 - Reorder squad members on the Squad tab (Collection chips follow that order)
-- **Mastered** toggle (extracted at Level 5)
+- **Mastered** crown toggle (extracted at Level 5)
 - **Suggest** plan for the players in the next match:
   - Prioritizes hard-to-find sprites
   - Prefers **Ready** (no Sprite Dust) over **Lost** (repurchase)

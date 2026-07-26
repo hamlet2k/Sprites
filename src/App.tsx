@@ -587,7 +587,7 @@ export default function App() {
               <strong style={{ color: 'var(--lost)' }}>{stats.lost}</strong> lost
             </span>
             <span>
-              <strong style={{ color: 'var(--mastered)' }}>{stats.mastered}</strong>{' '}
+              <strong style={{ color: 'var(--master-gold)' }}>{stats.mastered}</strong>{' '}
               mastered
             </span>
           </div>
@@ -598,10 +598,10 @@ export default function App() {
               Lost
             </span>
             <span>
-              <i className="swatch" style={{ background: 'var(--none)' }} /> ∅ Missing
+              <i className="swatch" style={{ background: 'var(--none)' }} /> ✕ Missing
             </span>
             <span>
-              <i className="swatch" style={{ background: 'var(--mastered)' }} /> ★ Mastered
+              <i className="swatch" style={{ background: 'var(--master-gold)' }} /> ♛ Mastered
             </span>
           </div>
 
@@ -678,16 +678,11 @@ export default function App() {
                           : sprite.ability
                       }
                     >
-                      <button
-                        type="button"
-                        className={`missing-btn ${st.status === 'none' ? 'on' : ''}`}
-                        onClick={(e) => onMarkMissing(sprite, e)}
-                        title="Mark missing"
-                        aria-label="Mark missing"
-                        aria-pressed={st.status === 'none'}
-                      >
-                        ∅
-                      </button>
+                      {st.mastered && (
+                        <span className="mastered-badge" aria-hidden title="Mastered">
+                          <CrownIcon />
+                        </span>
+                      )}
                       <div className="sprite-art">
                         <img
                           src={sprite.imageUrl}
@@ -725,15 +720,28 @@ export default function App() {
                               ? 'Ready'
                               : 'Lost'}
                         </span>
-                        <button
-                          type="button"
-                          className={`master-btn ${st.mastered ? 'on' : ''}`}
-                          onClick={(e) => onMasterToggle(sprite, e)}
-                          title="Toggle mastered"
-                          aria-label="Toggle mastered"
-                        >
-                          ★
-                        </button>
+                        <div className="card-actions">
+                          <button
+                            type="button"
+                            className={`card-action-btn missing-btn ${st.status === 'none' ? 'on' : ''}`}
+                            onClick={(e) => onMarkMissing(sprite, e)}
+                            title="Mark missing"
+                            aria-label="Mark missing"
+                            aria-pressed={st.status === 'none'}
+                          >
+                            <DeleteIcon />
+                          </button>
+                          <button
+                            type="button"
+                            className={`card-action-btn master-btn ${st.mastered ? 'on' : ''}`}
+                            onClick={(e) => onMasterToggle(sprite, e)}
+                            title="Toggle mastered"
+                            aria-label="Toggle mastered"
+                            aria-pressed={st.mastered}
+                          >
+                            <CrownIcon />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )
@@ -1077,14 +1085,14 @@ export default function App() {
               <em>Ready ↔ Lost</em> (Missing first becomes Ready).
             </li>
             <li>
-              Tap <strong>∅</strong> on a card to mark it <strong>Missing</strong>.
+              Tap the <strong>✕</strong> button on a card to mark it <strong>Missing</strong>.
             </li>
             <li>
               <strong>Ready</strong> = can bring without Sprite Dust. <strong>Lost</strong> =
               needs repurchase before bringing.
             </li>
             <li>
-              Tap <strong>★</strong> when a sprite is mastered (extracted at Level 5).
+              Tap the <strong>crown</strong> when a sprite is mastered (extracted at Level 5).
             </li>
             <li>
               <strong>Squad</strong> — use ↑ / ↓ to reorder players; Collection chips follow that
@@ -1163,6 +1171,55 @@ function syncLabel(status: SyncStatus, roomCode: string): string {
     default:
       return roomCode
   }
+}
+
+/** Plain 3-point crown for mastery. */
+function CrownIcon() {
+  return (
+    <svg
+      className="card-icon"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      aria-hidden
+      focusable="false"
+    >
+      <path
+        fill="currentColor"
+        d="M3 18h18v2H3v-2zm1-3.5L2.5 7.2 8 11l4-6.5 4 6.5 5.5-3.8L20 14.5H4z"
+      />
+    </svg>
+  )
+}
+
+/** Crossed circle — mark sprite missing / clear ownership. */
+function DeleteIcon() {
+  return (
+    <svg
+      className="card-icon"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      aria-hidden
+      focusable="false"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="8.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+      <path
+        d="M8 8l8 8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
 }
 
 
