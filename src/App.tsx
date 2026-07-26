@@ -48,6 +48,22 @@ import './App.css'
 type Tab = 'collection' | 'suggest' | 'squad' | 'help'
 type SyncStatus = 'local' | 'connecting' | 'synced' | 'saving' | 'error' | 'offline'
 
+type AppModal =
+  | {
+      kind: 'confirm-exchanges'
+      title: string
+      subtitle: string
+      items: BringAssignment[]
+    }
+  | {
+      kind: 'result'
+      title: string
+      tone: 'success' | 'error' | 'info'
+      message: string
+      items?: BringAssignment[]
+      skipped?: string[]
+    }
+
 const cloudReady = isCloudConfigured()
 
 export default function App() {
@@ -63,6 +79,7 @@ export default function App() {
   const [confirmedExchangeKeys, setConfirmedExchangeKeys] = useState<string[]>(
     [],
   )
+  const [modal, setModal] = useState<AppModal | null>(null)
 
   const [roomCode, setRoomCode] = useState<string | null>(() => roomFromUrl() ?? loadRoomCode())
   const [joinInput, setJoinInput] = useState('')
@@ -84,12 +101,28 @@ export default function App() {
   /** Latest state for async push callbacks (avoid stale closures). */
   const stateRef = useRef(state)
   stateRef.current = state
+  const confirmedKeysRef = useRef(confirmedExchangeKeys)
+  confirmedKeysRef.current = confirmedExchangeKeys
 
   useEffect(() => {
     if (!selectedPlayerId && state.players[0]) {
       setSelectedPlayerId(state.players[0].id)
     }
   }, [state.players, selectedPlayerId])
+
+  useEffect(() => {
+    if (!modal) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setModal(null)
+    }
+    window.addEventListener('keydown', onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
+    }
+  }, [modal])
 
   // Always keep a local cache
   useEffect(() => {
@@ -341,51 +374,64 @@ export default function App() {
     return confirmedExchangeKeys.includes(exchangeKey(a))
   }
 
-  /**
-   * Apply one or more exchanges, mark their keys confirmed, push room if needed.
-   * Returns false if the user cancelled the confirm dialog.
-   */
-  function confirmExchanges(
-    items: BringAssignment[],
-    opts: { title: string; silent?: boolean },
-  ): boolean {
+  function openConfirmExchanges(items: BringAssignment[], title: string) {
     const pending = items.filter(
-      (a) => isExchangeAssignment(a) && !isExchangeConfirmed(a),
+      (a) =>
+        isExchangeAssignment(a) &&
+        !confirmedKeysRef.current.includes(exchangeKey(a)),
     )
-    if (pending.length === 0) return true
-
-    const names = pending
-      .map((a) => `${a.bringerName}: ${a.spriteName} → ${a.recipientName}`)
-      .join('\n')
-    const ok = window.confirm(
-      `${opts.title}\n\n${names}\n\n` +
-        `Recipients get Ready; bringers mark those sprites Lost.`,
-    )
-    if (!ok) return false
-
-    let applied = 0
-    let skipped: string[] = []
-    let nextState: SquadState | null = null
-    setState((s) => {
-      const result = applyExchangeRound(s, pending)
-      applied = result.applied
-      skipped = result.skipped
-      nextState = result.state
-      return result.state
+    if (pending.length === 0) return
+    setModal({
+      kind: 'confirm-exchanges',
+      title,
+      subtitle:
+        'Recipients become Ready; bringers mark these sprites Lost. Only confirm trades that actually happened.',
+      items: pending,
     })
+  }
+
+  /**
+   * Apply exchanges from the latest squad snapshot (not a setState side-effect),
+   * then show a result modal. Fixes false "nothing updated" alerts when React
+   * defers functional updaters.
+   */
+  function applyConfirmedExchanges(items: BringAssignment[]) {
+    const pending = items.filter(
+      (a) =>
+        isExchangeAssignment(a) &&
+        !confirmedKeysRef.current.includes(exchangeKey(a)),
+    )
+    if (pending.length === 0) {
+      setModal({
+        kind: 'result',
+        title: 'Already confirmed',
+        tone: 'info',
+        message: 'These exchanges were already applied for this plan.',
+      })
+      return
+    }
+
+    const result = applyExchangeRound(stateRef.current, pending)
+    setState(result.state)
+    stateRef.current = result.state
 
     const keys = pending.map(exchangeKey)
-    setConfirmedExchangeKeys((prev) => [
-      ...prev,
-      ...keys.filter((k) => !prev.includes(k)),
-    ])
+    setConfirmedExchangeKeys((prev) => {
+      const next = [...prev]
+      for (const k of keys) {
+        if (!next.includes(k)) next.push(k)
+      }
+      confirmedKeysRef.current = next
+      return next
+    })
 
-    if (nextState && applied > 0 && roomCode && cloudReady && roomHydrated) {
+    if (result.applied > 0 && roomCode && cloudReady && roomHydrated) {
       skipPushRef.current = true
-      void pushRoom(roomCode, nextState).then((res) => {
+      void pushRoom(roomCode, result.state).then((res) => {
         if (res.ok) {
           skipPushRef.current = true
           setState(res.data)
+          stateRef.current = res.data
           setSyncStatus('synced')
         } else {
           setSyncError(res.error)
@@ -394,23 +440,33 @@ export default function App() {
       })
     }
 
-    if (!opts.silent) {
-      if (applied === 0) {
-        alert(
-          `No collections were updated.\n` +
-            (skipped.length
-              ? skipped.join('\n')
-              : 'Player ids may not match — regenerate the plan and try again.'),
-        )
-      } else {
-        alert(
-          `Updated ${applied} exchange${applied === 1 ? '' : 's'}.` +
-            (skipped.length ? `\nSkipped:\n${skipped.join('\n')}` : '') +
-            `\n\nOpen Collection and switch players to verify Ready / Lost.`,
-        )
-      }
+    if (result.applied === 0) {
+      setModal({
+        kind: 'result',
+        title: 'Nothing updated',
+        tone: 'error',
+        message:
+          result.skipped.length > 0
+            ? 'Could not apply these exchanges.'
+            : 'Player ids may not match — regenerate the plan and try again.',
+        items: pending,
+        skipped: result.skipped,
+      })
+      return
     }
-    return true
+
+    setModal({
+      kind: 'result',
+      title:
+        result.applied === 1
+          ? 'Exchange confirmed'
+          : `${result.applied} exchanges confirmed`,
+      tone: 'success',
+      message:
+        'Collections updated: recipients Ready, bringers Lost. Check Collection if you want to double-check.',
+      items: pending,
+      skipped: result.skipped.length > 0 ? result.skipped : undefined,
+    })
   }
 
   function confirmRound(round: number) {
@@ -422,19 +478,25 @@ export default function App() {
         !isExchangeConfirmed(a),
     )
     if (pending.length === 0) return
-    confirmExchanges(pending, {
-      title:
-        pending.length === 1
-          ? `Confirm Round ${round} exchange?`
-          : `Confirm ${pending.length} remaining Round ${round} exchange${pending.length === 1 ? '' : 's'}?`,
-    })
+    openConfirmExchanges(
+      pending,
+      pending.length === 1
+        ? `Confirm Round ${round} exchange?`
+        : `Confirm ${pending.length} remaining Round ${round} exchanges?`,
+    )
   }
 
   function confirmSingleExchange(a: BringAssignment) {
     if (!isExchangeAssignment(a) || isExchangeConfirmed(a)) return
-    confirmExchanges([a], {
-      title: 'Confirm this exchange?',
-    })
+    openConfirmExchanges([a], 'Confirm this exchange?')
+  }
+
+  function showInfoModal(
+    title: string,
+    message: string,
+    tone: 'info' | 'success' | 'error' = 'info',
+  ) {
+    setModal({ kind: 'result', title, message, tone })
   }
 
   function addPlayer() {
@@ -529,9 +591,17 @@ export default function App() {
     try {
       await navigator.clipboard.writeText(link)
       setSyncError(null)
-      alert('Share link copied! Send it to your squad.')
+      showInfoModal(
+        'Link copied',
+        'Share link copied to the clipboard. Send it to your squad.',
+        'success',
+      )
     } catch {
-      prompt('Copy this link:', link)
+      showInfoModal(
+        'Copy this link',
+        link,
+        'info',
+      )
     }
   }
 
@@ -559,7 +629,11 @@ export default function App() {
         setSelectedPlayerId(data.players[0]?.id ?? '')
         setPlan(null)
       } catch {
-        alert('Could not import file — invalid squad JSON.')
+        showInfoModal(
+          'Import failed',
+          'Could not import file — invalid squad JSON.',
+          'error',
+        )
       }
     }
     input.click()
@@ -1149,6 +1223,93 @@ export default function App() {
         </div>
       )}
 
+      {modal && (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setModal(null)
+          }}
+        >
+          <div
+            className={`modal-panel modal-${modal.kind === 'result' ? modal.tone : 'confirm'}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="app-modal-title"
+          >
+            <div className="modal-header">
+              <h2 id="app-modal-title">{modal.title}</h2>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setModal(null)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            {modal.kind === 'confirm-exchanges' && (
+              <>
+                <p className="modal-subtitle">{modal.subtitle}</p>
+                <div className="modal-exchange-list">
+                  {modal.items.map((a, i) => (
+                    <ExchangeModalRow key={`${exchangeKey(a)}-${i}`} a={a} players={state.players} />
+                  ))}
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn" onClick={() => setModal(null)}>
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => applyConfirmedExchanges(modal.items)}
+                  >
+                    {modal.items.length === 1
+                      ? 'Confirm exchange'
+                      : `Confirm ${modal.items.length} exchanges`}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {modal.kind === 'result' && (
+              <>
+                <p className="modal-subtitle">{modal.message}</p>
+                {modal.items && modal.items.length > 0 && (
+                  <div className="modal-exchange-list">
+                    {modal.items.map((a, i) => (
+                      <ExchangeModalRow
+                        key={`${exchangeKey(a)}-${i}`}
+                        a={a}
+                        players={state.players}
+                      />
+                    ))}
+                  </div>
+                )}
+                {modal.skipped && modal.skipped.length > 0 && (
+                  <ul className="modal-skipped">
+                    {modal.skipped.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                )}
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => setModal(null)}
+                  >
+                    OK
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {tab === 'help' && (
         <div className="help-box">
           <h3>How to use (in lobby / between games)</h3>
@@ -1233,6 +1394,62 @@ export default function App() {
 /** Stable key for tracking which plan exchanges were already applied. */
 function exchangeKey(a: BringAssignment): string {
   return `${a.round}::${a.bringerId}::${a.recipientId ?? ''}::${a.spriteId}`
+}
+
+function ExchangeModalRow({
+  a,
+  players,
+}: {
+  a: BringAssignment
+  players: Player[]
+}) {
+  const bringer = players.find((p) => p.id === a.bringerId)
+  const recipient = players.find((p) => p.id === a.recipientId)
+  return (
+    <div className="modal-exchange-row">
+      <div className="modal-exchange-art" aria-hidden>
+        {a.imageUrl ? (
+          <img src={a.imageUrl} alt="" loading="lazy" decoding="async" draggable={false} />
+        ) : (
+          <span>?</span>
+        )}
+      </div>
+      <div className="modal-exchange-meta">
+        <div className="modal-exchange-names">
+          <span
+            className="bringer-label"
+            style={bringer ? { color: bringer.color } : undefined}
+          >
+            {a.bringerName}
+          </span>
+          <span className="arrow">→</span>
+          <span
+            className="bringer-label"
+            style={recipient ? { color: recipient.color } : undefined}
+          >
+            {a.recipientName}
+          </span>
+        </div>
+        <div className="modal-exchange-sprite">{a.spriteName}</div>
+        <div className="modal-exchange-tags">
+          {a.needKind === 'missing' && (
+            <span className="kind-tag need-missing-tag">New</span>
+          )}
+          {a.needKind === 'lost' && (
+            <span className="kind-tag need-lost-tag">Restore</span>
+          )}
+          {a.needsRepurchase && (
+            <span className="kind-tag repurchase">Repurchase</span>
+          )}
+          {typeof a.summonCost === 'number' && (
+            <span className="modal-exchange-dust">
+              ✦ {a.summonCost.toLocaleString()} dust
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function syncLabel(status: SyncStatus, roomCode: string): string {
