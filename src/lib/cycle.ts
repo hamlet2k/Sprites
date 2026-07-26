@@ -1,19 +1,20 @@
 import type { OwnershipStatus, PlayerSpriteState } from '../types'
 
 /**
- * One-tap cycle for in-game updates:
- * none → available → lost → none
- * Long-press / separate control for mastered.
+ * Main card tap:
+ * - Missing → Ready (first collect)
+ * - Ready ↔ Lost thereafter
+ * Use set-missing control for Missing.
  */
 export function cycleStatus(current: OwnershipStatus): OwnershipStatus {
   if (current === 'none') return 'available'
   if (current === 'available') return 'lost'
-  return 'none'
+  return 'available'
 }
 
 export function cyclePlayerSprite(
   state: PlayerSpriteState,
-  mode: 'status' | 'mastered',
+  mode: 'status' | 'mastered' | 'missing',
 ): PlayerSpriteState {
   if (mode === 'mastered') {
     // Mastered implies at least collected once
@@ -24,10 +25,16 @@ export function cyclePlayerSprite(
       mastered,
     }
   }
+  if (mode === 'missing') {
+    return {
+      status: 'none',
+      // Keep mastery history if they ever extracted at L5
+      mastered: state.mastered,
+    }
+  }
   const status = cycleStatus(state.status)
   return {
     status,
-    // Losing collection resets mastery tracking display? Keep mastered if ever mastered.
-    mastered: status === 'none' ? state.mastered : state.mastered,
+    mastered: state.mastered,
   }
 }

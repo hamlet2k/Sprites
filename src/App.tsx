@@ -296,6 +296,33 @@ export default function App() {
     })
   }
 
+  function onMarkMissing(sprite: SpriteEntry, e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!selectedPlayer) return
+    updatePlayer(selectedPlayer.id, (p) => {
+      const cur = getPlayerSprite(p, sprite.id)
+      if (cur.status === 'none') return p
+      const next = cyclePlayerSprite(cur, 'missing')
+      return {
+        ...p,
+        sprites: { ...p.sprites, [sprite.id]: next },
+      }
+    })
+  }
+
+  function movePlayer(id: string, direction: -1 | 1) {
+    setState((s) => {
+      const index = s.players.findIndex((p) => p.id === id)
+      if (index < 0) return s
+      const nextIndex = index + direction
+      if (nextIndex < 0 || nextIndex >= s.players.length) return s
+      const players = [...s.players]
+      const [item] = players.splice(index, 1)
+      players.splice(nextIndex, 0, item)
+      return { ...s, players }
+    })
+  }
+
   function runSuggest() {
     const next = buildSuggestionPlan(state)
     setPlan(next)
@@ -567,8 +594,11 @@ export default function App() {
 
           <div className="legend">
             <span>
-              <i className="swatch" style={{ background: 'var(--available)' }} /> Tap: none →
-              available → lost
+              <i className="swatch" style={{ background: 'var(--available)' }} /> Tap: Ready ↔
+              Lost
+            </span>
+            <span>
+              <i className="swatch" style={{ background: 'var(--none)' }} /> ∅ Missing
             </span>
             <span>
               <i className="swatch" style={{ background: 'var(--mastered)' }} /> ★ Mastered
@@ -630,17 +660,34 @@ export default function App() {
                 {sprites.map((sprite) => {
                   const st = getPlayerSprite(selectedPlayer, sprite.id)
                   return (
-                    <button
+                    <div
                       key={sprite.id}
-                      type="button"
+                      role="button"
+                      tabIndex={0}
                       className={`sprite-card status-${st.status} ${st.mastered ? 'mastered' : ''}`}
                       onClick={() => onSpriteTap(sprite)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          onSpriteTap(sprite)
+                        }
+                      }}
                       title={
                         sprite.variantBonus
                           ? `${sprite.ability}\n+ ${sprite.variantBonus}`
                           : sprite.ability
                       }
                     >
+                      <button
+                        type="button"
+                        className={`missing-btn ${st.status === 'none' ? 'on' : ''}`}
+                        onClick={(e) => onMarkMissing(sprite, e)}
+                        title="Mark missing"
+                        aria-label="Mark missing"
+                        aria-pressed={st.status === 'none'}
+                      >
+                        ∅
+                      </button>
                       <div className="sprite-art">
                         <img
                           src={sprite.imageUrl}
@@ -688,7 +735,7 @@ export default function App() {
                           ★
                         </button>
                       </div>
-                    </button>
+                    </div>
                   )
                 })}
               </div>
@@ -963,8 +1010,30 @@ export default function App() {
             )}
           </div>
 
-          {state.players.map((p) => (
+          {state.players.map((p, index) => (
             <div key={p.id} className="player-row">
+              <div className="reorder-btns">
+                <button
+                  type="button"
+                  className="btn icon-btn"
+                  onClick={() => movePlayer(p.id, -1)}
+                  disabled={index === 0}
+                  title="Move up"
+                  aria-label={`Move ${p.name} up`}
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  className="btn icon-btn"
+                  onClick={() => movePlayer(p.id, 1)}
+                  disabled={index === state.players.length - 1}
+                  title="Move down"
+                  aria-label={`Move ${p.name} down`}
+                >
+                  ↓
+                </button>
+              </div>
               <span className="dot" style={{ background: p.color, width: 16, height: 16 }} />
               <input
                 type="text"
@@ -1004,8 +1073,11 @@ export default function App() {
           <h3>How to use (in lobby / between games)</h3>
           <ul>
             <li>
-              <strong>Collection</strong> — pick a squad mate, then tap a sprite card to cycle{' '}
-              <em>Missing → Ready → Lost</em>.
+              <strong>Collection</strong> — pick a squad mate, then tap a sprite card to toggle{' '}
+              <em>Ready ↔ Lost</em> (Missing first becomes Ready).
+            </li>
+            <li>
+              Tap <strong>∅</strong> on a card to mark it <strong>Missing</strong>.
             </li>
             <li>
               <strong>Ready</strong> = can bring without Sprite Dust. <strong>Lost</strong> =
@@ -1013,6 +1085,10 @@ export default function App() {
             </li>
             <li>
               Tap <strong>★</strong> when a sprite is mastered (extracted at Level 5).
+            </li>
+            <li>
+              <strong>Squad</strong> — use ↑ / ↓ to reorder players; Collection chips follow that
+              order.
             </li>
             <li>
               <strong>Suggest</strong> — check who is in the next game, then generate a plan.
