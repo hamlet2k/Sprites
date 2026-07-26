@@ -29,7 +29,8 @@ type Edge = {
  * 1. Receiver **missing** before receiver **lost** restore
  * 2. Giver **Ready** (no dust) before giver **Lost** (repurchase) — never gift a
  *    lost copy while the same giver still has a Ready gift for someone's need
- * 3. Fair 1:1 give+receive per round when possible
+ * 3. Hard cap: at most one gift and one receive per player per round
+ *    (multiple passes form cycles; never double-gift one receiver)
  * 4. Harder-to-find sprites within the same tier
  *
  * Per-round anti-thrash: if a round’s exchanges are **only** lost-restores
@@ -86,30 +87,38 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
         return b.score - a.score
       })
 
-    const runBalanced = (list: Edge[]) => {
+    /**
+     * Fair matching within a round: each player gives at most once and
+     * receives at most once. Multiple passes find longer exchange cycles
+     * (A→B, B→C, C→A). Never dump a second gift onto someone who already
+     * received while another player got nothing.
+     */
+    const runFairMatching = (list: Edge[]) => {
       for (const e of sortFair(list, true)) {
         if (giveThisRound.has(e.giver.id)) continue
         if (receiveThisRound.has(e.receiver.id)) continue
-        takeEdge(e, round, assignments, usedGift, coveredNeed, giveThisRound, receiveThisRound)
-      }
-    }
-
-    const runUnbalanced = (list: Edge[]) => {
-      for (const e of sortFair(list, false)) {
-        if (giveThisRound.has(e.giver.id)) continue
-        takeEdge(e, round, assignments, usedGift, coveredNeed, giveThisRound, receiveThisRound)
+        takeEdge(
+          e,
+          round,
+          assignments,
+          usedGift,
+          coveredNeed,
+          giveThisRound,
+          receiveThisRound,
+        )
       }
     }
 
     // --- Ready inventory first (no dust) ---
-    runBalanced(openEdges(true))
-    runBalanced(openEdges(true))
-    runUnbalanced(openEdges(true))
+    // Extra passes pick up remaining 1:1 pairs / cycles after earlier takes.
+    runFairMatching(openEdges(true))
+    runFairMatching(openEdges(true))
+    runFairMatching(openEdges(true))
 
     // --- Only then allow lost / repurchase gifts ---
-    runBalanced(openEdges(false))
-    runBalanced(openEdges(false))
-    runUnbalanced(openEdges(false))
+    runFairMatching(openEdges(false))
+    runFairMatching(openEdges(false))
+    runFairMatching(openEdges(false))
 
     // Pure lost-restore rounds thrash (A restores B, B restores A next time).
     // If this round has exchanges and none fill a Missing gap, scrap them.
