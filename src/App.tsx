@@ -980,6 +980,9 @@ export default function App() {
                                     ? 'need-lost'
                                     : 'need-mastery'
                               const bringer = state.players.find((p) => p.id === a.bringerId)
+                              const recipient = state.players.find(
+                                (p) => p.id === a.recipientId,
+                              )
                               const isExchange = isExchangeAssignment(a)
                               const exchangeDone = isExchange && isExchangeConfirmed(a)
                               return (
@@ -1050,7 +1053,16 @@ export default function App() {
                                       {a.recipientName && (
                                         <>
                                           <span className="arrow">→</span>
-                                          {a.recipientName}
+                                          <span
+                                            className="bringer-label"
+                                            style={
+                                              recipient
+                                                ? { color: recipient.color }
+                                                : undefined
+                                            }
+                                          >
+                                            {a.recipientName}
+                                          </span>
                                         </>
                                       )}
                                     </div>
