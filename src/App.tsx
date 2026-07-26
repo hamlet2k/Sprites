@@ -37,7 +37,12 @@ import {
   isExchangeAssignment,
   MAX_BRING_PER_PLAYER,
 } from './lib/suggest'
-import type { Player, SuggestionPlan, SquadState } from './types'
+import type {
+  BringAssignment,
+  Player,
+  SuggestionPlan,
+  SquadState,
+} from './types'
 import './App.css'
 
 type Tab = 'collection' | 'suggest' | 'squad' | 'help'
@@ -54,8 +59,10 @@ export default function App() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [sortMode, setSortMode] = useState<SortMode>('type')
   const [plan, setPlan] = useState<SuggestionPlan | null>(null)
-  /** Rounds already confirmed this plan (1–4). */
-  const [confirmedRounds, setConfirmedRounds] = useState<number[]>([])
+  /** Individual exchanges already confirmed for the current plan. */
+  const [confirmedExchangeKeys, setConfirmedExchangeKeys] = useState<string[]>(
+    [],
+  )
 
   const [roomCode, setRoomCode] = useState<string | null>(() => roomFromUrl() ?? loadRoomCode())
   const [joinInput, setJoinInput] = useState('')
@@ -326,42 +333,53 @@ export default function App() {
   function runSuggest() {
     const next = buildSuggestionPlan(state)
     setPlan(next)
-    setConfirmedRounds([])
+    setConfirmedExchangeKeys([])
     setTab('suggest')
   }
 
-  function confirmRound(round: number) {
-    if (!plan || confirmedRounds.includes(round)) return
-    const roundItems = plan.assignments.filter(
-      (a) => a.round === round && isExchangeAssignment(a),
+  function isExchangeConfirmed(a: BringAssignment): boolean {
+    return confirmedExchangeKeys.includes(exchangeKey(a))
+  }
+
+  /**
+   * Apply one or more exchanges, mark their keys confirmed, push room if needed.
+   * Returns false if the user cancelled the confirm dialog.
+   */
+  function confirmExchanges(
+    items: BringAssignment[],
+    opts: { title: string; silent?: boolean },
+  ): boolean {
+    const pending = items.filter(
+      (a) => isExchangeAssignment(a) && !isExchangeConfirmed(a),
     )
-    if (roundItems.length === 0) {
-      setConfirmedRounds((r) => [...r, round])
-      return
-    }
-    const names = roundItems
+    if (pending.length === 0) return true
+
+    const names = pending
       .map((a) => `${a.bringerName}: ${a.spriteName} → ${a.recipientName}`)
       .join('\n')
     const ok = window.confirm(
-      `Confirm Round ${round} exchanges?\n\n${names}\n\n` +
+      `${opts.title}\n\n${names}\n\n` +
         `Recipients get Ready; bringers mark those sprites Lost.`,
     )
-    if (!ok) return
+    if (!ok) return false
 
-    // Apply against latest state; resolve players by id or name if cloud rotated ids
     let applied = 0
     let skipped: string[] = []
     let nextState: SquadState | null = null
     setState((s) => {
-      const result = applyExchangeRound(s, roundItems)
+      const result = applyExchangeRound(s, pending)
       applied = result.applied
       skipped = result.skipped
       nextState = result.state
       return result.state
     })
-    setConfirmedRounds((r) => [...r, round])
 
-    // Push room immediately so another device / reload cannot wipe the confirm
+    const keys = pending.map(exchangeKey)
+    setConfirmedExchangeKeys((prev) => [
+      ...prev,
+      ...keys.filter((k) => !prev.includes(k)),
+    ])
+
     if (nextState && applied > 0 && roomCode && cloudReady && roomHydrated) {
       skipPushRef.current = true
       void pushRoom(roomCode, nextState).then((res) => {
@@ -376,20 +394,47 @@ export default function App() {
       })
     }
 
-    if (applied === 0) {
-      alert(
-        `No collections were updated for Round ${round}.\n` +
-          (skipped.length
-            ? skipped.join('\n')
-            : 'Player ids may not match — regenerate the plan and try again.'),
-      )
-    } else {
-      alert(
-        `Round ${round}: updated ${applied} exchange${applied === 1 ? '' : 's'}.` +
-          (skipped.length ? `\nSkipped:\n${skipped.join('\n')}` : '') +
-          `\n\nOpen Collection and switch players to verify Ready / Lost.`,
-      )
+    if (!opts.silent) {
+      if (applied === 0) {
+        alert(
+          `No collections were updated.\n` +
+            (skipped.length
+              ? skipped.join('\n')
+              : 'Player ids may not match — regenerate the plan and try again.'),
+        )
+      } else {
+        alert(
+          `Updated ${applied} exchange${applied === 1 ? '' : 's'}.` +
+            (skipped.length ? `\nSkipped:\n${skipped.join('\n')}` : '') +
+            `\n\nOpen Collection and switch players to verify Ready / Lost.`,
+        )
+      }
     }
+    return true
+  }
+
+  function confirmRound(round: number) {
+    if (!plan) return
+    const pending = plan.assignments.filter(
+      (a) =>
+        a.round === round &&
+        isExchangeAssignment(a) &&
+        !isExchangeConfirmed(a),
+    )
+    if (pending.length === 0) return
+    confirmExchanges(pending, {
+      title:
+        pending.length === 1
+          ? `Confirm Round ${round} exchange?`
+          : `Confirm ${pending.length} remaining Round ${round} exchange${pending.length === 1 ? '' : 's'}?`,
+    })
+  }
+
+  function confirmSingleExchange(a: BringAssignment) {
+    if (!isExchangeAssignment(a) || isExchangeConfirmed(a)) return
+    confirmExchanges([a], {
+      title: 'Confirm this exchange?',
+    })
   }
 
   function addPlayer() {
@@ -794,8 +839,9 @@ export default function App() {
               <div className="suggest-summary">{plan.summary}</div>
               <p className="suggest-hint">
                 Each round aims for a fair 1:1 — every player gives one and receives one when
-                possible. Missing fills always beat lost restores. After the match, hit{' '}
-                <strong>Confirm exchanges</strong> to set recipients Ready and bringers Lost.
+                possible. Missing fills always beat lost restores. After the match, confirm each
+                exchange (or the whole remaining round) so recipients become Ready and bringers
+                Lost. Skip any trade that did not happen.
               </p>
 
               {plan.assignments.length === 0 ? (
@@ -809,7 +855,10 @@ export default function App() {
                     .map((round) => {
                       const items = plan.assignments.filter((a) => a.round === round)
                       const exchanges = items.filter(isExchangeAssignment)
-                      const done = confirmedRounds.includes(round)
+                      const pendingExchanges = exchanges.filter((a) => !isExchangeConfirmed(a))
+                      const confirmedCount = exchanges.length - pendingExchanges.length
+                      const done =
+                        exchanges.length > 0 && pendingExchanges.length === 0
                       return (
                         <section key={round} className={`round-block ${done ? 'round-done' : ''}`}>
                           <div className="round-header">
@@ -822,6 +871,9 @@ export default function App() {
                                 <p className="round-sub">
                                   {exchanges.length} exchange
                                   {exchanges.length === 1 ? '' : 's'}
+                                  {confirmedCount > 0 && !done
+                                    ? ` · ${confirmedCount} confirmed`
+                                    : ''}
                                   {items.length > exchanges.length
                                     ? ` · ${items.length - exchanges.length} mastery`
                                     : ''}
@@ -835,10 +887,12 @@ export default function App() {
                               onClick={() => confirmRound(round)}
                             >
                               {done
-                                ? 'Confirmed'
+                                ? 'All confirmed'
                                 : exchanges.length === 0
                                   ? 'No exchanges'
-                                  : 'Confirm exchanges'}
+                                  : confirmedCount > 0
+                                    ? `Confirm remaining (${pendingExchanges.length})`
+                                    : 'Confirm all'}
                             </button>
                           </div>
 
@@ -851,10 +905,14 @@ export default function App() {
                                     ? 'need-lost'
                                     : 'need-mastery'
                               const bringer = state.players.find((p) => p.id === a.bringerId)
+                              const isExchange = isExchangeAssignment(a)
+                              const exchangeDone = isExchange && isExchangeConfirmed(a)
                               return (
                                 <div
                                   key={`${round}-${a.bringerId}-${a.spriteId}-${i}`}
-                                  className={`assignment ${a.kind} ${needClass}`}
+                                  className={`assignment ${a.kind} ${needClass}${
+                                    exchangeDone ? ' assignment-confirmed' : ''
+                                  }`}
                                 >
                                   <span className="round-badge" title={`Round ${round}`}>
                                     {round}
@@ -897,6 +955,9 @@ export default function App() {
                                           Bringer repurchase
                                         </span>
                                       )}
+                                      {exchangeDone && (
+                                        <span className="kind-tag confirmed-tag">Confirmed</span>
+                                      )}
                                     </div>
                                     <div className="assignment-main">
                                       <span
@@ -936,6 +997,18 @@ export default function App() {
                                     )}
                                     <div className="assignment-reason">{a.reason}</div>
                                   </div>
+                                  {isExchange && (
+                                    <div className="assignment-actions">
+                                      <button
+                                        type="button"
+                                        className={`btn btn-sm ${exchangeDone ? '' : 'btn-primary'}`}
+                                        disabled={exchangeDone}
+                                        onClick={() => confirmSingleExchange(a)}
+                                      >
+                                        {exchangeDone ? 'Done' : 'Confirm'}
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                               )
                             })}
@@ -1134,8 +1207,9 @@ export default function App() {
               <strong>Primary need:</strong> missing (never collected) before any lost restore.
             </li>
             <li>
-              <strong>Rounds 1–4:</strong> bring slots; <strong>Confirm exchanges</strong> marks
-              recipients Ready and bringers Lost.
+              <strong>Rounds 1–4:</strong> bring slots; confirm each exchange (or remaining
+              round) so recipients become Ready and bringers Lost. Leave failed trades
+              unconfirmed.
             </li>
             <li>Prefers <em>Ready</em> inventory over repurchase on the bringer.</li>
           </ul>
@@ -1154,6 +1228,11 @@ export default function App() {
       )}
     </div>
   )
+}
+
+/** Stable key for tracking which plan exchanges were already applied. */
+function exchangeKey(a: BringAssignment): string {
+  return `${a.round}::${a.bringerId}::${a.recipientId ?? ''}::${a.spriteId}`
 }
 
 function syncLabel(status: SyncStatus, roomCode: string): string {

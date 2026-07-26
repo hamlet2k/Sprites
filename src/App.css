@@ -112,6 +112,19 @@ button {
   filter: brightness(1.08);
 }
 
+.btn-sm {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 0.82rem;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .btn-ghost {
   background: transparent;
 }
@@ -675,8 +688,24 @@ button {
   background: var(--bg-card);
   padding: 10px 12px 10px 14px;
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   align-items: flex-start;
+}
+
+.assignment.assignment-confirmed {
+  opacity: 0.72;
+}
+
+.assignment-actions {
+  margin-left: auto;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+.kind-tag.confirmed-tag {
+  background: color-mix(in srgb, var(--available) 22%, transparent);
+  color: var(--available);
 }
 
 .assignment-art {
