@@ -79,3 +79,79 @@ export function importSquad(json: string): SquadState {
   if (!Array.isArray(data.players)) throw new Error('Invalid squad data')
   return data
 }
+
+/** Single-player backup (keeps squad import separate). */
+export interface PlayerExportFile {
+  version: 1
+  type: 'sprite-squad-player'
+  exportedAt?: string
+  player: {
+    name: string
+    color?: string
+    sprites: Record<string, PlayerSpriteState>
+  }
+}
+
+export function exportPlayer(player: Player): string {
+  const payload: PlayerExportFile = {
+    version: 1,
+    type: 'sprite-squad-player',
+    exportedAt: new Date().toISOString(),
+    player: {
+      name: player.name,
+      color: player.color,
+      sprites: player.sprites,
+    },
+  }
+  return JSON.stringify(payload, null, 2)
+}
+
+/**
+ * Parse a player export (or a full squad file with exactly one player).
+ * Does not include id — the target slot keeps its existing id.
+ */
+export function parsePlayerImport(json: string): {
+  name: string
+  color?: string
+  sprites: Record<string, PlayerSpriteState>
+} {
+  const data = JSON.parse(json) as unknown
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid player data')
+  }
+  const obj = data as Record<string, unknown>
+
+  if (obj.type === 'sprite-squad-player' && obj.player && typeof obj.player === 'object') {
+    return normalizeImportedPlayer(obj.player as Record<string, unknown>)
+  }
+
+  if (Array.isArray(obj.players)) {
+    if (obj.players.length === 1 && obj.players[0] && typeof obj.players[0] === 'object') {
+      return normalizeImportedPlayer(obj.players[0] as Record<string, unknown>)
+    }
+    throw new Error(
+      'This file has multiple players. Use the per-player Export button, or Import JSON for the whole squad.',
+    )
+  }
+
+  if (obj.sprites && typeof obj.sprites === 'object') {
+    return normalizeImportedPlayer(obj)
+  }
+
+  throw new Error('Invalid player data')
+}
+
+function normalizeImportedPlayer(raw: Record<string, unknown>): {
+  name: string
+  color?: string
+  sprites: Record<string, PlayerSpriteState>
+} {
+  if (!raw.sprites || typeof raw.sprites !== 'object') {
+    throw new Error('Player file is missing sprites')
+  }
+  const sprites = raw.sprites as Record<string, PlayerSpriteState>
+  const name =
+    typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : 'Player'
+  const color = typeof raw.color === 'string' ? raw.color : undefined
+  return { name, color, sprites }
+}

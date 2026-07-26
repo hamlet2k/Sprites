@@ -11,7 +11,6 @@ import {
 import {
   createRoom,
   fetchRoom,
-  getCloudConfigHint,
   isCloudConfigured,
   normalizeRoomCode,
   pushRoom,
@@ -23,11 +22,13 @@ import {
 import { cyclePlayerSprite } from './lib/cycle'
 import {
   createPlayer,
+  exportPlayer,
   exportSquad,
   getPlayerSprite,
   importSquad,
   loadRoomCode,
   loadSquad,
+  parsePlayerImport,
   saveRoomCode,
   saveSquad,
 } from './lib/storage'
@@ -54,6 +55,11 @@ type AppModal =
       title: string
       subtitle: string
       items: BringAssignment[]
+    }
+  | {
+      kind: 'confirm-delete-player'
+      playerId: string
+      playerName: string
     }
   | {
       kind: 'result'
@@ -506,22 +512,85 @@ export default function App() {
     })
   }
 
+  function requestRemovePlayer(id: string) {
+    if (state.players.length <= 1) return
+    const player = state.players.find((p) => p.id === id)
+    if (!player) return
+    setModal({
+      kind: 'confirm-delete-player',
+      playerId: player.id,
+      playerName: player.name,
+    })
+  }
+
   function removePlayer(id: string) {
+    const remaining = state.players.filter((p) => p.id !== id)
     setState((s) => ({
       ...s,
       players: s.players.filter((p) => p.id !== id),
       activePlayerIds: s.activePlayerIds.filter((x) => x !== id),
     }))
+    if (selectedPlayerId === id) {
+      setSelectedPlayerId(remaining[0]?.id ?? '')
+    }
+    setPlan(null)
+    setConfirmedExchangeKeys([])
   }
 
   function renamePlayer(id: string, name: string) {
     updatePlayer(id, (p) => ({ ...p, name }))
   }
 
+  function doExportPlayer(id: string) {
+    const player = state.players.find((p) => p.id === id)
+    if (!player) return
+    const safe = player.name.replace(/[^\w\-]+/g, '_').slice(0, 40) || 'player'
+    const blob = new Blob([exportPlayer(player)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `sprite-player-${safe}-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function doImportPlayer(id: string) {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'application/json'
+    input.onchange = async () => {
+      const file = input.files?.[0]
+      if (!file) return
+      try {
+        const text = await file.text()
+        const data = parsePlayerImport(text)
+        updatePlayer(id, (p) => ({
+          ...p,
+          name: data.name || p.name,
+          color: data.color ?? p.color,
+          sprites: data.sprites,
+        }))
+        setPlan(null)
+        setConfirmedExchangeKeys([])
+        showInfoModal(
+          'Player imported',
+          `Updated ${data.name || 'player'} collection only. Other squad members were not changed.`,
+          'success',
+        )
+      } catch (err) {
+        showInfoModal(
+          'Import failed',
+          err instanceof Error ? err.message : 'Could not import player JSON.',
+          'error',
+        )
+      }
+    }
+    input.click()
+  }
+
   async function handleCreateRoom() {
     if (!cloudReady) {
-      setSyncError('Cloud is not configured. See DEPLOY.md / Help tab.')
-      setTab('help')
+      setSyncError('Cloud rooms are not available on this build.')
       return
     }
     setBusy(true)
@@ -1116,9 +1185,8 @@ export default function App() {
             <h3>Share with squad (internet)</h3>
             {!cloudReady ? (
               <p>
-                Cloud sync is not configured on this build yet. Host the app (Vercel / Netlify)
-                with Supabase keys — full steps in the <strong>Help</strong> tab and{' '}
-                <code>DEPLOY.md</code>.
+                Live rooms are not available on this build. You can still track collections
+                locally and use Export / Import (whole squad or per player) to share files.
               </p>
             ) : roomCode ? (
               <>
@@ -1208,14 +1276,33 @@ export default function App() {
                 value={p.name}
                 onChange={(e) => renamePlayer(p.id, e.target.value)}
               />
-              <button
-                type="button"
-                className="btn"
-                onClick={() => removePlayer(p.id)}
-                disabled={state.players.length <= 1}
-              >
-                Remove
-              </button>
+              <div className="player-row-actions">
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => doExportPlayer(p.id)}
+                  title="Export this player only"
+                >
+                  Export
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => doImportPlayer(p.id)}
+                  title="Import into this player only (others unchanged)"
+                >
+                  Import
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-danger"
+                  onClick={() => requestRemovePlayer(p.id)}
+                  disabled={state.players.length <= 1}
+                  title="Remove player"
+                >
+                  Remove
+                </button>
+              </div>
             </div>
           ))}
           <button type="button" className="btn" onClick={addPlayer}>
@@ -1223,15 +1310,15 @@ export default function App() {
           </button>
           <div className="header-actions">
             <button type="button" className="btn" onClick={doExport}>
-              Export JSON
+              Export full squad
             </button>
             <button type="button" className="btn" onClick={doImport}>
-              Import JSON
+              Import full squad
             </button>
           </div>
           <p className="empty-hint" style={{ padding: 0, textAlign: 'left' }}>
-            Local cache is always saved in this browser. When you are in a room, changes also
-            sync to the cloud for your teammates.
+            Progress is saved in this browser. In a live room, changes sync for everyone.
+            Per-player Export / Import only touches that one collection.
           </p>
         </div>
       )}
@@ -1245,13 +1332,23 @@ export default function App() {
           }}
         >
           <div
-            className={`modal-panel modal-${modal.kind === 'result' ? modal.tone : 'confirm'}`}
+            className={`modal-panel modal-${
+              modal.kind === 'result'
+                ? modal.tone
+                : modal.kind === 'confirm-delete-player'
+                  ? 'error'
+                  : 'confirm'
+            }`}
             role="dialog"
             aria-modal="true"
             aria-labelledby="app-modal-title"
           >
             <div className="modal-header">
-              <h2 id="app-modal-title">{modal.title}</h2>
+              <h2 id="app-modal-title">
+                {modal.kind === 'confirm-delete-player'
+                  ? 'Remove player?'
+                  : modal.title}
+              </h2>
               <button
                 type="button"
                 className="modal-close"
@@ -1282,6 +1379,31 @@ export default function App() {
                     {modal.items.length === 1
                       ? 'Confirm exchange'
                       : `Confirm ${modal.items.length} exchanges`}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {modal.kind === 'confirm-delete-player' && (
+              <>
+                <p className="modal-subtitle">
+                  Remove <strong style={{ color: 'var(--text)' }}>{modal.playerName}</strong>{' '}
+                  and their entire collection from this squad? This cannot be undone unless
+                  you have an export backup.
+                </p>
+                <div className="modal-footer">
+                  <button type="button" className="btn" onClick={() => setModal(null)}>
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={() => {
+                      removePlayer(modal.playerId)
+                      setModal(null)
+                    }}
+                  >
+                    Remove player
                   </button>
                 </div>
               </>
@@ -1332,7 +1454,7 @@ export default function App() {
               <em>Ready ↔ Lost</em> (Missing first becomes Ready).
             </li>
             <li>
-              Tap the <strong>✕</strong> button on a card to mark it <strong>Missing</strong>.
+              Tap the crossed-circle button on a card to mark it <strong>Missing</strong>.
             </li>
             <li>
               <strong>Ready</strong> = can bring without Sprite Dust. <strong>Lost</strong> =
@@ -1349,33 +1471,49 @@ export default function App() {
               <strong>Suggest</strong> — check who is in the next game, then generate a plan.
             </li>
           </ul>
-          <h3 style={{ marginTop: 16 }}>Share online with teammates</h3>
-          <ol>
+
+          <h3 style={{ marginTop: 16 }}>Live rooms</h3>
+          <ul>
             <li>
-              Deploy the site (see <code>DEPLOY.md</code>) — free on Vercel or Netlify.
+              <strong>Create room</strong> (Squad tab) — uploads your current squad and gives a
+              short room code.
             </li>
             <li>
-              Create a free{' '}
-              <a href="https://supabase.com" target="_blank" rel="noreferrer">
-                Supabase
-              </a>{' '}
-              project, run <code>supabase/schema.sql</code>, set env vars.
+              <strong>Copy share link</strong> — send the URL to teammates, or they can type the
+              room code and hit <strong>Join</strong>.
             </li>
             <li>
-              Open <strong>Squad → Create room</strong>, then <strong>Copy share link</strong>.
+              Everyone in the same room edits the same collections live (status shows Live /
+              Saving).
             </li>
-            <li>Teammates open the link (or join with the room code) on phone or PC.</li>
-          </ol>
-          <p className="muted">
-            Cloud configured on this build:{' '}
-            <strong>{cloudReady ? 'yes' : 'no — local only'}</strong>
-            {cloudReady ? ` · ${getCloudConfigHint()}` : ''}
-          </p>
+            <li>
+              <strong>Leave room</strong> — stops syncing this browser; your local copy stays.
+              Join another code or create a new room anytime.
+            </li>
+          </ul>
+
+          <h3 style={{ marginTop: 16 }}>Export &amp; import</h3>
+          <ul>
+            <li>
+              <strong>Export full squad / Import full squad</strong> — backup or replace the
+              entire squad JSON (all players).
+            </li>
+            <li>
+              <strong>Export</strong> on a player row — saves only that person&apos;s collection
+              (share with them, or keep a personal backup).
+            </li>
+            <li>
+              <strong>Import</strong> on a player row — loads a player file into that slot only;
+              other squad members stay unchanged. Accepts a single-player export, or a full squad
+              file that contains exactly one player.
+            </li>
+          </ul>
+
           <h3 style={{ marginTop: 16 }}>Suggestion rules</h3>
           <ul>
             <li>
-              <strong>Fair 1:1:</strong> each round prefers that every player both gives and
-              receives one sprite (when the collections allow it).
+              <strong>Fair 1:1:</strong> each round, every player gives at most one and receives
+              at most one (when the collections allow it).
             </li>
             <li>
               <strong>Primary need:</strong> missing (never collected) before any lost restore.
@@ -1388,7 +1526,7 @@ export default function App() {
             <li>
               <strong>Pure lost-restore rounds</strong> are skipped: if a round only restores
               Lost copies (no Missing fills), everyone brings for mastery / hunt instead of
-              swapping thrash.
+              thrashing swaps.
             </li>
             <li>Prefers <em>Ready</em> inventory over repurchase on the bringer.</li>
           </ul>
