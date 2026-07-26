@@ -1,4 +1,6 @@
 import { difficultyScore, SPRITE_BY_ID, SPRITES } from '../data/sprites'
+import { tLocale } from '../i18n/catalog'
+import type { Locale } from '../i18n/locales'
 import type {
   BringAssignment,
   NeedKind,
@@ -37,7 +39,13 @@ type Edge = {
  * (no missing fills), drop those trades and assign mastery / free hunt instead.
  * Mixed rounds (missing + restore) keep both for fair 1:1 give/receive.
  */
-export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
+export function buildSuggestionPlan(
+  state: SquadState,
+  locale: Locale = 'en',
+): SuggestionPlan {
+  const t = (key: string, vars?: Record<string, string | number>) =>
+    tLocale(locale, key, vars)
+
   const active = state.players.filter((p) =>
     state.activePlayerIds.includes(p.id),
   )
@@ -46,7 +54,7 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
       generatedAt: new Date().toISOString(),
       activePlayerIds: [],
       assignments: [],
-      summary: 'Select who is playing, then run Suggest.',
+      summary: t('suggest.selectPlayers'),
     }
   }
 
@@ -105,6 +113,7 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
           coveredNeed,
           giveThisRound,
           receiveThisRound,
+          t,
         )
       }
     }
@@ -165,6 +174,7 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
         skippedPureLostRestores
           ? 'pure-lost-round'
           : 'no-trade',
+        t,
       )
       if (mastery) {
         mastery.round = round
@@ -176,11 +186,11 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
           bringerId: player.id,
           bringerName: player.name,
           spriteId: '',
-          spriteName: 'Hunt freely',
+          spriteName: t('suggest.huntName'),
           round,
           reason: skippedPureLostRestores
-            ? 'This round only had lost-restore swaps (skipped thrash) — hunt / trade mid-game for new finds'
-            : 'No trade or mastery targets — open chests / trade mid-game for new finds',
+            ? t('suggest.huntThrash')
+            : t('suggest.huntFree'),
           score: 0,
           needsRepurchase: false,
         })
@@ -207,7 +217,15 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
     generatedAt: new Date().toISOString(),
     activePlayerIds: active.map((p) => p.id),
     assignments,
-    summary: `${active.length} players · fair 1:1 preferred · ${exchangeN} exchange(s) · ${missingFills} missing · ${restores} restore · ${gifts} gift · ${repurchases} repurchase · ${mastery} mastery`,
+    summary: t('suggest.summary', {
+      players: active.length,
+      exchanges: exchangeN,
+      missing: missingFills,
+      restores,
+      gifts,
+      repurchases,
+      mastery,
+    }),
   }
 }
 
@@ -253,6 +271,8 @@ function buildEdges(active: Player[]): Edge[] {
   return edges
 }
 
+type TFn = (key: string, vars?: Record<string, string | number>) => string
+
 function takeEdge(
   e: Edge,
   round: number,
@@ -261,6 +281,7 @@ function takeEdge(
   coveredNeed: Set<string>,
   giveThisRound: Set<string>,
   receiveThisRound: Set<string>,
+  t: TFn,
 ): void {
   const sprite = SPRITE_BY_ID[e.spriteId]
   if (!sprite) return
@@ -278,9 +299,9 @@ function takeEdge(
   const kind = e.needsRepurchase ? 'repurchase' : 'gift'
   const needPhrase =
     e.needKind === 'missing'
-      ? 'missing from collection'
-      : 'lost — restore without their dust'
-  const difficulty = difficultyLabel(hardScore(e.score, e.needKind))
+      ? t('suggest.needMissing')
+      : t('suggest.needLost')
+  const difficulty = difficultyLabel(hardScore(e.score, e.needKind), t)
 
   assignments.push({
     kind,
@@ -295,8 +316,17 @@ function takeEdge(
     needKind: e.needKind,
     round,
     reason: e.needsRepurchase
-      ? `Repurchase first (${e.summonCost.toLocaleString()} dust) → ${e.receiver.name} (${needPhrase}, ${difficulty})`
-      : `Trade to ${e.receiver.name} — ${needPhrase} (${difficulty})`,
+      ? t('suggest.tradeRepurchase', {
+          cost: e.summonCost.toLocaleString(),
+          receiver: e.receiver.name,
+          need: needPhrase,
+          difficulty,
+        })
+      : t('suggest.tradeReady', {
+          receiver: e.receiver.name,
+          need: needPhrase,
+          difficulty,
+        }),
     score: e.score,
     needsRepurchase: e.needsRepurchase,
   })
@@ -393,6 +423,7 @@ function pickMasterySprite(
   player: Player,
   exclude: Set<string> = new Set(),
   context: 'no-trade' | 'pure-lost-round' = 'no-trade',
+  t: TFn = (k) => k,
 ): BringAssignment | null {
   const candidates = SPRITES.map((s) => {
     const st = getPlayerSprite(player, s.id)
@@ -420,6 +451,7 @@ function pickMasterySprite(
   const best = candidates[0]
   const needsRepurchase = best.st.status === 'lost'
   const thrashSkip = context === 'pure-lost-round'
+  const cost = best.sprite.summonCost.toLocaleString()
   return {
     kind: 'mastery',
     bringerId: player.id,
@@ -432,11 +464,11 @@ function pickMasterySprite(
     round: 0,
     reason: thrashSkip
       ? needsRepurchase
-        ? `Pure lost-restore round skipped — repurchase & level mastery (${best.sprite.summonCost.toLocaleString()} dust)`
-        : 'Pure lost-restore round skipped — bring to level toward mastery'
+        ? t('suggest.masteryThrashRepurchase', { cost })
+        : t('suggest.masteryThrash')
       : needsRepurchase
-        ? `No trades — repurchase & level for mastery (${best.sprite.summonCost.toLocaleString()} dust)`
-        : 'No valuable trades — bring to level toward mastery',
+        ? t('suggest.masteryNoTradeRepurchase', { cost })
+        : t('suggest.masteryNoTrade'),
     score: difficultyScore(best.sprite),
     needsRepurchase,
   }
@@ -450,10 +482,10 @@ function hardScore(score: number, needKind: NeedKind): number {
   return s
 }
 
-function difficultyLabel(score: number): string {
-  if (score >= 50) return 'ultra rare'
-  if (score >= 35) return 'very rare'
-  if (score >= 25) return 'rare'
-  if (score >= 15) return 'uncommon'
-  return 'common gap'
+function difficultyLabel(score: number, t: TFn): string {
+  if (score >= 50) return t('suggest.difficulty.ultraRare')
+  if (score >= 35) return t('suggest.difficulty.veryRare')
+  if (score >= 25) return t('suggest.difficulty.rare')
+  if (score >= 15) return t('suggest.difficulty.uncommon')
+  return t('suggest.difficulty.common')
 }

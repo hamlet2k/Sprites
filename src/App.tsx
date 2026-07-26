@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  RARITY_LABEL,
   sortFamilies,
   SPRITE_FAMILIES,
   SPRITES,
@@ -32,6 +31,7 @@ import {
   saveRoomCode,
   saveSquad,
 } from './lib/storage'
+import { useI18n } from './i18n'
 import {
   applyExchangeRound,
   buildSuggestionPlan,
@@ -73,6 +73,7 @@ type AppModal =
 const cloudReady = isCloudConfigured()
 
 export default function App() {
+  const { t, locale, setLocale, locales } = useI18n()
   const [state, setState] = useState<SquadState>(() => loadSquad())
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>('')
   const [tab, setTab] = useState<Tab>('collection')
@@ -370,7 +371,7 @@ export default function App() {
   }
 
   function runSuggest() {
-    const next = buildSuggestionPlan(state)
+    const next = buildSuggestionPlan(state, locale)
     setPlan(next)
     setConfirmedExchangeKeys([])
     setTab('suggest')
@@ -390,8 +391,7 @@ export default function App() {
     setModal({
       kind: 'confirm-exchanges',
       title,
-      subtitle:
-        'Recipients become Ready; bringers mark these sprites Lost. Only confirm trades that actually happened.',
+      subtitle: t('confirm.subtitle'),
       items: pending,
     })
   }
@@ -410,9 +410,9 @@ export default function App() {
     if (pending.length === 0) {
       setModal({
         kind: 'result',
-        title: 'Already confirmed',
+        title: t('confirm.alreadyTitle'),
         tone: 'info',
-        message: 'These exchanges were already applied for this plan.',
+        message: t('confirm.alreadyMsg'),
       })
       return
     }
@@ -449,12 +449,12 @@ export default function App() {
     if (result.applied === 0) {
       setModal({
         kind: 'result',
-        title: 'Nothing updated',
+        title: t('confirm.nothingTitle'),
         tone: 'error',
         message:
           result.skipped.length > 0
-            ? 'Could not apply these exchanges.'
-            : 'Player ids may not match — regenerate the plan and try again.',
+            ? t('confirm.nothingSkipped')
+            : t('confirm.nothingIds'),
         items: pending,
         skipped: result.skipped,
       })
@@ -465,11 +465,10 @@ export default function App() {
       kind: 'result',
       title:
         result.applied === 1
-          ? 'Exchange confirmed'
-          : `${result.applied} exchanges confirmed`,
+          ? t('confirm.successOne')
+          : t('confirm.successMany', { n: result.applied }),
       tone: 'success',
-      message:
-        'Collections updated: recipients Ready, bringers Lost. Check Collection if you want to double-check.',
+      message: t('confirm.successMsg'),
       items: pending,
       skipped: result.skipped.length > 0 ? result.skipped : undefined,
     })
@@ -487,14 +486,14 @@ export default function App() {
     openConfirmExchanges(
       pending,
       pending.length === 1
-        ? `Confirm Round ${round} exchange?`
-        : `Confirm ${pending.length} remaining Round ${round} exchanges?`,
+        ? t('confirm.titleRoundOne', { n: round })
+        : t('confirm.titleRoundMany', { count: pending.length, n: round }),
     )
   }
 
   function confirmSingleExchange(a: BringAssignment) {
     if (!isExchangeAssignment(a) || isExchangeConfirmed(a)) return
-    openConfirmExchanges([a], 'Confirm this exchange?')
+    openConfirmExchanges([a], t('confirm.titleOne'))
   }
 
   function showInfoModal(
@@ -507,7 +506,10 @@ export default function App() {
 
   function addPlayer() {
     setState((s) => {
-      const p = createPlayer(`Player ${s.players.length + 1}`, s.players.length)
+      const p = createPlayer(
+        t('squad.playerN', { n: s.players.length + 1 }),
+        s.players.length,
+      )
       return { ...s, players: [...s.players, p] }
     })
   }
@@ -573,14 +575,18 @@ export default function App() {
         setPlan(null)
         setConfirmedExchangeKeys([])
         showInfoModal(
-          'Player imported',
-          `Updated ${data.name || 'player'} collection only. Other squad members were not changed.`,
+          t('importExport.playerImportedTitle'),
+          t('importExport.playerImportedMsg', {
+            name: data.name || t('importExport.playerDefault'),
+          }),
           'success',
         )
       } catch (err) {
         showInfoModal(
-          'Import failed',
-          err instanceof Error ? err.message : 'Could not import player JSON.',
+          t('importExport.importFailed'),
+          err instanceof Error
+            ? err.message
+            : t('importExport.importSquadInvalid'),
           'error',
         )
       }
@@ -590,7 +596,7 @@ export default function App() {
 
   async function handleCreateRoom() {
     if (!cloudReady) {
-      setSyncError('Cloud rooms are not available on this build.')
+      setSyncError(t('squad.cloudNotAvailable'))
       return
     }
     setBusy(true)
@@ -661,16 +667,12 @@ export default function App() {
       await navigator.clipboard.writeText(link)
       setSyncError(null)
       showInfoModal(
-        'Link copied',
-        'Share link copied to the clipboard. Send it to your squad.',
+        t('importExport.linkCopiedTitle'),
+        t('importExport.linkCopiedMsg'),
         'success',
       )
     } catch {
-      showInfoModal(
-        'Copy this link',
-        link,
-        'info',
-      )
+      showInfoModal(t('importExport.copyLinkTitle'), link, 'info')
     }
   }
 
@@ -699,8 +701,8 @@ export default function App() {
         setPlan(null)
       } catch {
         showInfoModal(
-          'Import failed',
-          'Could not import file — invalid squad JSON.',
+          t('importExport.importFailed'),
+          t('importExport.importSquadInvalid'),
           'error',
         )
       }
@@ -711,15 +713,31 @@ export default function App() {
   return (
     <div className="app">
       <header className="header">
-        <h1>Sprite Squad</h1>
+        <h1>{t('app.title')}</h1>
         <div className="header-actions">
+          <label className="lang-select-wrap">
+            <span className="visually-hidden">{t('lang.label')}</span>
+            <select
+              className="lang-select"
+              value={locale}
+              onChange={(e) => setLocale(e.target.value as 'en' | 'es')}
+              aria-label={t('lang.label')}
+              title={t('lang.label')}
+            >
+              {locales.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.native}
+                </option>
+              ))}
+            </select>
+          </label>
           {roomCode && (
             <span className={`sync-pill sync-${syncStatus}`} title={syncError ?? undefined}>
-              {syncLabel(syncStatus, roomCode)}
+              {syncLabel(syncStatus, roomCode, t)}
             </span>
           )}
           <button type="button" className="btn btn-primary" onClick={runSuggest}>
-            Suggest
+            {t('app.suggest')}
           </button>
         </div>
       </header>
@@ -727,19 +745,19 @@ export default function App() {
       <nav className="tabs">
         {(
           [
-            ['collection', 'Collection'],
-            ['suggest', 'Suggest'],
-            ['squad', 'Squad'],
-            ['help', 'Help'],
+            ['collection', 'tabs.collection'],
+            ['suggest', 'tabs.suggest'],
+            ['squad', 'tabs.squad'],
+            ['help', 'tabs.help'],
           ] as const
-        ).map(([id, label]) => (
+        ).map(([id, labelKey]) => (
           <button
             key={id}
             type="button"
             className={`tab ${tab === id ? 'active' : ''}`}
             onClick={() => setTab(id)}
           >
-            {label}
+            {t(labelKey)}
           </button>
         ))}
       </nav>
@@ -765,38 +783,41 @@ export default function App() {
 
           <div className="stats-bar">
             <span>
-              <strong>{stats.owned}</strong> / {SPRITES.length} owned
+              <strong>{stats.owned}</strong> / {SPRITES.length} {t('collection.owned')}
             </span>
             <span>
               <strong style={{ color: 'var(--available)' }}>{stats.available}</strong>{' '}
-              available
+              {t('collection.available')}
             </span>
             <span>
-              <strong style={{ color: 'var(--lost)' }}>{stats.lost}</strong> lost
+              <strong style={{ color: 'var(--lost)' }}>{stats.lost}</strong>{' '}
+              {t('collection.lost')}
             </span>
             <span>
               <strong style={{ color: 'var(--master-gold)' }}>{stats.mastered}</strong>{' '}
-              mastered
+              {t('collection.mastered')}
             </span>
           </div>
 
           <div className="legend">
             <span>
-              <i className="swatch" style={{ background: 'var(--available)' }} /> Tap: Ready ↔
-              Lost
+              <i className="swatch" style={{ background: 'var(--available)' }} />{' '}
+              {t('collection.legendTap')}
             </span>
             <span>
-              <i className="swatch" style={{ background: 'var(--none)' }} /> ✕ Missing
+              <i className="swatch" style={{ background: 'var(--none)' }} />{' '}
+              {t('collection.legendMissing')}
             </span>
             <span>
-              <i className="swatch" style={{ background: 'var(--master-gold)' }} /> ♛ Mastered
+              <i className="swatch" style={{ background: 'var(--master-gold)' }} />{' '}
+              {t('collection.legendMastered')}
             </span>
           </div>
 
           <div className="toolbar">
             <input
               className="search"
-              placeholder="Search sprites…"
+              placeholder={t('collection.searchPlaceholder')}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -804,21 +825,21 @@ export default function App() {
               className="filter-select"
               value={sortMode}
               onChange={(e) => setSortMode(e.target.value as SortMode)}
-              title="Sort families"
+              title={t('collection.sortTitle')}
             >
-              <option value="type">Sort: In-game type</option>
-              <option value="rarity">Sort: Rarity</option>
-              <option value="dust">Sort: Sprite Dust cost</option>
+              <option value="type">{t('collection.sortType')}</option>
+              <option value="rarity">{t('collection.sortRarity')}</option>
+              <option value="dust">{t('collection.sortDust')}</option>
             </select>
             <select
               className="filter-select"
               value={variantFilter}
               onChange={(e) => setVariantFilter(e.target.value)}
             >
-              <option value="all">All variants</option>
+              <option value="all">{t('variant.all')}</option>
               {VARIANT_ORDER.map((v) => (
                 <option key={v} value={v}>
-                  {v.charAt(0).toUpperCase() + v.slice(1)}
+                  {t(`variant.${v}`)}
                 </option>
               ))}
             </select>
@@ -827,13 +848,13 @@ export default function App() {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
-              <option value="all">All status</option>
-              <option value="need">Missing + lost</option>
-              <option value="missing">Missing</option>
-              <option value="available">Available</option>
-              <option value="lost">Lost</option>
-              <option value="mastered">Mastered</option>
-              <option value="unmastered">Not mastered</option>
+              <option value="all">{t('collection.allStatus')}</option>
+              <option value="need">{t('collection.needFilter')}</option>
+              <option value="missing">{t('status.missing')}</option>
+              <option value="available">{t('status.available')}</option>
+              <option value="lost">{t('status.lost')}</option>
+              <option value="mastered">{t('status.mastered')}</option>
+              <option value="unmastered">{t('status.notMastered')}</option>
             </select>
           </div>
 
@@ -841,7 +862,9 @@ export default function App() {
             <section key={family.id} className="family">
               <h2 className="family-head">
                 <span className={`badge ${family.rarity}`}>{family.name}</span>
-                <span className={`badge ${family.rarity}`}>{RARITY_LABEL[family.rarity]}</span>
+                <span className={`badge ${family.rarity}`}>
+                  {t(`rarity.${family.rarity}`)}
+                </span>
                 <span className="ability">{family.ability}</span>
               </h2>
               <div className="variant-grid">
@@ -867,7 +890,11 @@ export default function App() {
                       }
                     >
                       {st.mastered && (
-                        <span className="mastered-badge" aria-hidden title="Mastered">
+                        <span
+                          className="mastered-badge"
+                          aria-hidden
+                          title={t('collection.masteredBadge')}
+                        >
                           <CrownIcon />
                         </span>
                       )}
@@ -885,36 +912,36 @@ export default function App() {
                       </div>
                       <div className="badge-row">
                         <span className={`badge ${sprite.rarity}`}>
-                          {RARITY_LABEL[sprite.rarity]}
+                          {t(`rarity.${sprite.rarity}`)}
                         </span>
                         {sprite.variant !== 'base' && (
-                          <span className="badge">{sprite.variant}</span>
+                          <span className="badge">{t(`variant.${sprite.variant}`)}</span>
                         )}
                       </div>
                       <div
                         className={`dust-cost ${st.status === 'lost' ? 'dust-needed' : ''}`}
-                        title="Sprite Dust to re-summon after loss"
+                        title={t('collection.dustTitle')}
                       >
                         <span className="dust-icon" aria-hidden>
                           ✦
                         </span>
-                        {sprite.summonCost.toLocaleString()} dust
+                        {sprite.summonCost.toLocaleString()} {t('collection.dust')}
                       </div>
                       <div className="card-footer">
                         <span className={`status-label ${st.status}`}>
                           {st.status === 'none'
-                            ? 'Missing'
+                            ? t('status.missing')
                             : st.status === 'available'
-                              ? 'Ready'
-                              : 'Lost'}
+                              ? t('status.ready')
+                              : t('status.lost')}
                         </span>
                         <div className="card-actions">
                           <button
                             type="button"
                             className={`card-action-btn missing-btn ${st.status === 'none' ? 'on' : ''}`}
                             onClick={(e) => onMarkMissing(sprite, e)}
-                            title="Mark missing"
-                            aria-label="Mark missing"
+                            title={t('collection.markMissing')}
+                            aria-label={t('collection.markMissing')}
                             aria-pressed={st.status === 'none'}
                           >
                             <DeleteIcon />
@@ -923,8 +950,8 @@ export default function App() {
                             type="button"
                             className={`card-action-btn master-btn ${st.mastered ? 'on' : ''}`}
                             onClick={(e) => onMasterToggle(sprite, e)}
-                            title="Toggle mastered"
-                            aria-label="Toggle mastered"
+                            title={t('collection.toggleMastered')}
+                            aria-label={t('collection.toggleMastered')}
                             aria-pressed={st.mastered}
                           >
                             <CrownIcon />
@@ -939,7 +966,7 @@ export default function App() {
           ))}
 
           {filteredByFamily.length === 0 && (
-            <p className="empty-hint">No sprites match your filters.</p>
+            <p className="empty-hint">{t('collection.noMatch')}</p>
           )}
         </>
       )}
@@ -947,7 +974,7 @@ export default function App() {
       {tab === 'suggest' && (
         <div className="suggest-panel">
           <div className="help-box">
-            <h3>Who is playing this match?</h3>
+            <h3>{t('suggest.whoPlaying')}</h3>
             <div className="active-select" style={{ marginTop: 10 }}>
               {state.players.map((p) => (
                 <label key={p.id}>
@@ -974,24 +1001,16 @@ export default function App() {
           </div>
 
           <button type="button" className="btn btn-primary" onClick={runSuggest}>
-            Generate bring / gift plan
+            {t('suggest.generate')}
           </button>
 
           {plan && (
             <>
               <div className="suggest-summary">{plan.summary}</div>
-              <p className="suggest-hint">
-                Each round aims for a fair 1:1 — every player gives one and receives one when
-                possible. Missing fills always beat lost restores. A round that would only swap
-                lost restores (no new Missing fills) becomes mastery / hunt instead, so you do
-                not thrash the same Lost/Ready cycle. Mixed missing + restore rounds stay fair
-                trades. After the match, confirm each exchange that happened.
-              </p>
+              <p className="suggest-hint">{t('suggest.hint')}</p>
 
               {plan.assignments.length === 0 ? (
-                <p className="empty-hint">
-                  No assignments yet. Mark collections and select players.
-                </p>
+                <p className="empty-hint">{t('suggest.noAssignments')}</p>
               ) : (
                 <div className="round-list">
                   {Array.from({ length: MAX_BRING_PER_PLAYER }, (_, i) => i + 1)
@@ -1011,15 +1030,19 @@ export default function App() {
                                 {round}
                               </span>
                               <div>
-                                <h3>Round {round}</h3>
+                                <h3>{t('suggest.round', { n: round })}</h3>
                                 <p className="round-sub">
-                                  {exchanges.length} exchange
-                                  {exchanges.length === 1 ? '' : 's'}
+                                  {exchanges.length}{' '}
+                                  {exchanges.length === 1
+                                    ? t('suggest.exchange')
+                                    : t('suggest.exchanges')}
                                   {confirmedCount > 0 && !done
-                                    ? ` · ${confirmedCount} confirmed`
+                                    ? ` · ${t('suggest.confirmed', { n: confirmedCount })}`
                                     : ''}
                                   {items.length > exchanges.length
-                                    ? ` · ${items.length - exchanges.length} mastery`
+                                    ? ` · ${t('suggest.masteryCount', {
+                                        n: items.length - exchanges.length,
+                                      })}`
                                     : ''}
                                 </p>
                               </div>
@@ -1031,12 +1054,14 @@ export default function App() {
                               onClick={() => confirmRound(round)}
                             >
                               {done
-                                ? 'All confirmed'
+                                ? t('suggest.allConfirmed')
                                 : exchanges.length === 0
-                                  ? 'No exchanges'
+                                  ? t('suggest.noExchanges')
                                   : confirmedCount > 0
-                                    ? `Confirm remaining (${pendingExchanges.length})`
-                                    : 'Confirm all'}
+                                    ? t('suggest.confirmRemaining', {
+                                        n: pendingExchanges.length,
+                                      })
+                                    : t('suggest.confirmAll')}
                             </button>
                           </div>
 
@@ -1086,24 +1111,28 @@ export default function App() {
                                     <div className="badge-row">
                                       {a.needKind === 'missing' && (
                                         <span className="kind-tag need-missing-tag">
-                                          New (missing)
+                                          {t('suggest.newMissing')}
                                         </span>
                                       )}
                                       {a.needKind === 'lost' && (
                                         <span className="kind-tag need-lost-tag">
-                                          Restore lost
+                                          {t('suggest.restoreLost')}
                                         </span>
                                       )}
                                       {a.kind === 'mastery' && (
-                                        <span className="kind-tag mastery">Mastery</span>
+                                        <span className="kind-tag mastery">
+                                          {t('suggest.mastery')}
+                                        </span>
                                       )}
                                       {a.kind === 'repurchase' && (
                                         <span className="kind-tag repurchase">
-                                          Bringer repurchase
+                                          {t('suggest.bringerRepurchase')}
                                         </span>
                                       )}
                                       {exchangeDone && (
-                                        <span className="kind-tag confirmed-tag">Confirmed</span>
+                                        <span className="kind-tag confirmed-tag">
+                                          {t('suggest.confirmedTag')}
+                                        </span>
                                       )}
                                     </div>
                                     <div className="assignment-main">
@@ -1117,7 +1146,7 @@ export default function App() {
                                       >
                                         {a.bringerName}
                                       </span>
-                                      <span className="arrow">brings</span>
+                                      <span className="arrow">{t('suggest.brings')}</span>
                                       {a.spriteName || '—'}
                                       {a.recipientName && (
                                         <>
@@ -1140,15 +1169,17 @@ export default function App() {
                                         className={`dust-cost ${a.needsRepurchase ? 'dust-needed' : ''}`}
                                         title={
                                           a.needsRepurchase
-                                            ? 'Bringer must re-summon with dust before trading'
-                                            : 'Sprite Dust cost if lost / re-summon'
+                                            ? t('suggest.dustBringerMust')
+                                            : t('suggest.dustIfLost')
                                         }
                                       >
                                         <span className="dust-icon" aria-hidden>
                                           ✦
                                         </span>
-                                        {a.summonCost.toLocaleString()} dust
-                                        {a.needsRepurchase ? ' (bringer pays)' : ''}
+                                        {a.summonCost.toLocaleString()}{' '}
+                                        {a.needsRepurchase
+                                          ? t('suggest.dustBringerPays')
+                                          : t('collection.dust')}
                                       </div>
                                     )}
                                     <div className="assignment-reason">{a.reason}</div>
@@ -1161,7 +1192,9 @@ export default function App() {
                                         disabled={exchangeDone}
                                         onClick={() => confirmSingleExchange(a)}
                                       >
-                                        {exchangeDone ? 'Done' : 'Confirm'}
+                                        {exchangeDone
+                                          ? t('suggest.done')
+                                          : t('suggest.confirm')}
                                       </button>
                                     </div>
                                   )}
@@ -1182,38 +1215,31 @@ export default function App() {
       {tab === 'squad' && (
         <div className="squad-panel">
           <div className="help-box cloud-box">
-            <h3>Share with squad (internet)</h3>
+            <h3>{t('squad.shareTitle')}</h3>
             {!cloudReady ? (
-              <p>
-                Live rooms are not available on this build. You can still track collections
-                locally and use Export / Import (whole squad or per player) to share files.
-              </p>
+              <p>{t('squad.cloudUnavailable')}</p>
             ) : roomCode ? (
               <>
                 <p>
-                  Room code: <strong className="room-code">{roomCode}</strong>
+                  {t('squad.roomCode')} <strong className="room-code">{roomCode}</strong>
                 </p>
-                <p className="muted">
-                  Everyone opens the same link and edits the same collection live.
-                </p>
+                <p className="muted">{t('squad.roomHint')}</p>
                 <div className="header-actions" style={{ marginTop: 10 }}>
                   <button type="button" className="btn btn-primary" onClick={() => void copyShareLink()}>
-                    Copy share link
+                    {t('squad.copyLink')}
                   </button>
                   <button type="button" className="btn" onClick={handleLeaveRoom}>
-                    Leave room
+                    {t('squad.leaveRoom')}
                   </button>
                 </div>
                 <p className="sync-detail">
-                  Status: {syncLabel(syncStatus, roomCode)}
+                  {t('squad.status')} {syncLabel(syncStatus, roomCode, t)}
                   {syncError ? ` — ${syncError}` : ''}
                 </p>
               </>
             ) : (
               <>
-                <p className="muted">
-                  Create a room from your current data, or join a teammate&apos;s code.
-                </p>
+                <p className="muted">{t('squad.createHint')}</p>
                 <div className="header-actions" style={{ marginTop: 10 }}>
                   <button
                     type="button"
@@ -1221,13 +1247,13 @@ export default function App() {
                     disabled={busy}
                     onClick={() => void handleCreateRoom()}
                   >
-                    {busy ? 'Working…' : 'Create room'}
+                    {busy ? t('squad.working') : t('squad.createRoom')}
                   </button>
                 </div>
                 <div className="join-row">
                   <input
                     className="search"
-                    placeholder="Room code"
+                    placeholder={t('squad.roomPlaceholder')}
                     value={joinInput}
                     onChange={(e) => setJoinInput(e.target.value.toUpperCase())}
                     maxLength={8}
@@ -1238,7 +1264,7 @@ export default function App() {
                     disabled={busy}
                     onClick={() => void handleJoinRoom()}
                   >
-                    Join
+                    {t('squad.join')}
                   </button>
                 </div>
                 {syncError && <p className="error-text">{syncError}</p>}
@@ -1254,8 +1280,8 @@ export default function App() {
                   className="btn icon-btn"
                   onClick={() => movePlayer(p.id, -1)}
                   disabled={index === 0}
-                  title="Move up"
-                  aria-label={`Move ${p.name} up`}
+                  title={t('squad.moveUp')}
+                  aria-label={`${t('squad.moveUp')}: ${p.name}`}
                 >
                   ↑
                 </button>
@@ -1264,8 +1290,8 @@ export default function App() {
                   className="btn icon-btn"
                   onClick={() => movePlayer(p.id, 1)}
                   disabled={index === state.players.length - 1}
-                  title="Move down"
-                  aria-label={`Move ${p.name} down`}
+                  title={t('squad.moveDown')}
+                  aria-label={`${t('squad.moveDown')}: ${p.name}`}
                 >
                   ↓
                 </button>
@@ -1281,44 +1307,43 @@ export default function App() {
                   type="button"
                   className="btn btn-sm"
                   onClick={() => doExportPlayer(p.id)}
-                  title="Export this player only"
+                  title={t('squad.exportPlayerTitle')}
                 >
-                  Export
+                  {t('squad.export')}
                 </button>
                 <button
                   type="button"
                   className="btn btn-sm"
                   onClick={() => doImportPlayer(p.id)}
-                  title="Import into this player only (others unchanged)"
+                  title={t('squad.importPlayerTitle')}
                 >
-                  Import
+                  {t('squad.import')}
                 </button>
                 <button
                   type="button"
                   className="btn btn-sm btn-danger"
                   onClick={() => requestRemovePlayer(p.id)}
                   disabled={state.players.length <= 1}
-                  title="Remove player"
+                  title={t('squad.removeTitle')}
                 >
-                  Remove
+                  {t('squad.remove')}
                 </button>
               </div>
             </div>
           ))}
           <button type="button" className="btn" onClick={addPlayer}>
-            + Add player
+            {t('squad.addPlayer')}
           </button>
           <div className="header-actions">
             <button type="button" className="btn" onClick={doExport}>
-              Export full squad
+              {t('squad.exportFull')}
             </button>
             <button type="button" className="btn" onClick={doImport}>
-              Import full squad
+              {t('squad.importFull')}
             </button>
           </div>
           <p className="empty-hint" style={{ padding: 0, textAlign: 'left' }}>
-            Progress is saved in this browser. In a live room, changes sync for everyone.
-            Per-player Export / Import only touches that one collection.
+            {t('squad.footer')}
           </p>
         </div>
       )}
@@ -1346,14 +1371,14 @@ export default function App() {
             <div className="modal-header">
               <h2 id="app-modal-title">
                 {modal.kind === 'confirm-delete-player'
-                  ? 'Remove player?'
+                  ? t('deletePlayer.title')
                   : modal.title}
               </h2>
               <button
                 type="button"
                 className="modal-close"
                 onClick={() => setModal(null)}
-                aria-label="Close"
+                aria-label={t('close')}
               >
                 ×
               </button>
@@ -1364,12 +1389,17 @@ export default function App() {
                 <p className="modal-subtitle">{modal.subtitle}</p>
                 <div className="modal-exchange-list">
                   {modal.items.map((a, i) => (
-                    <ExchangeModalRow key={`${exchangeKey(a)}-${i}`} a={a} players={state.players} />
+                    <ExchangeModalRow
+                      key={`${exchangeKey(a)}-${i}`}
+                      a={a}
+                      players={state.players}
+                      t={t}
+                    />
                   ))}
                 </div>
                 <div className="modal-footer">
                   <button type="button" className="btn" onClick={() => setModal(null)}>
-                    Cancel
+                    {t('confirm.cancel')}
                   </button>
                   <button
                     type="button"
@@ -1377,8 +1407,8 @@ export default function App() {
                     onClick={() => applyConfirmedExchanges(modal.items)}
                   >
                     {modal.items.length === 1
-                      ? 'Confirm exchange'
-                      : `Confirm ${modal.items.length} exchanges`}
+                      ? t('confirm.confirmOne')
+                      : t('confirm.confirmMany', { n: modal.items.length })}
                   </button>
                 </div>
               </>
@@ -1387,13 +1417,22 @@ export default function App() {
             {modal.kind === 'confirm-delete-player' && (
               <>
                 <p className="modal-subtitle">
-                  Remove <strong style={{ color: 'var(--text)' }}>{modal.playerName}</strong>{' '}
-                  and their entire collection from this squad? This cannot be undone unless
-                  you have an export backup.
+                  {t('deletePlayer.body', { name: modal.playerName })
+                    .split(modal.playerName)
+                    .map((part, i, arr) =>
+                      i < arr.length - 1 ? (
+                        <span key={i}>
+                          {part}
+                          <strong style={{ color: 'var(--text)' }}>{modal.playerName}</strong>
+                        </span>
+                      ) : (
+                        <span key={i}>{part}</span>
+                      ),
+                    )}
                 </p>
                 <div className="modal-footer">
                   <button type="button" className="btn" onClick={() => setModal(null)}>
-                    Cancel
+                    {t('confirm.cancel')}
                   </button>
                   <button
                     type="button"
@@ -1403,7 +1442,7 @@ export default function App() {
                       setModal(null)
                     }}
                   >
-                    Remove player
+                    {t('deletePlayer.confirm')}
                   </button>
                 </div>
               </>
@@ -1419,6 +1458,7 @@ export default function App() {
                         key={`${exchangeKey(a)}-${i}`}
                         a={a}
                         players={state.players}
+                        t={t}
                       />
                     ))}
                   </div>
@@ -1436,7 +1476,7 @@ export default function App() {
                     className="btn btn-primary"
                     onClick={() => setModal(null)}
                   >
-                    OK
+                    {t('confirm.ok')}
                   </button>
                 </div>
               </>
@@ -1447,99 +1487,48 @@ export default function App() {
 
       {tab === 'help' && (
         <div className="help-box">
-          <h3>How to use (in lobby / between games)</h3>
+          <h3>{t('help.howTitle')}</h3>
           <ul>
-            <li>
-              <strong>Collection</strong> — pick a squad mate, then tap a sprite card to toggle{' '}
-              <em>Ready ↔ Lost</em> (Missing first becomes Ready).
-            </li>
-            <li>
-              Tap the crossed-circle button on a card to mark it <strong>Missing</strong>.
-            </li>
-            <li>
-              <strong>Ready</strong> = can bring without Sprite Dust. <strong>Lost</strong> =
-              needs repurchase before bringing.
-            </li>
-            <li>
-              Tap the <strong>crown</strong> when a sprite is mastered (extracted at Level 5).
-            </li>
-            <li>
-              <strong>Squad</strong> — use ↑ / ↓ to reorder players; Collection chips follow that
-              order.
-            </li>
-            <li>
-              <strong>Suggest</strong> — check who is in the next game, then generate a plan.
-            </li>
+            <li>{t('help.collection')}</li>
+            <li>{t('help.missingBtn')}</li>
+            <li>{t('help.readyLost')}</li>
+            <li>{t('help.crown')}</li>
+            <li>{t('help.squadOrder')}</li>
+            <li>{t('help.suggest')}</li>
           </ul>
 
-          <h3 style={{ marginTop: 16 }}>Live rooms</h3>
+          <h3 style={{ marginTop: 16 }}>{t('help.roomsTitle')}</h3>
           <ul>
-            <li>
-              <strong>Create room</strong> (Squad tab) — uploads your current squad and gives a
-              short room code.
-            </li>
-            <li>
-              <strong>Copy share link</strong> — send the URL to teammates, or they can type the
-              room code and hit <strong>Join</strong>.
-            </li>
-            <li>
-              Everyone in the same room edits the same collections live (status shows Live /
-              Saving).
-            </li>
-            <li>
-              <strong>Leave room</strong> — stops syncing this browser; your local copy stays.
-              Join another code or create a new room anytime.
-            </li>
+            <li>{t('help.createRoom')}</li>
+            <li>{t('help.shareLink')}</li>
+            <li>{t('help.liveEdit')}</li>
+            <li>{t('help.leaveRoom')}</li>
           </ul>
 
-          <h3 style={{ marginTop: 16 }}>Export &amp; import</h3>
+          <h3 style={{ marginTop: 16 }}>{t('help.exportTitle')}</h3>
           <ul>
-            <li>
-              <strong>Export full squad / Import full squad</strong> — backup or replace the
-              entire squad JSON (all players).
-            </li>
-            <li>
-              <strong>Export</strong> on a player row — saves only that person&apos;s collection
-              (share with them, or keep a personal backup).
-            </li>
-            <li>
-              <strong>Import</strong> on a player row — loads a player file into that slot only;
-              other squad members stay unchanged. Accepts a single-player export, or a full squad
-              file that contains exactly one player.
-            </li>
+            <li>{t('help.exportFull')}</li>
+            <li>{t('help.exportPlayer')}</li>
+            <li>{t('help.importPlayer')}</li>
           </ul>
 
-          <h3 style={{ marginTop: 16 }}>Suggestion rules</h3>
+          <h3 style={{ marginTop: 16 }}>{t('help.rulesTitle')}</h3>
           <ul>
-            <li>
-              <strong>Fair 1:1:</strong> each round, every player gives at most one and receives
-              at most one (when the collections allow it).
-            </li>
-            <li>
-              <strong>Primary need:</strong> missing (never collected) before any lost restore.
-            </li>
-            <li>
-              <strong>Rounds 1–4:</strong> bring slots; confirm each exchange (or remaining
-              round) so recipients become Ready and bringers Lost. Leave failed trades
-              unconfirmed.
-            </li>
-            <li>
-              <strong>Pure lost-restore rounds</strong> are skipped: if a round only restores
-              Lost copies (no Missing fills), everyone brings for mastery / hunt instead of
-              thrashing swaps.
-            </li>
-            <li>Prefers <em>Ready</em> inventory over repurchase on the bringer.</li>
+            <li>{t('help.fair')}</li>
+            <li>{t('help.primary')}</li>
+            <li>{t('help.rounds')}</li>
+            <li>{t('help.thrash')}</li>
+            <li>{t('help.readyPrefer')}</li>
           </ul>
-          <h3 style={{ marginTop: 16 }}>Catalog</h3>
+          <h3 style={{ marginTop: 16 }}>{t('help.catalogTitle')}</h3>
           <ul>
             <li>
-              <strong>{SPRITES.length}</strong> sprite combinations across{' '}
-              {SPRITE_FAMILIES.length} families (C7S3 data as of July 2026).
+              {t('help.catalogCount', {
+                sprites: SPRITES.length,
+                families: SPRITE_FAMILIES.length,
+              })}
             </li>
-            <li>
-              Variants: Base, Gold, Gummy, Galaxy, Holofoil, Cube (Gem/Quack reserved for
-              future).
-            </li>
+            <li>{t('help.variants')}</li>
           </ul>
         </div>
       )}
@@ -1555,9 +1544,11 @@ function exchangeKey(a: BringAssignment): string {
 function ExchangeModalRow({
   a,
   players,
+  t,
 }: {
   a: BringAssignment
   players: Player[]
+  t: (key: string, vars?: Record<string, string | number>) => string
 }) {
   const bringer = players.find((p) => p.id === a.bringerId)
   const recipient = players.find((p) => p.id === a.recipientId)
@@ -1589,17 +1580,17 @@ function ExchangeModalRow({
         <div className="modal-exchange-sprite">{a.spriteName}</div>
         <div className="modal-exchange-tags">
           {a.needKind === 'missing' && (
-            <span className="kind-tag need-missing-tag">New</span>
+            <span className="kind-tag need-missing-tag">{t('confirm.tagNew')}</span>
           )}
           {a.needKind === 'lost' && (
-            <span className="kind-tag need-lost-tag">Restore</span>
+            <span className="kind-tag need-lost-tag">{t('confirm.tagRestore')}</span>
           )}
           {a.needsRepurchase && (
-            <span className="kind-tag repurchase">Repurchase</span>
+            <span className="kind-tag repurchase">{t('confirm.tagRepurchase')}</span>
           )}
           {typeof a.summonCost === 'number' && (
             <span className="modal-exchange-dust">
-              ✦ {a.summonCost.toLocaleString()} dust
+              ✦ {a.summonCost.toLocaleString()} {t('collection.dust')}
             </span>
           )}
         </div>
@@ -1608,18 +1599,22 @@ function ExchangeModalRow({
   )
 }
 
-function syncLabel(status: SyncStatus, roomCode: string): string {
+function syncLabel(
+  status: SyncStatus,
+  roomCode: string,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+): string {
   switch (status) {
     case 'connecting':
-      return `Room ${roomCode}…`
+      return t('sync.connecting', { code: roomCode })
     case 'saving':
-      return `Saving ${roomCode}`
+      return t('sync.saving', { code: roomCode })
     case 'synced':
-      return `Live · ${roomCode}`
+      return t('sync.synced', { code: roomCode })
     case 'error':
-      return `Sync error · ${roomCode}`
+      return t('sync.error', { code: roomCode })
     case 'offline':
-      return `Offline · ${roomCode}`
+      return t('sync.offline', { code: roomCode })
     default:
       return roomCode
   }
