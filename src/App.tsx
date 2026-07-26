@@ -1486,50 +1486,119 @@ export default function App() {
       )}
 
       {tab === 'help' && (
-        <div className="help-box">
-          <h3>{t('help.howTitle')}</h3>
-          <ul>
-            <li>{t('help.collection')}</li>
-            <li>{t('help.missingBtn')}</li>
-            <li>{t('help.readyLost')}</li>
-            <li>{t('help.crown')}</li>
-            <li>{t('help.squadOrder')}</li>
-            <li>{t('help.suggest')}</li>
-          </ul>
+        <div className="help-guide">
+          <section className="help-section help-intro">
+            <h2>{t('help.introTitle')}</h2>
+            <p>{t('help.introP1')}</p>
+            <p>{t('help.introP2')}</p>
+          </section>
 
-          <h3 style={{ marginTop: 16 }}>{t('help.roomsTitle')}</h3>
-          <ul>
-            <li>{t('help.createRoom')}</li>
-            <li>{t('help.shareLink')}</li>
-            <li>{t('help.liveEdit')}</li>
-            <li>{t('help.leaveRoom')}</li>
-          </ul>
+          <section className="help-section">
+            <h3>{t('help.startTitle')}</h3>
+            <ol className="help-steps">
+              <li>{t('help.start1')}</li>
+              <li>{t('help.start2')}</li>
+              <li>{t('help.start3')}</li>
+              <li>{t('help.start4')}</li>
+              <li>{t('help.start5')}</li>
+            </ol>
+          </section>
 
-          <h3 style={{ marginTop: 16 }}>{t('help.exportTitle')}</h3>
-          <ul>
-            <li>{t('help.exportFull')}</li>
-            <li>{t('help.exportPlayer')}</li>
-            <li>{t('help.importPlayer')}</li>
-          </ul>
+          <section className="help-section">
+            <h3>{t('help.statusesTitle')}</h3>
+            <div className="help-status-grid">
+              <div className="help-status-card status-missing">
+                <strong>{t('help.statusMissingTitle')}</strong>
+                <p>{t('help.statusMissingBody')}</p>
+              </div>
+              <div className="help-status-card status-ready">
+                <strong>{t('help.statusReadyTitle')}</strong>
+                <p>{t('help.statusReadyBody')}</p>
+              </div>
+              <div className="help-status-card status-lost">
+                <strong>{t('help.statusLostTitle')}</strong>
+                <p>{t('help.statusLostBody')}</p>
+              </div>
+              <div className="help-status-card status-mastered">
+                <strong>{t('help.statusMasteredTitle')}</strong>
+                <p>{t('help.statusMasteredBody')}</p>
+              </div>
+            </div>
+          </section>
 
-          <h3 style={{ marginTop: 16 }}>{t('help.rulesTitle')}</h3>
-          <ul>
-            <li>{t('help.fair')}</li>
-            <li>{t('help.primary')}</li>
-            <li>{t('help.rounds')}</li>
-            <li>{t('help.thrash')}</li>
-            <li>{t('help.readyPrefer')}</li>
-          </ul>
-          <h3 style={{ marginTop: 16 }}>{t('help.catalogTitle')}</h3>
-          <ul>
-            <li>
-              {t('help.catalogCount', {
-                sprites: SPRITES.length,
-                families: SPRITE_FAMILIES.length,
-              })}
-            </li>
-            <li>{t('help.variants')}</li>
-          </ul>
+          <section className="help-section">
+            <h3>{t('help.collectionTitle')}</h3>
+            <ul>
+              <li>{t('help.collectionP1')}</li>
+              <li>{t('help.collectionP2')}</li>
+              <li>{t('help.collectionP3')}</li>
+            </ul>
+          </section>
+
+          <section className="help-section">
+            <h3>{t('help.matchTitle')}</h3>
+            <div className="help-two-col">
+              <div className="help-card">
+                <h4>{t('help.matchBeforeTitle')}</h4>
+                <ol>
+                  <li>{t('help.matchBefore1')}</li>
+                  <li>{t('help.matchBefore2')}</li>
+                  <li>{t('help.matchBefore3')}</li>
+                </ol>
+              </div>
+              <div className="help-card">
+                <h4>{t('help.matchAfterTitle')}</h4>
+                <ol>
+                  <li>{t('help.matchAfter1')}</li>
+                  <li>{t('help.matchAfter2')}</li>
+                  <li>{t('help.matchAfter3')}</li>
+                </ol>
+              </div>
+            </div>
+          </section>
+
+          <section className="help-section">
+            <h3>{t('help.suggestTitle')}</h3>
+            <ul>
+              <li>{t('help.suggest1')}</li>
+              <li>{t('help.suggest2')}</li>
+              <li>{t('help.suggest3')}</li>
+              <li>{t('help.suggest4')}</li>
+            </ul>
+          </section>
+
+          <section className="help-section">
+            <h3>{t('help.shareTitle')}</h3>
+            <ol className="help-steps">
+              <li>{t('help.share1')}</li>
+              <li>{t('help.share2')}</li>
+              <li>{t('help.share3')}</li>
+            </ol>
+            <p className="help-note">{t('help.shareNote')}</p>
+          </section>
+
+          <section className="help-section">
+            <h3>{t('help.backupTitle')}</h3>
+            <ul>
+              <li>{t('help.backupFull')}</li>
+              <li>{t('help.backupPlayer')}</li>
+            </ul>
+          </section>
+
+          <section className="help-section">
+            <h3>{t('help.tipTitle')}</h3>
+            <ul>
+              <li>{t('help.tip1')}</li>
+              <li>{t('help.tip2')}</li>
+              <li>{t('help.tip3')}</li>
+              <li>
+                {t('help.tipCatalog', {
+                  sprites: SPRITES.length,
+                  families: SPRITE_FAMILIES.length,
+                })}
+              </li>
+            </ul>
+          </section>
         </div>
       )}
     </div>

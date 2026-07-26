@@ -197,46 +197,91 @@ const es: MessageTree = {
     offline: 'Sin conexión · {code}',
   },
   help: {
-    howTitle: 'Cómo usarlo (en el lobby / entre partidas)',
-    collection:
-      'Colección — elige un compañero y toca una carta para alternar Listo ↔ Perdido (si falta, el primer toque lo pone Listo).',
-    missingBtn: 'Toca el botón de círculo tachado para marcarlo como Falta.',
-    readyLost:
-      'Listo = se puede llevar sin Polvo de Sprite. Perdido = hay que recomprarlo antes de llevarlo.',
-    crown: 'Toca la corona cuando un sprite está dominado (extraído al nivel 5).',
-    squadOrder:
-      'Escuadra — usa ↑ / ↓ para reordenar jugadores; las fichas de Colección siguen ese orden.',
-    suggest: 'Sugerir — marca quién juega la siguiente partida y genera un plan.',
-    roomsTitle: 'Salas en vivo',
-    createRoom:
-      'Crear sala (pestaña Escuadra) — sube tu escuadra actual y obtiene un código corto.',
-    shareLink:
-      'Copiar enlace — envía la URL a tus compañeros, o que escriban el código y pulsen Unirse.',
-    liveEdit:
-      'Todos en la misma sala editan las mismas colecciones en vivo (el estado muestra En vivo / Guardando).',
-    leaveRoom:
-      'Salir de la sala — deja de sincronizar este navegador; la copia local se queda. Puedes unirte a otro código o crear una sala nueva cuando quieras.',
-    exportTitle: 'Exportar e importar',
-    exportFull:
-      'Exportar / Importar escuadra completa — respaldo o reemplazo del JSON de toda la escuadra.',
-    exportPlayer:
-      'Exportar en la fila de un jugador — guarda solo su colección (para compartírsela o un respaldo personal).',
-    importPlayer:
-      'Importar en la fila de un jugador — carga un archivo solo en ese hueco; el resto no cambia. Acepta una exportación de un jugador, o una escuadra con exactamente un jugador.',
-    rulesTitle: 'Reglas de sugerencias',
-    fair:
-      '1:1 justo: cada ronda, cada jugador da como máximo uno y recibe como máximo uno (si las colecciones lo permiten).',
-    primary: 'Prioridad: lo que falta (nunca conseguido) antes de restaurar perdidos.',
-    rounds:
-      'Rondas 1–4: huecos para llevar; confirma cada intercambio (o el resto de la ronda) para que los receptores queden Listo y los portadores Perdido. Deja sin confirmar los trueques fallidos.',
-    thrash:
-      'Se omiten rondas solo de restaurar perdidos: si una ronda solo restauraría copias Perdidas (sin huecos nuevos), todos llevan para dominio / cazar en lugar de ciclar intercambios.',
-    readyPrefer: 'Prefiere inventario Listo antes que recompra del portador.',
-    catalogTitle: 'Catálogo',
-    catalogCount:
-      '{sprites} combinaciones de sprites en {families} familias (datos C7S3 a julio 2026).',
-    variants:
-      'Variantes: Base, Oro, Gomoso, Galaxia, Holofoil, Cubo (Gema/Quack reservados).',
+    introTitle: '¿Qué es Sprite Squad?',
+    introP1:
+      'Un ayudante sencillo para tu escuadra de Fortnite con los Sprites de Capítulo 7 Temporada 3. Úsalo en el lobby o entre partidas para saber quién tiene qué — y quién debería llevar cada sprite para truequear con los amigos.',
+    introP2:
+      'No modifica el juego. Tú actualizas la app mientras jugáis y luego seguís el plan de trueques que sugiere.',
+
+    startTitle: 'Empezar (primera vez)',
+    start1:
+      'Abre la pestaña Escuadra. Pon el nombre de cada jugador (añade o quita gente si hace falta).',
+    start2:
+      'Opcional: crea una sala y comparte el enlace o el código para que todos vean la misma lista en el móvil.',
+    start3:
+      'Abre Colección. Elige un jugador y toca los sprites para marcar lo que tiene.',
+    start4:
+      'Cuando hagáis cola, abre Sugerir, marca quién entra en esa partida y genera un plan.',
+    start5:
+      'Después de la partida, confirma solo los trueques que de verdad ocurrieron.',
+
+    statusesTitle: 'Estados de un sprite (lo importante)',
+    statusMissingTitle: 'Falta',
+    statusMissingBody: 'Nunca lo metió en la colección.',
+    statusReadyTitle: 'Listo',
+    statusReadyBody:
+      'Está en su colección y puede equiparlo/llevarlo sin gastar Polvo de Sprite.',
+    statusLostTitle: 'Perdido',
+    statusLostBody:
+      'Lo tuvo, pero necesita Polvo de Sprite para reinvocarlo antes de poder llevarlo otra vez.',
+    statusMasteredTitle: 'Dominado (corona)',
+    statusMasteredBody:
+      'Extraído al nivel máximo (nivel 5). Va aparte de Listo/Perdido: usa el botón de la corona para marcarlo.',
+
+    collectionTitle: 'Actualizar la colección',
+    collectionP1:
+      'En Colección, elige un jugador arriba. Toca una carta para alternar Listo ↔ Perdido. Si estaba en Falta, el primer toque lo pone Listo.',
+    collectionP2:
+      'Usa el botón de círculo tachado si necesitas marcarlo otra vez como Falta (error, o en realidad no lo tenía).',
+    collectionP3:
+      'Usa la búsqueda y los filtros si la lista es larga. Reordena jugadores en Escuadra si quieres otra orden en las fichas.',
+
+    matchTitle: 'Antes y después de una partida',
+    matchBeforeTitle: 'Antes de entrar',
+    matchBefore1: 'Ve a Sugerir y marca quién juega esta partida.',
+    matchBefore2: 'Pulsa Generar (o Sugerir en la cabecera).',
+    matchBefore3:
+      'Lee cada ronda: quién trae qué sprite → quién lo recibe. Hasta 4 huecos por jugador.',
+    matchAfterTitle: 'Después de la partida',
+    matchAfter1:
+      'Confirma cada trueque que salió bien (uno a uno, o los restantes de una ronda).',
+    matchAfter2:
+      'Al confirmar, la app actualiza la lista: el receptor queda Listo y el portador Perdido en ese sprite.',
+    matchAfter3:
+      'No confirmes trueques fallidos (alguien murió con el sprite, persona equivocada, etc.).',
+
+    suggestTitle: 'Qué intenta hacer el plan',
+    suggest1:
+      'Primero rellenar huecos reales (Falta) de los compañeros, con trueques justos de uno da / uno recibe por ronda.',
+    suggest2:
+      'Si alguien ya lo tenía pero está Perdido, las restauraciones se pueden mezclar cuando sea justo.',
+    suggest3:
+      'Si una ronda solo intercambiaría restauraciones de Perdidos (sin rellenar Faltas nuevas), sugiere dominio o cazar libremente — para no ciclar el mismo Listo/Perdido sin fin.',
+    suggest4:
+      'Prefiere portadores que ya tienen el sprite Listo (sin polvo) cuando puede.',
+
+    shareTitle: 'Jugar con amigos en la misma lista',
+    share1:
+      'Pestaña Escuadra → Crear sala. Copia el enlace (o diles el código).',
+    share2:
+      'Los amigos abren el enlace, o escriben el código y pulsan Unirse. Todos editan las mismas colecciones en vivo.',
+    share3:
+      'Salir de la sala deja de sincronizar en tu dispositivo; la copia local se queda. Luego puedes unirte a otro código.',
+    shareNote:
+      'Si en esta versión no hay salas en vivo, usa Exportar / Importar archivos para compartir los datos.',
+
+    backupTitle: 'Copias de seguridad (opcionales pero útiles)',
+    backupFull:
+      'Exportar escuadra completa guarda a todos. Importar escuadra completa sustituye toda la escuadra por ese archivo — úsalo con cuidado.',
+    backupPlayer:
+      'Exportar / Importar en la fila de un jugador solo actualiza a esa persona. Ideal para un respaldo personal o cargar un amigo sin tocar al resto.',
+
+    tipTitle: 'Consejos',
+    tip1: 'Actualiza la colección en cuanto extraigáis o perdáis un sprite para que Sugerir sea fiable.',
+    tip2: 'Confirma solo los trueques que de verdad pasaron en la partida.',
+    tip3: 'Puedes cambiar el idioma cuando quieras con el selector de la barra superior (English / Español).',
+    tipCatalog:
+      'La app lista {sprites} combinaciones de sprites en {families} familias (catálogo de la comunidad; Epic puede añadir más durante la temporada).',
   },
   close: 'Cerrar',
 }

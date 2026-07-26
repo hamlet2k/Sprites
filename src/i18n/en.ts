@@ -196,45 +196,91 @@ const en: MessageTree = {
     offline: 'Offline · {code}',
   },
   help: {
-    howTitle: 'How to use (in lobby / between games)',
-    collection:
-      'Collection — pick a squad mate, then tap a sprite card to toggle Ready ↔ Lost (Missing first becomes Ready).',
-    missingBtn: 'Tap the crossed-circle button on a card to mark it Missing.',
-    readyLost:
-      'Ready = can bring without Sprite Dust. Lost = needs repurchase before bringing.',
-    crown: 'Tap the crown when a sprite is mastered (extracted at Level 5).',
-    squadOrder: 'Squad — use ↑ / ↓ to reorder players; Collection chips follow that order.',
-    suggest: 'Suggest — check who is in the next game, then generate a plan.',
-    roomsTitle: 'Live rooms',
-    createRoom:
-      'Create room (Squad tab) — uploads your current squad and gives a short room code.',
-    shareLink:
-      'Copy share link — send the URL to teammates, or they can type the room code and hit Join.',
-    liveEdit:
-      'Everyone in the same room edits the same collections live (status shows Live / Saving).',
-    leaveRoom:
-      'Leave room — stops syncing this browser; your local copy stays. Join another code or create a new room anytime.',
-    exportTitle: 'Export & import',
-    exportFull:
-      'Export full squad / Import full squad — backup or replace the entire squad JSON (all players).',
-    exportPlayer:
-      "Export on a player row — saves only that person's collection (share with them, or keep a personal backup).",
-    importPlayer:
-      'Import on a player row — loads a player file into that slot only; other squad members stay unchanged. Accepts a single-player export, or a full squad file that contains exactly one player.',
-    rulesTitle: 'Suggestion rules',
-    fair:
-      'Fair 1:1: each round, every player gives at most one and receives at most one (when the collections allow it).',
-    primary: 'Primary need: missing (never collected) before any lost restore.',
-    rounds:
-      'Rounds 1–4: bring slots; confirm each exchange (or remaining round) so recipients become Ready and bringers Lost. Leave failed trades unconfirmed.',
-    thrash:
-      'Pure lost-restore rounds are skipped: if a round only restores Lost copies (no Missing fills), everyone brings for mastery / hunt instead of thrashing swaps.',
-    readyPrefer: 'Prefers Ready inventory over repurchase on the bringer.',
-    catalogTitle: 'Catalog',
-    catalogCount:
-      '{sprites} sprite combinations across {families} families (C7S3 data as of July 2026).',
-    variants:
-      'Variants: Base, Gold, Gummy, Galaxy, Holofoil, Cube (Gem/Quack reserved for future).',
+    introTitle: 'What is Sprite Squad?',
+    introP1:
+      'A simple helper for your Fortnite squad during Chapter 7 Season 3 Sprites. Use it in the lobby or between matches to track who owns what — and who should bring which sprite to trade with friends.',
+    introP2:
+      'It does not change the game. You update it while you play, then follow the trade plan it suggests.',
+
+    startTitle: 'Quick start (first time)',
+    start1:
+      'Open the Squad tab. Rename the players to your squad (and add or remove people if needed).',
+    start2:
+      'Optional: create a room and share the link or code so everyone sees the same list on their phone.',
+    start3:
+      'Open Collection. Pick a player, then tap sprites to mark what they have.',
+    start4:
+      'When you queue up, open Suggest, check who is in this match, and generate a plan.',
+    start5:
+      'After the match, confirm only the trades that actually happened.',
+
+    statusesTitle: 'Sprite statuses (the important bit)',
+    statusMissingTitle: 'Missing',
+    statusMissingBody: 'They never got this sprite into the collection.',
+    statusReadyTitle: 'Ready',
+    statusReadyBody:
+      'It is in their collection and they can equip/bring it without spending Sprite Dust.',
+    statusLostTitle: 'Lost',
+    statusLostBody:
+      'They had it before, but it needs Sprite Dust to re-summon before they can bring it again.',
+    statusMasteredTitle: 'Mastered (crown)',
+    statusMasteredBody:
+      'Extracted at max level (Level 5). Separate from Ready/Lost — tap the crown button to toggle.',
+
+    collectionTitle: 'Updating the collection',
+    collectionP1:
+      'In Collection, choose a player at the top. Tap a sprite card to switch Ready ↔ Lost. If it was Missing, the first tap sets it to Ready.',
+    collectionP2:
+      'Use the crossed-circle button on a card if you need to mark it Missing again (mistake, or never really owned).',
+    collectionP3:
+      'Use search and filters if the grid feels long. Reorder players in Squad if you want the chips in a different order.',
+
+    matchTitle: 'Before and after a match',
+    matchBeforeTitle: 'Before you drop',
+    matchBefore1: 'Go to Suggest and tick who is playing this game.',
+    matchBefore2: 'Tap Generate (or Suggest in the header).',
+    matchBefore3:
+      'Read each round: who brings which sprite → who receives it. Up to 4 bring slots per player.',
+    matchAfterTitle: 'After the match',
+    matchAfter1:
+      'Confirm each trade that worked (one by one, or confirm remaining in a round).',
+    matchAfter2:
+      'Confirmed trades update the list for you: receiver becomes Ready, bringer becomes Lost for that sprite.',
+    matchAfter3:
+      'Skip confirm on trades that failed (someone died with the sprite, wrong person, etc.).',
+
+    suggestTitle: 'What the plan tries to do',
+    suggest1:
+      'First fill real gaps (Missing) for squad mates, using fair one-give / one-receive trades each round.',
+    suggest2:
+      'If someone already has a sprite but Lost it, restores can be mixed in when that is fair.',
+    suggest3:
+      'If a round would only swap Lost restores back and forth (no new Missing fills), it suggests mastery or free hunting instead — so you do not ping-pong the same Lost/Ready cycle forever.',
+    suggest4:
+      'It prefers bringers who already have the sprite Ready (no dust) when possible.',
+
+    shareTitle: 'Playing with friends on the same list',
+    share1:
+      'Squad tab → Create room. Copy the share link (or tell them the room code).',
+    share2:
+      'Friends open the link, or type the code and Join. Everyone edits the same collections live.',
+    share3:
+      'Leave room stops syncing on your device; your local copy stays. You can join another code later.',
+    shareNote:
+      'If live rooms are not available on this build, use Export / Import files instead to share data.',
+
+    backupTitle: 'Backups (optional but useful)',
+    backupFull:
+      'Export full squad saves everyone at once. Import full squad replaces the whole squad with that file — use carefully.',
+    backupPlayer:
+      'Export / Import on one player row only updates that person. Handy for a personal backup or to load one friend without touching the others.',
+
+    tipTitle: 'Tips',
+    tip1: 'Update collections as soon as you extract or lose a sprite so Suggest stays accurate.',
+    tip2: 'Only confirm trades that really happened in-game.',
+    tip3: 'Language can be switched anytime with the selector in the top bar (English / Español).',
+    tipCatalog:
+      'The app lists {sprites} sprite combos across {families} families (community catalog; Epic may add more over the season).',
   },
   close: 'Close',
 }
