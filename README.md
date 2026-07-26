@@ -14,6 +14,8 @@ Local-first Fortnite **Chapter 7 Season 3** squad tool for tracking Sprite colle
   - Suggests **repurchase** when only a lost copy can fill a squad mate’s gap
   - Clear **who brings → who receives**
   - Falls back to **mastery leveling** when a player has no useful trade
+  - Per round: if exchanges would be **only** lost-restores (no Missing fills), use
+    **mastery / hunt** instead to avoid endless Lost↔Ready thrash
 
 ## Run
 

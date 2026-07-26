@@ -31,6 +31,10 @@ type Edge = {
  *    lost copy while the same giver still has a Ready gift for someone's need
  * 3. Fair 1:1 give+receive per round when possible
  * 4. Harder-to-find sprites within the same tier
+ *
+ * Per-round anti-thrash: if a round’s exchanges are **only** lost-restores
+ * (no missing fills), drop those trades and assign mastery / free hunt instead.
+ * Mixed rounds (missing + restore) keep both for fair 1:1 give/receive.
  */
 export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
   const active = state.players.filter((p) =>
@@ -107,10 +111,39 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
     runBalanced(openEdges(false))
     runUnbalanced(openEdges(false))
 
+    // Pure lost-restore rounds thrash (A restores B, B restores A next time).
+    // If this round has exchanges and none fill a Missing gap, scrap them.
+    let skippedPureLostRestores = false
+    const roundExchanges = assignments.filter(
+      (a) => a.round === round && isExchangeAssignment(a),
+    )
+    if (
+      roundExchanges.length > 0 &&
+      roundExchanges.every((a) => a.needKind === 'lost')
+    ) {
+      skippedPureLostRestores = true
+      for (const a of roundExchanges) {
+        usedGift.delete(`${a.bringerId}::${a.spriteId}`)
+        if (a.recipientId) {
+          coveredNeed.delete(`${a.recipientId}::${a.spriteId}`)
+        }
+        giveThisRound.delete(a.bringerId)
+        if (a.recipientId) receiveThisRound.delete(a.recipientId)
+      }
+      for (let i = assignments.length - 1; i >= 0; i--) {
+        const a = assignments[i]
+        if (a.round === round && isExchangeAssignment(a) && a.needKind === 'lost') {
+          assignments.splice(i, 1)
+        }
+      }
+    }
+
     // Mastery / hunt for active players not bringing this round
     for (const player of active) {
       if (giveThisRound.has(player.id)) continue
-      const alreadyBringing = assignments.some((a) => a.bringerId === player.id)
+      const alreadyBringing = assignments.some(
+        (a) => a.round === round && a.bringerId === player.id,
+      )
       if (alreadyBringing) continue
 
       const mastery = pickMasterySprite(
@@ -120,12 +153,15 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
             .filter((a) => a.bringerId === player.id)
             .map((a) => a.spriteId),
         ),
+        skippedPureLostRestores
+          ? 'pure-lost-round'
+          : 'no-trade',
       )
       if (mastery) {
         mastery.round = round
         assignments.push(mastery)
         giveThisRound.add(player.id)
-      } else if (round === 1) {
+      } else if (round === 1 || skippedPureLostRestores) {
         assignments.push({
           kind: 'mastery',
           bringerId: player.id,
@@ -133,8 +169,9 @@ export function buildSuggestionPlan(state: SquadState): SuggestionPlan {
           spriteId: '',
           spriteName: 'Hunt freely',
           round,
-          reason:
-            'No trade or mastery targets — open chests / trade mid-game for new finds',
+          reason: skippedPureLostRestores
+            ? 'This round only had lost-restore swaps (skipped thrash) — hunt / trade mid-game for new finds'
+            : 'No trade or mastery targets — open chests / trade mid-game for new finds',
           score: 0,
           needsRepurchase: false,
         })
@@ -346,6 +383,7 @@ export function isExchangeAssignment(a: BringAssignment): boolean {
 function pickMasterySprite(
   player: Player,
   exclude: Set<string> = new Set(),
+  context: 'no-trade' | 'pure-lost-round' = 'no-trade',
 ): BringAssignment | null {
   const candidates = SPRITES.map((s) => {
     const st = getPlayerSprite(player, s.id)
@@ -372,6 +410,7 @@ function pickMasterySprite(
 
   const best = candidates[0]
   const needsRepurchase = best.st.status === 'lost'
+  const thrashSkip = context === 'pure-lost-round'
   return {
     kind: 'mastery',
     bringerId: player.id,
@@ -382,9 +421,13 @@ function pickMasterySprite(
     summonCost: best.sprite.summonCost,
     needKind: undefined,
     round: 0,
-    reason: needsRepurchase
-      ? `No trades — repurchase & level for mastery (${best.sprite.summonCost.toLocaleString()} dust)`
-      : 'No valuable trades — bring to level toward mastery',
+    reason: thrashSkip
+      ? needsRepurchase
+        ? `Pure lost-restore round skipped — repurchase & level mastery (${best.sprite.summonCost.toLocaleString()} dust)`
+        : 'Pure lost-restore round skipped — bring to level toward mastery'
+      : needsRepurchase
+        ? `No trades — repurchase & level for mastery (${best.sprite.summonCost.toLocaleString()} dust)`
+        : 'No valuable trades — bring to level toward mastery',
     score: difficultyScore(best.sprite),
     needsRepurchase,
   }

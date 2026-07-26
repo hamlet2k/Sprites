@@ -913,9 +913,10 @@ export default function App() {
               <div className="suggest-summary">{plan.summary}</div>
               <p className="suggest-hint">
                 Each round aims for a fair 1:1 — every player gives one and receives one when
-                possible. Missing fills always beat lost restores. After the match, confirm each
-                exchange (or the whole remaining round) so recipients become Ready and bringers
-                Lost. Skip any trade that did not happen.
+                possible. Missing fills always beat lost restores. A round that would only swap
+                lost restores (no new Missing fills) becomes mastery / hunt instead, so you do
+                not thrash the same Lost/Ready cycle. Mixed missing + restore rounds stay fair
+                trades. After the match, confirm each exchange that happened.
               </p>
 
               {plan.assignments.length === 0 ? (
@@ -1371,6 +1372,11 @@ export default function App() {
               <strong>Rounds 1–4:</strong> bring slots; confirm each exchange (or remaining
               round) so recipients become Ready and bringers Lost. Leave failed trades
               unconfirmed.
+            </li>
+            <li>
+              <strong>Pure lost-restore rounds</strong> are skipped: if a round only restores
+              Lost copies (no Missing fills), everyone brings for mastery / hunt instead of
+              swapping thrash.
             </li>
             <li>Prefers <em>Ready</em> inventory over repurchase on the bringer.</li>
           </ul>
