@@ -68,7 +68,7 @@ const en: MessageTree = {
     whoPlaying: 'Who is playing this match?',
     generate: 'Generate bring / gift plan',
     hint:
-      'Each round aims for a fair 1:1 — every player gives one and receives one when possible. Missing fills always beat lost restores. A round that would only swap lost restores (no new Missing fills) becomes mastery / hunt instead. After the match: Confirm (trade done), Failed (died before extract — bringer Lost, receiver unchanged), or Ignore (forgot to bring — no collection changes). In a live room, everyone sees the same plan and greys-out when any teammate marks an exchange.',
+      'Each round prefers mutual swaps (A↔B) and balances who has given vs received so one player is not always the pure giver. Missing fills beat lost restores when fairness is equal; pure lost-restore thrash becomes mastery / hunt. After the match: Confirm, Failed, or Ignore. In a live room, everyone sees the same plan and greys-out together.',
     noAssignments: 'No assignments yet. Mark collections and select players.',
     round: 'Round {n}',
     exchange: 'exchange',

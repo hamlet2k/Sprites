@@ -28,16 +28,21 @@ type Edge = {
  * Build a bring/gift plan for the active squad.
  *
  * Priority (strict tiers):
- * 1. Receiver **missing** before receiver **lost** restore
- * 2. Giver **Ready** (no dust) before giver **Lost** (repurchase) — never gift a
- *    lost copy while the same giver still has a Ready gift for someone's need
- * 3. Hard cap: at most one gift and one receive per player per round
- *    (multiple passes form cycles; never double-gift one receiver)
- * 4. Harder-to-find sprites within the same tier
+ * 1. **Mutual 2-cycles first** (A↔B) so nobody is stuck as pure-giver/receiver
+ *    in a star/path pattern (e.g. Jars→Fredek→Antequera).
+ * 2. Cumulative **fairness debt** (gives − receives): prefer gifting to players
+ *    who have given more than they received so far.
+ * 3. Receiver **missing** before **lost** restore; giver **Ready** before repurchase.
+ * 4. Harder-to-find sprites within the same tier.
+ * 5. At most one gift and one receive per player per round.
  *
  * Per-round anti-thrash: if a round’s exchanges are **only** lost-restores
  * (no missing fills), drop those trades and assign mastery / free hunt instead.
  * Mixed rounds (missing + restore) keep both for fair 1:1 give/receive.
+ *
+ * When only thrashy lost-restores remain between a pair, mastery is preferred
+ * until someone has a real Missing gap — then debt rules can allow one-sided
+ * completion gifts.
  */
 export function buildSuggestionPlan(
   state: SquadState,
@@ -63,71 +68,160 @@ export function buildSuggestionPlan(
   const usedGift = new Set<string>() // giverId::spriteId
   const coveredNeed = new Set<string>() // receiverId::spriteId
 
+  /** Cumulative exchange give/receive (mastery does not count). */
+  const giveTotal = new Map<string, number>()
+  const receiveTotal = new Map<string, number>()
+  for (const p of active) {
+    giveTotal.set(p.id, 0)
+    receiveTotal.set(p.id, 0)
+  }
+
+  const debt = (id: string) =>
+    (giveTotal.get(id) ?? 0) - (receiveTotal.get(id) ?? 0)
+
+  const noteExchange = (giverId: string, receiverId: string) => {
+    giveTotal.set(giverId, (giveTotal.get(giverId) ?? 0) + 1)
+    receiveTotal.set(receiverId, (receiveTotal.get(receiverId) ?? 0) + 1)
+  }
+
+  const unnoteExchange = (giverId: string, receiverId: string) => {
+    giveTotal.set(giverId, Math.max(0, (giveTotal.get(giverId) ?? 0) - 1))
+    receiveTotal.set(
+      receiverId,
+      Math.max(0, (receiveTotal.get(receiverId) ?? 0) - 1),
+    )
+  }
+
   for (let round = 1; round <= MAX_BRING_PER_PLAYER; round++) {
     const giveThisRound = new Set<string>()
     const receiveThisRound = new Set<string>()
 
-    const openEdges = (readyOnly: boolean) =>
-      edges.filter((e) => {
-        if (readyOnly && e.needsRepurchase) return false
-        if (!readyOnly && !e.needsRepurchase) return false
-        if (usedGift.has(`${e.giver.id}::${e.spriteId}`)) return false
-        if (coveredNeed.has(`${e.receiver.id}::${e.spriteId}`)) return false
-        if (giveThisRound.has(e.giver.id)) return false
-        return true
-      })
+    const isOpen = (e: Edge, readyOnly: boolean | null) => {
+      if (readyOnly === true && e.needsRepurchase) return false
+      if (readyOnly === false && !e.needsRepurchase) return false
+      if (usedGift.has(`${e.giver.id}::${e.spriteId}`)) return false
+      if (coveredNeed.has(`${e.receiver.id}::${e.spriteId}`)) return false
+      if (giveThisRound.has(e.giver.id)) return false
+      if (receiveThisRound.has(e.receiver.id)) return false
+      return true
+    }
 
-    const sortFair = (list: Edge[], preferUnreceived: boolean) =>
-      [...list].sort((a, b) => {
-        // 1) Receiver missing before lost-restore
-        if (a.needKind !== b.needKind) {
-          return a.needKind === 'missing' ? -1 : 1
-        }
-        // 2) Ready gifts before repurchase (belt-and-suspenders with pass order)
-        if (a.needsRepurchase !== b.needsRepurchase) {
-          return a.needsRepurchase ? 1 : -1
-        }
-        if (preferUnreceived) {
-          const aR = receiveThisRound.has(a.receiver.id) ? 1 : 0
-          const bR = receiveThisRound.has(b.receiver.id) ? 1 : 0
-          if (aR !== bR) return aR - bR
-        }
-        return b.score - a.score
-      })
+    const bestEdge = (
+      fromId: string,
+      toId: string,
+      readyOnly: boolean | null,
+    ): Edge | null => {
+      let best: Edge | null = null
+      for (const e of edges) {
+        if (e.giver.id !== fromId || e.receiver.id !== toId) continue
+        if (!isOpen(e, readyOnly)) continue
+        if (!best || e.score > best.score) best = e
+      }
+      return best
+    }
+
+    const tryTake = (e: Edge): boolean => {
+      const before = assignments.length
+      takeEdge(
+        e,
+        round,
+        assignments,
+        usedGift,
+        coveredNeed,
+        giveThisRound,
+        receiveThisRound,
+        t,
+      )
+      if (assignments.length === before) return false
+      noteExchange(e.giver.id, e.receiver.id)
+      return true
+    }
 
     /**
-     * Fair matching within a round: each player gives at most once and
-     * receives at most once. Multiple passes find longer exchange cycles
-     * (A→B, B→C, C→A). Never dump a second gift onto someone who already
-     * received while another player got nothing.
+     * Phase 1 — mutual 2-cycles (A↔B).
+     * Stops star/path unfairness: e.g. Jars→Fredek and Fredek→Antequera
+     * (Jars gives, Antequera only receives) when Fredek↔Jars was possible.
      */
-    const runFairMatching = (list: Edge[]) => {
-      for (const e of sortFair(list, true)) {
-        if (giveThisRound.has(e.giver.id)) continue
-        if (receiveThisRound.has(e.receiver.id)) continue
-        takeEdge(
-          e,
-          round,
-          assignments,
-          usedGift,
-          coveredNeed,
-          giveThisRound,
-          receiveThisRound,
-          t,
-        )
+    const matchMutualPairs = (readyOnly: boolean | null) => {
+      type Pair = { ab: Edge; ba: Edge; rank: number }
+      const pairs: Pair[] = []
+      for (let i = 0; i < active.length; i++) {
+        for (let j = i + 1; j < active.length; j++) {
+          const a = active[i]
+          const b = active[j]
+          if (giveThisRound.has(a.id) || giveThisRound.has(b.id)) continue
+          if (receiveThisRound.has(a.id) || receiveThisRound.has(b.id)) continue
+          const ab = bestEdge(a.id, b.id, readyOnly)
+          const ba = bestEdge(b.id, a.id, readyOnly)
+          if (!ab || !ba) continue
+          const missingN =
+            (ab.needKind === 'missing' ? 1 : 0) +
+            (ba.needKind === 'missing' ? 1 : 0)
+          // Prefer helping players with positive debt (gave more than received)
+          const debtBoost = debt(a.id) + debt(b.id)
+          const rank =
+            missingN * 1_000_000 +
+            debtBoost * 50_000 +
+            ab.score +
+            ba.score
+          pairs.push({ ab, ba, rank })
+        }
+      }
+      pairs.sort((x, y) => y.rank - x.rank)
+      for (const pair of pairs) {
+        if (
+          giveThisRound.has(pair.ab.giver.id) ||
+          giveThisRound.has(pair.ba.giver.id) ||
+          receiveThisRound.has(pair.ab.receiver.id) ||
+          receiveThisRound.has(pair.ba.receiver.id)
+        ) {
+          continue
+        }
+        // Re-check open in case a prior pair consumed the same sprite gift
+        if (!isOpen(pair.ab, readyOnly) || !isOpen(pair.ba, readyOnly)) continue
+        tryTake(pair.ab)
+        tryTake(pair.ba)
       }
     }
 
-    // --- Ready inventory first (no dust) ---
-    // Extra passes pick up remaining 1:1 pairs / cycles after earlier takes.
-    runFairMatching(openEdges(true))
-    runFairMatching(openEdges(true))
-    runFairMatching(openEdges(true))
+    /**
+     * Phase 2 — residual 1:1 edges (paths / 3-cycles) with debt priority.
+     * Prefer gifting to players who are "owed" a receive; avoid feeding pure sinks.
+     */
+    const matchResidual = (readyOnly: boolean | null) => {
+      const list = edges.filter((e) => isOpen(e, readyOnly))
+      list.sort((a, b) => {
+        const debtDiff = debt(b.receiver.id) - debt(a.receiver.id)
+        if (debtDiff !== 0) return debtDiff
+        // Prefer not giving to players who already have receive surplus
+        const aSink = debt(a.receiver.id) < 0 ? 1 : 0
+        const bSink = debt(b.receiver.id) < 0 ? 1 : 0
+        if (aSink !== bSink) return aSink - bSink
+        if (a.needKind !== b.needKind) {
+          return a.needKind === 'missing' ? -1 : 1
+        }
+        if (a.needsRepurchase !== b.needsRepurchase) {
+          return a.needsRepurchase ? 1 : -1
+        }
+        // Mutual residual still preferred
+        const aMut = bestEdge(a.receiver.id, a.giver.id, readyOnly) ? 1 : 0
+        const bMut = bestEdge(b.receiver.id, b.giver.id, readyOnly) ? 1 : 0
+        if (aMut !== bMut) return bMut - aMut
+        return b.score - a.score
+      })
+      for (const e of list) {
+        if (giveThisRound.has(e.giver.id)) continue
+        if (receiveThisRound.has(e.receiver.id)) continue
+        if (!isOpen(e, readyOnly)) continue
+        tryTake(e)
+      }
+    }
 
-    // --- Only then allow lost / repurchase gifts ---
-    runFairMatching(openEdges(false))
-    runFairMatching(openEdges(false))
-    runFairMatching(openEdges(false))
+    // Ready-only mutual pairs, then residual; then allow repurchase inventory
+    matchMutualPairs(true)
+    matchResidual(true)
+    matchMutualPairs(false)
+    matchResidual(false)
 
     // Pure lost-restore rounds thrash (A restores B, B restores A next time).
     // If this round has exchanges and none fill a Missing gap, scrap them.
@@ -144,6 +238,7 @@ export function buildSuggestionPlan(
         usedGift.delete(`${a.bringerId}::${a.spriteId}`)
         if (a.recipientId) {
           coveredNeed.delete(`${a.recipientId}::${a.spriteId}`)
+          unnoteExchange(a.bringerId, a.recipientId)
         }
         giveThisRound.delete(a.bringerId)
         if (a.recipientId) receiveThisRound.delete(a.recipientId)
@@ -290,6 +385,7 @@ function takeEdge(
   const needKey = `${e.receiver.id}::${e.spriteId}`
   if (usedGift.has(giftKey) || coveredNeed.has(needKey)) return
   if (giveThisRound.has(e.giver.id)) return
+  if (receiveThisRound.has(e.receiver.id)) return
 
   usedGift.add(giftKey)
   coveredNeed.add(needKey)

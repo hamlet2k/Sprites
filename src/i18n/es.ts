@@ -68,7 +68,7 @@ const es: MessageTree = {
     whoPlaying: '¿Quién juega esta partida?',
     generate: 'Generar plan de regalos / traídas',
     hint:
-      'Cada ronda busca un 1:1 justo: cada jugador da uno y recibe uno cuando sea posible. Rellenar lo que falta siempre gana a restaurar perdidos. Si una ronda solo intercambiaría restauraciones de perdidos (sin huecos nuevos), pasa a dominio / cazar. Tras la partida: Confirmar (trueque hecho), Falló (murió antes de extraer — portador Perdido, receptor sin cambio) o Ignorar (olvidó traerlo — sin cambios de colección). En sala en vivo, todos ven el mismo plan y se atenúa cuando alguien marca un intercambio.',
+      'Cada ronda prefiere trueques mutuos (A↔B) y equilibra quién ha dado vs recibido para que nadie sea siempre solo dador. Rellenar faltantes gana a restaurar perdidos a igualdad de justicia; el ping-pong de solo perdidos pasa a dominio / cazar. Tras la partida: Confirmar, Falló o Ignorar. En sala en vivo, todos ven el mismo plan y se atenúa a la vez.',
     noAssignments: 'Aún no hay asignaciones. Marca colecciones y elige jugadores.',
     round: 'Ronda {n}',
     exchange: 'intercambio',
