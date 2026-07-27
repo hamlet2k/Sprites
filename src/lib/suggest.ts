@@ -338,14 +338,19 @@ export type ApplyResult = {
   skipped: string[]
 }
 
-/** Successful trade vs failed (died / lost before extract). */
-export type ExchangeApplyMode = 'success' | 'failed'
+/**
+ * - success: trade completed
+ * - failed: died / lost before extract
+ * - ignored: forgot to bring — no collection changes
+ */
+export type ExchangeApplyMode = 'success' | 'failed' | 'ignored'
 
 /**
  * Apply exchanges from a plan.
  *
  * - **success**: recipient → Ready; bringer → Lost
  * - **failed**: bringer → Lost only (recipient unchanged — trade never completed)
+ * - **ignored**: no collection changes (forgot to bring / skipped)
  *
  * Resolves players by id, then by name (in case cloud reloads rotated UUIDs
  * after the plan was generated).
@@ -384,6 +389,12 @@ export function applyExchangeRound(
       continue
     }
     if (a.kind === 'mastery') continue
+
+    if (mode === 'ignored') {
+      // Forgot to bring — track as handled only; collections unchanged
+      applied++
+      continue
+    }
 
     const bringer = resolve(a.bringerId, a.bringerName)
     if (!bringer) {

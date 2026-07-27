@@ -160,6 +160,18 @@ button {
   filter: brightness(1.08);
 }
 
+.btn-mute {
+  background: color-mix(in srgb, var(--text-muted) 14%, var(--bg-elevated));
+  border-color: var(--border);
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.btn-mute:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--text-muted) 22%, var(--bg-elevated));
+  color: var(--text);
+}
+
 .btn-danger {
   background: color-mix(in srgb, var(--danger) 22%, var(--bg-elevated));
   border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
@@ -767,6 +779,11 @@ button {
   border-left-color: var(--lost);
 }
 
+.assignment.assignment-ignored {
+  opacity: 0.65;
+  border-left-color: var(--text-muted);
+}
+
 .assignment-actions {
   margin-left: auto;
   align-self: center;
@@ -784,6 +801,11 @@ button {
 .kind-tag.failed-tag {
   background: color-mix(in srgb, var(--lost) 22%, transparent);
   color: var(--lost);
+}
+
+.kind-tag.ignored-tag {
+  background: color-mix(in srgb, var(--text-muted) 22%, transparent);
+  color: var(--text-muted);
 }
 
 .assignment-art {

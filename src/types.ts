@@ -17,6 +17,20 @@ export interface Player {
   sprites: Record<string, PlayerSpriteState>
 }
 
+/** How a planned exchange was resolved after a match. */
+export type ExchangeOutcome = 'success' | 'failed' | 'ignored'
+
+/**
+ * Shared suggestion plan + per-exchange outcomes.
+ * Stored on SquadState so cloud rooms sync plan + Confirm/Failed/Ignore for everyone.
+ */
+export interface SharedSuggestion {
+  planId: string
+  plan: SuggestionPlan
+  /** exchangeKey → outcome */
+  outcomes: Record<string, ExchangeOutcome>
+}
+
 export interface SquadState {
   players: Player[]
   /** Player ids selected for the next match suggestion. */
@@ -26,6 +40,8 @@ export interface SquadState {
    * can detect stale pushes. Optional for older local saves.
    */
   revision?: number
+  /** Current shared bring/gift plan and resolved exchanges (room-synced). */
+  suggestion?: SharedSuggestion
 }
 
 export type SuggestionKind = 'gift' | 'repurchase' | 'mastery'
@@ -60,6 +76,8 @@ export interface BringAssignment {
 }
 
 export interface SuggestionPlan {
+  /** Unique id for this generation; outcomes are scoped to it. */
+  planId?: string
   generatedAt: string
   activePlayerIds: string[]
   assignments: BringAssignment[]

@@ -68,7 +68,7 @@ const en: MessageTree = {
     whoPlaying: 'Who is playing this match?',
     generate: 'Generate bring / gift plan',
     hint:
-      'Each round aims for a fair 1:1 — every player gives one and receives one when possible. Missing fills always beat lost restores. A round that would only swap lost restores (no new Missing fills) becomes mastery / hunt instead, so you do not thrash the same Lost/Ready cycle. Mixed missing + restore rounds stay fair trades. After the match: Confirm if the trade completed, or Failed if the bringer died / lost the sprite before extract (bringer → Lost, receiver unchanged).',
+      'Each round aims for a fair 1:1 — every player gives one and receives one when possible. Missing fills always beat lost restores. A round that would only swap lost restores (no new Missing fills) becomes mastery / hunt instead. After the match: Confirm (trade done), Failed (died before extract — bringer Lost, receiver unchanged), or Ignore (forgot to bring — no collection changes). In a live room, everyone sees the same plan and greys-out when any teammate marks an exchange.',
     noAssignments: 'No assignments yet. Mark collections and select players.',
     round: 'Round {n}',
     exchange: 'exchange',
@@ -87,6 +87,12 @@ const en: MessageTree = {
     failedAll: 'Mark all failed',
     failedRemaining: 'Mark remaining failed ({n})',
     failedTag: 'Failed (lost)',
+    ignore: 'Ignore',
+    ignoreTitle:
+      'Forgot to bring — no collection changes. Receiver does not get it; bringer keeps their status.',
+    ignoreAll: 'Ignore all',
+    ignoreRemaining: 'Ignore remaining ({n})',
+    ignoredTag: 'Ignored',
     newMissing: 'New (missing)',
     restoreLost: 'Restore lost',
     mastery: 'Mastery',
@@ -136,11 +142,18 @@ const en: MessageTree = {
     failTitleRoundMany: 'Mark {count} remaining Round {n} exchanges as failed?',
     failSubtitle:
       'Use this when the bringer died or lost the sprite before extract. Bringer → Lost. Receiver stays Missing/Lost (does not acquire it).',
+    ignoreTitleOne: 'Ignore this exchange?',
+    ignoreTitleRoundOne: 'Ignore Round {n} exchange?',
+    ignoreTitleRoundMany: 'Ignore {count} remaining Round {n} exchanges?',
+    ignoreSubtitle:
+      'Use when someone forgot to bring the sprite. No collection changes for bringer or receiver — just clear this plan row.',
     cancel: 'Cancel',
     confirmOne: 'Confirm exchange',
     confirmMany: 'Confirm {n} exchanges',
     failConfirmOne: 'Mark as failed',
     failConfirmMany: 'Mark {n} as failed',
+    ignoreConfirmOne: 'Ignore exchange',
+    ignoreConfirmMany: 'Ignore {n} exchanges',
     nothingTitle: 'Nothing updated',
     nothingSkipped: 'Could not apply these exchanges.',
     nothingIds:
@@ -153,6 +166,10 @@ const en: MessageTree = {
     failSuccessMany: '{n} exchanges marked failed',
     failSuccessMsg:
       'Bringers marked Lost. Receivers were not given the sprite. Check Collection if you want to double-check.',
+    ignoreSuccessOne: 'Exchange ignored',
+    ignoreSuccessMany: '{n} exchanges ignored',
+    ignoreSuccessMsg:
+      'No collection changes. Plan row cleared for everyone in the room.',
     alreadyTitle: 'Already handled',
     alreadyMsg: 'These exchanges were already applied for this plan.',
     ok: 'OK',

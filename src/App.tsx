@@ -41,16 +41,14 @@ import {
 } from './lib/suggest'
 import type {
   BringAssignment,
+  ExchangeOutcome,
   Player,
-  SuggestionPlan,
   SquadState,
 } from './types'
 import './App.css'
 
 type Tab = 'collection' | 'suggest' | 'squad' | 'help'
 type SyncStatus = 'local' | 'connecting' | 'synced' | 'saving' | 'error' | 'offline'
-
-type ExchangeOutcome = 'success' | 'failed'
 
 type AppModal =
   | {
@@ -85,12 +83,11 @@ export default function App() {
   const [variantFilter, setVariantFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [sortMode, setSortMode] = useState<SortMode>('type')
-  const [plan, setPlan] = useState<SuggestionPlan | null>(null)
-  /** Exchange keys → success (traded) or failed (died before extract). */
-  const [exchangeOutcomes, setExchangeOutcomes] = useState<
-    Record<string, ExchangeOutcome>
-  >({})
   const [modal, setModal] = useState<AppModal | null>(null)
+
+  /** Shared plan + outcomes live on SquadState so the room syncs them. */
+  const plan = state.suggestion?.plan ?? null
+  const exchangeOutcomes = state.suggestion?.outcomes ?? {}
 
   const [roomCode, setRoomCode] = useState<string | null>(() => roomFromUrl() ?? loadRoomCode())
   const [joinInput, setJoinInput] = useState('')
@@ -112,8 +109,6 @@ export default function App() {
   /** Latest state for async push callbacks (avoid stale closures). */
   const stateRef = useRef(state)
   stateRef.current = state
-  const outcomesRef = useRef(exchangeOutcomes)
-  outcomesRef.current = exchangeOutcomes
 
   useEffect(() => {
     if (!selectedPlayerId && state.players[0]) {
@@ -375,11 +370,32 @@ export default function App() {
   }
 
   function runSuggest() {
-    const next = buildSuggestionPlan(state, locale)
-    setPlan(next)
-    setExchangeOutcomes({})
-    outcomesRef.current = {}
+    const built = buildSuggestionPlan(state, locale)
+    const planId = crypto.randomUUID()
+    const nextPlan = { ...built, planId }
+    setState((s) => {
+      const next: SquadState = {
+        ...s,
+        suggestion: {
+          planId,
+          plan: nextPlan,
+          outcomes: {},
+        },
+      }
+      stateRef.current = next
+      return next
+    })
     setTab('suggest')
+  }
+
+  function clearSharedSuggestion() {
+    setState((s) => {
+      if (!s.suggestion) return s
+      const { suggestion: _drop, ...rest } = s
+      const next = { ...rest } as SquadState
+      stateRef.current = next
+      return next
+    })
   }
 
   function exchangeOutcome(a: BringAssignment): ExchangeOutcome | undefined {
@@ -390,37 +406,65 @@ export default function App() {
     return exchangeOutcome(a) !== undefined
   }
 
+  function subtitleForMode(mode: ExchangeApplyMode): string {
+    if (mode === 'success') return t('confirm.subtitle')
+    if (mode === 'failed') return t('confirm.failSubtitle')
+    return t('confirm.ignoreSubtitle')
+  }
+
+  function titleForMode(
+    mode: ExchangeApplyMode,
+    scope: 'one' | 'roundOne' | 'roundMany',
+    vars?: Record<string, string | number>,
+  ): string {
+    if (mode === 'success') {
+      if (scope === 'one') return t('confirm.titleOne')
+      if (scope === 'roundOne') return t('confirm.titleRoundOne', vars)
+      return t('confirm.titleRoundMany', vars)
+    }
+    if (mode === 'failed') {
+      if (scope === 'one') return t('confirm.failTitleOne')
+      if (scope === 'roundOne') return t('confirm.failTitleRoundOne', vars)
+      return t('confirm.failTitleRoundMany', vars)
+    }
+    if (scope === 'one') return t('confirm.ignoreTitleOne')
+    if (scope === 'roundOne') return t('confirm.ignoreTitleRoundOne', vars)
+    return t('confirm.ignoreTitleRoundMany', vars)
+  }
+
   function openConfirmExchanges(
     items: BringAssignment[],
     title: string,
     mode: ExchangeApplyMode,
   ) {
+    const currentOutcomes = stateRef.current.suggestion?.outcomes ?? {}
     const pending = items.filter(
       (a) =>
         isExchangeAssignment(a) &&
-        outcomesRef.current[exchangeKey(a)] === undefined,
+        currentOutcomes[exchangeKey(a)] === undefined,
     )
     if (pending.length === 0) return
     setModal({
       kind: 'confirm-exchanges',
       mode,
       title,
-      subtitle:
-        mode === 'success' ? t('confirm.subtitle') : t('confirm.failSubtitle'),
+      subtitle: subtitleForMode(mode),
       items: pending,
     })
   }
 
   /**
    * Apply exchanges from the latest squad snapshot (not a setState side-effect),
-   * then show a result modal. Fixes false "nothing updated" alerts when React
-   * defers functional updaters.
+   * then show a result modal. Outcomes are written into SquadState.suggestion so
+   * every room client greys out the same rows.
    */
   function applyExchanges(items: BringAssignment[], mode: ExchangeApplyMode) {
+    const base = stateRef.current
+    const currentOutcomes = base.suggestion?.outcomes ?? {}
     const pending = items.filter(
       (a) =>
         isExchangeAssignment(a) &&
-        outcomesRef.current[exchangeKey(a)] === undefined,
+        currentOutcomes[exchangeKey(a)] === undefined,
     )
     if (pending.length === 0) {
       setModal({
@@ -432,23 +476,43 @@ export default function App() {
       return
     }
 
-    const result = applyExchangeRound(stateRef.current, pending, mode)
-    setState(result.state)
-    stateRef.current = result.state
+    const result = applyExchangeRound(base, pending, mode)
+    const outcome: ExchangeOutcome =
+      mode === 'success' ? 'success' : mode === 'failed' ? 'failed' : 'ignored'
 
-    const outcome: ExchangeOutcome = mode === 'success' ? 'success' : 'failed'
-    setExchangeOutcomes((prev) => {
-      const next = { ...prev }
-      for (const a of pending) {
-        next[exchangeKey(a)] = outcome
-      }
-      outcomesRef.current = next
-      return next
-    })
+    const nextOutcomes = { ...currentOutcomes }
+    for (const a of pending) {
+      nextOutcomes[exchangeKey(a)] = outcome
+    }
+
+    const shared = base.suggestion
+    const nextState: SquadState = {
+      ...result.state,
+      suggestion: shared
+        ? {
+            planId: shared.planId,
+            plan: shared.plan,
+            outcomes: nextOutcomes,
+          }
+        : {
+            planId: plan?.planId ?? crypto.randomUUID(),
+            plan: plan ?? {
+              planId: crypto.randomUUID(),
+              generatedAt: new Date().toISOString(),
+              activePlayerIds: base.activePlayerIds,
+              assignments: pending,
+              summary: '',
+            },
+            outcomes: nextOutcomes,
+          },
+    }
+
+    setState(nextState)
+    stateRef.current = nextState
 
     if (result.applied > 0 && roomCode && cloudReady && roomHydrated) {
       skipPushRef.current = true
-      void pushRoom(roomCode, result.state).then((res) => {
+      void pushRoom(roomCode, nextState).then((res) => {
         if (res.ok) {
           skipPushRef.current = true
           setState(res.data)
@@ -476,19 +540,31 @@ export default function App() {
       return
     }
 
+    const title =
+      mode === 'success'
+        ? result.applied === 1
+          ? t('confirm.successOne')
+          : t('confirm.successMany', { n: result.applied })
+        : mode === 'failed'
+          ? result.applied === 1
+            ? t('confirm.failSuccessOne')
+            : t('confirm.failSuccessMany', { n: result.applied })
+          : result.applied === 1
+            ? t('confirm.ignoreSuccessOne')
+            : t('confirm.ignoreSuccessMany', { n: result.applied })
+
+    const message =
+      mode === 'success'
+        ? t('confirm.successMsg')
+        : mode === 'failed'
+          ? t('confirm.failSuccessMsg')
+          : t('confirm.ignoreSuccessMsg')
+
     setModal({
       kind: 'result',
-      title:
-        mode === 'success'
-          ? result.applied === 1
-            ? t('confirm.successOne')
-            : t('confirm.successMany', { n: result.applied })
-          : result.applied === 1
-            ? t('confirm.failSuccessOne')
-            : t('confirm.failSuccessMany', { n: result.applied }),
+      title,
       tone: mode === 'success' ? 'success' : 'info',
-      message:
-        mode === 'success' ? t('confirm.successMsg') : t('confirm.failSuccessMsg'),
+      message,
       items: pending,
       skipped: result.skipped.length > 0 ? result.skipped : undefined,
     })
@@ -503,18 +579,16 @@ export default function App() {
         !isExchangeHandled(a),
     )
     if (pending.length === 0) return
+    const scope = pending.length === 1 ? 'roundOne' : 'roundMany'
     openConfirmExchanges(
       pending,
-      mode === 'success'
-        ? pending.length === 1
-          ? t('confirm.titleRoundOne', { n: round })
-          : t('confirm.titleRoundMany', { count: pending.length, n: round })
-        : pending.length === 1
-          ? t('confirm.failTitleRoundOne', { n: round })
-          : t('confirm.failTitleRoundMany', {
-              count: pending.length,
-              n: round,
-            }),
+      titleForMode(
+        mode,
+        scope,
+        pending.length === 1
+          ? { n: round }
+          : { count: pending.length, n: round },
+      ),
       mode,
     )
   }
@@ -524,11 +598,7 @@ export default function App() {
     mode: ExchangeApplyMode = 'success',
   ) {
     if (!isExchangeAssignment(a) || isExchangeHandled(a)) return
-    openConfirmExchanges(
-      [a],
-      mode === 'success' ? t('confirm.titleOne') : t('confirm.failTitleOne'),
-      mode,
-    )
+    openConfirmExchanges([a], titleForMode(mode, 'one'), mode)
   }
 
   function showInfoModal(
@@ -570,9 +640,7 @@ export default function App() {
     if (selectedPlayerId === id) {
       setSelectedPlayerId(remaining[0]?.id ?? '')
     }
-    setPlan(null)
-    setExchangeOutcomes({})
-    outcomesRef.current = {}
+    clearSharedSuggestion()
   }
 
   function renamePlayer(id: string, name: string) {
@@ -608,9 +676,7 @@ export default function App() {
           color: data.color ?? p.color,
           sprites: data.sprites,
         }))
-        setPlan(null)
-        setExchangeOutcomes({})
-    outcomesRef.current = {}
+        clearSharedSuggestion()
         showInfoModal(
           t('importExport.playerImportedTitle'),
           t('importExport.playerImportedMsg', {
@@ -685,7 +751,6 @@ export default function App() {
     setJoinInput('')
     setRoomHydrated(true)
     setSyncStatus('synced')
-    setPlan(null)
   }
 
   function handleLeaveRoom() {
@@ -734,8 +799,8 @@ export default function App() {
         const text = await file.text()
         const data = importSquad(text)
         setState(data)
+        stateRef.current = data
         setSelectedPlayerId(data.players[0]?.id ?? '')
-        setPlan(null)
       } catch {
         showInfoModal(
           t('importExport.importFailed'),
@@ -1116,6 +1181,21 @@ export default function App() {
                                       })
                                     : t('suggest.failedAll')}
                               </button>
+                              <button
+                                type="button"
+                                className="btn btn-mute"
+                                disabled={done || exchanges.length === 0}
+                                onClick={() => confirmRound(round, 'ignored')}
+                                title={t('suggest.ignoreTitle')}
+                              >
+                                {done
+                                  ? t('suggest.done')
+                                  : handledCount > 0
+                                    ? t('suggest.ignoreRemaining', {
+                                        n: pendingExchanges.length,
+                                      })
+                                    : t('suggest.ignoreAll')}
+                              </button>
                             </div>
                           </div>
 
@@ -1142,7 +1222,9 @@ export default function App() {
                                       ? ' assignment-confirmed'
                                       : outcome === 'failed'
                                         ? ' assignment-failed'
-                                        : ''
+                                        : outcome === 'ignored'
+                                          ? ' assignment-ignored'
+                                          : ''
                                   }`}
                                 >
                                   <span className="round-badge" title={`Round ${round}`}>
@@ -1196,6 +1278,11 @@ export default function App() {
                                       {outcome === 'failed' && (
                                         <span className="kind-tag failed-tag">
                                           {t('suggest.failedTag')}
+                                        </span>
+                                      )}
+                                      {outcome === 'ignored' && (
+                                        <span className="kind-tag ignored-tag">
+                                          {t('suggest.ignoredTag')}
                                         </span>
                                       )}
                                     </div>
@@ -1274,6 +1361,19 @@ export default function App() {
                                         {outcome === 'failed'
                                           ? t('suggest.done')
                                           : t('suggest.failed')}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className={`btn btn-sm ${exchangeDone ? '' : 'btn-mute'}`}
+                                        disabled={exchangeDone}
+                                        onClick={() =>
+                                          confirmSingleExchange(a, 'ignored')
+                                        }
+                                        title={t('suggest.ignoreTitle')}
+                                      >
+                                        {outcome === 'ignored'
+                                          ? t('suggest.done')
+                                          : t('suggest.ignore')}
                                       </button>
                                     </div>
                                   )}
@@ -1483,7 +1583,11 @@ export default function App() {
                   <button
                     type="button"
                     className={
-                      modal.mode === 'success' ? 'btn btn-primary' : 'btn btn-warn'
+                      modal.mode === 'success'
+                        ? 'btn btn-primary'
+                        : modal.mode === 'failed'
+                          ? 'btn btn-warn'
+                          : 'btn btn-mute'
                     }
                     onClick={() => {
                       const mode = modal.mode
@@ -1496,9 +1600,17 @@ export default function App() {
                       ? modal.items.length === 1
                         ? t('confirm.confirmOne')
                         : t('confirm.confirmMany', { n: modal.items.length })
-                      : modal.items.length === 1
-                        ? t('confirm.failConfirmOne')
-                        : t('confirm.failConfirmMany', { n: modal.items.length })}
+                      : modal.mode === 'failed'
+                        ? modal.items.length === 1
+                          ? t('confirm.failConfirmOne')
+                          : t('confirm.failConfirmMany', {
+                              n: modal.items.length,
+                            })
+                        : modal.items.length === 1
+                          ? t('confirm.ignoreConfirmOne')
+                          : t('confirm.ignoreConfirmMany', {
+                              n: modal.items.length,
+                            })}
                   </button>
                 </div>
               </>

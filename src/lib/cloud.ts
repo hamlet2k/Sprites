@@ -233,5 +233,7 @@ function normalizeSquad(raw: unknown): SquadState | null {
     players: s.players,
     activePlayerIds: Array.isArray(s.activePlayerIds) ? s.activePlayerIds : [],
     revision: typeof s.revision === 'number' ? s.revision : 0,
+    // Preserve shared plan + Confirm/Failed/Ignore outcomes for all room clients
+    suggestion: s.suggestion,
   }
 }

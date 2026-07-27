@@ -64,8 +64,11 @@ Persistence key: `fortnite-sprite-squad-v1` (localStorage). Locale: `fortnite-sp
 
 **Card tap:** Missing → Ready, then Ready ↔ Lost. **Crossed-circle** sets Missing. **Crown** toggles Mastered.
 
-**Confirm exchange (success):** recipient → Ready; bringer → Lost for that sprite.  
-**Failed exchange (died / lost before extract):** bringer → Lost only; recipient unchanged.
+**Confirm (success):** recipient → Ready; bringer → Lost.  
+**Failed (died / lost before extract):** bringer → Lost only; recipient unchanged.  
+**Ignore (forgot to bring):** no collection changes; row just cleared.  
+
+Plan + outcomes live on `SquadState.suggestion` so **live rooms** sync greying for every teammate.
 
 ## Suggestion rules (current behavior)
 
@@ -79,9 +82,9 @@ Implemented in `src/lib/suggest.ts`:
 6. **Mixed** missing + restore in one round: keep both (fairness).
 7. Repurchase-to-fill-Missing is allowed (collaborative).
 
-After the match: individual or round-level **Confirm** (success) and **Failed** (lost before extract) — modals, not `window.confirm`/`alert`.
+After the match: individual or round-level **Confirm** / **Failed** / **Ignore** — modals, not `window.confirm`/`alert`.
 
-Apply with `applyExchangeRound(state, items, mode)` where `mode` is `'success' | 'failed'`, using **`stateRef.current`** (not side effects inside `setState`).
+Apply with `applyExchangeRound(state, items, mode)` where `mode` is `'success' | 'failed' | 'ignored'`, then write outcomes into `state.suggestion` and push the room so all clients update.
 
 ## User preferences (this project)
 

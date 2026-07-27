@@ -68,7 +68,7 @@ const es: MessageTree = {
     whoPlaying: '¿Quién juega esta partida?',
     generate: 'Generar plan de regalos / traídas',
     hint:
-      'Cada ronda busca un 1:1 justo: cada jugador da uno y recibe uno cuando sea posible. Rellenar lo que falta siempre gana a restaurar perdidos. Si una ronda solo intercambiaría restauraciones de perdidos (sin huecos nuevos), pasa a dominio / cazar, para no ciclar Listo/Perdido. Las rondas mixtas (falta + restaurar) se mantienen como trueques justos. Tras la partida: Confirmar si el trueque se completó, o Falló si el portador murió / perdió el sprite antes de extraer (portador → Perdido; receptor sin cambio).',
+      'Cada ronda busca un 1:1 justo: cada jugador da uno y recibe uno cuando sea posible. Rellenar lo que falta siempre gana a restaurar perdidos. Si una ronda solo intercambiaría restauraciones de perdidos (sin huecos nuevos), pasa a dominio / cazar. Tras la partida: Confirmar (trueque hecho), Falló (murió antes de extraer — portador Perdido, receptor sin cambio) o Ignorar (olvidó traerlo — sin cambios de colección). En sala en vivo, todos ven el mismo plan y se atenúa cuando alguien marca un intercambio.',
     noAssignments: 'Aún no hay asignaciones. Marca colecciones y elige jugadores.',
     round: 'Ronda {n}',
     exchange: 'intercambio',
@@ -87,6 +87,12 @@ const es: MessageTree = {
     failedAll: 'Marcar todos fallidos',
     failedRemaining: 'Marcar restantes fallidos ({n})',
     failedTag: 'Falló (perdido)',
+    ignore: 'Ignorar',
+    ignoreTitle:
+      'Olvidó traerlo — sin cambios de colección. El receptor no lo obtiene; el portador conserva su estado.',
+    ignoreAll: 'Ignorar todos',
+    ignoreRemaining: 'Ignorar restantes ({n})',
+    ignoredTag: 'Ignorado',
     newMissing: 'Nuevo (falta)',
     restoreLost: 'Restaurar perdido',
     mastery: 'Dominio',
@@ -138,11 +144,19 @@ const es: MessageTree = {
       '¿Marcar {count} intercambios restantes de la ronda {n} como fallidos?',
     failSubtitle:
       'Úsalo si el portador murió o perdió el sprite antes de extraer. Portador → Perdido. El receptor se queda Falta/Perdido (no lo adquiere).',
+    ignoreTitleOne: '¿Ignorar este intercambio?',
+    ignoreTitleRoundOne: '¿Ignorar el intercambio de la ronda {n}?',
+    ignoreTitleRoundMany:
+      '¿Ignorar {count} intercambios restantes de la ronda {n}?',
+    ignoreSubtitle:
+      'Úsalo si alguien olvidó traer el sprite. Sin cambios de colección para portador ni receptor — solo se cierra esta fila del plan.',
     cancel: 'Cancelar',
     confirmOne: 'Confirmar intercambio',
     confirmMany: 'Confirmar {n} intercambios',
     failConfirmOne: 'Marcar como fallido',
     failConfirmMany: 'Marcar {n} como fallidos',
+    ignoreConfirmOne: 'Ignorar intercambio',
+    ignoreConfirmMany: 'Ignorar {n} intercambios',
     nothingTitle: 'Nada actualizado',
     nothingSkipped: 'No se pudieron aplicar estos intercambios.',
     nothingIds:
@@ -155,6 +169,10 @@ const es: MessageTree = {
     failSuccessMany: '{n} intercambios marcados fallidos',
     failSuccessMsg:
       'Portadores marcados Perdido. Los receptores no recibieron el sprite. Revisa Colección si quieres comprobarlo.',
+    ignoreSuccessOne: 'Intercambio ignorado',
+    ignoreSuccessMany: '{n} intercambios ignorados',
+    ignoreSuccessMsg:
+      'Sin cambios de colección. La fila del plan se cierra para todos en la sala.',
     alreadyTitle: 'Ya resuelto',
     alreadyMsg: 'Estos intercambios ya se aplicaron en este plan.',
     ok: 'Vale',
