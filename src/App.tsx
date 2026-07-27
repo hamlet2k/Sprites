@@ -36,6 +36,7 @@ import {
   applyExchangeRound,
   buildSuggestionPlan,
   formatAssignmentReason,
+  formatAssignmentSpriteName,
   isExchangeAssignment,
   loadSuggestMode,
   MAX_BRING_PER_PLAYER,
@@ -1141,11 +1142,26 @@ export default function App() {
                 <span className={`badge ${family.rarity}`}>
                   {t(`rarity.${family.rarity}`)}
                 </span>
-                <span className="ability">{family.ability}</span>
+                <span className="ability">
+                  {effectText(t, `effects.family.${family.id}`, family.ability)}
+                </span>
               </h2>
               <div className="variant-grid">
                 {sprites.map((sprite) => {
                   const st = getPlayerSprite(selectedPlayer, sprite.id)
+                  const ability = effectText(
+                    t,
+                    `effects.family.${sprite.familyId}`,
+                    sprite.ability,
+                  )
+                  const variantBonus =
+                    sprite.variant !== 'base'
+                      ? effectText(
+                          t,
+                          `effects.variant.${sprite.variant}`,
+                          sprite.variantBonus ?? '',
+                        )
+                      : ''
                   return (
                     <div
                       key={sprite.id}
@@ -1160,9 +1176,7 @@ export default function App() {
                         }
                       }}
                       title={
-                        sprite.variantBonus
-                          ? `${sprite.ability}\n+ ${sprite.variantBonus}`
-                          : sprite.ability
+                        variantBonus ? `${ability}\n+ ${variantBonus}` : ability
                       }
                     >
                       {st.mastered && (
@@ -1556,7 +1570,7 @@ export default function App() {
                                         {a.bringerName}
                                       </span>
                                       <span className="arrow">{t('suggest.brings')}</span>
-                                      {a.spriteName || '—'}
+                                      {formatAssignmentSpriteName(a, t)}
                                       {a.recipientName && (
                                         <>
                                           <span className="arrow">→</span>
@@ -2072,6 +2086,16 @@ function exchangeKey(a: BringAssignment): string {
   return `${a.round}::${a.bringerId}::${a.recipientId ?? ''}::${a.spriteId}`
 }
 
+/** i18n lookup with catalog fallback (effects may lag behind new families). */
+function effectText(
+  t: (key: string, vars?: Record<string, string | number>) => string,
+  key: string,
+  fallback: string,
+): string {
+  const out = t(key)
+  return !out || out === key ? fallback : out
+}
+
 function ExchangeModalRow({
   a,
   players,
@@ -2108,7 +2132,9 @@ function ExchangeModalRow({
             {a.recipientName}
           </span>
         </div>
-        <div className="modal-exchange-sprite">{a.spriteName}</div>
+        <div className="modal-exchange-sprite">
+          {formatAssignmentSpriteName(a, t)}
+        </div>
         <div className="modal-exchange-tags">
           {a.needKind === 'missing' && (
             <span className="kind-tag need-missing-tag">{t('confirm.tagNew')}</span>

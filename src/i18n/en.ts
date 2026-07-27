@@ -42,6 +42,44 @@ const en: MessageTree = {
     gem: 'Gem',
     quack: 'Quack',
   },
+  effects: {
+    family: {
+      batman: 'Bat Cape — boosted midair glide',
+      water: 'Replenishes Shield for you and squadmates while in water',
+      earth: 'Increased chance to find additional rare items in chests',
+      fire: 'Creates a fire burst after dealing enough damage to an enemy',
+      duck: 'Emoting or jamming replenishes Shield',
+      ghost: 'Grants cloak for a short duration upon reloading',
+      dream:
+        'Random item each level-up; at Level 5 explodes with Legendary loot, auto-extracts, resets to 1',
+      demon: 'Siphon Health and Shield on elimination',
+      punk: 'At Level 5, can grant infinite ammo buff',
+      king: 'Increases Pickaxe damage',
+      'burnt-peanut':
+        'Chance of extra rare loot (sometimes Mythic) on eliminations',
+      'vini-jr':
+        'Sprinting enables damaging slide; slide into enemies boosts reload and fire rate',
+      'zero-point': 'Shield Bubble Jr. when you use a healing item on yourself',
+      fishy: 'Increased swim speed; speed boost after taking damage',
+      striker: 'Brief Overdrive when you mantle, hurdle, or wall scramble',
+      aura: 'Shock Rock charge after dealing enough damage (shockwave effect)',
+      boss: 'Increases max Health and Shield',
+      grim: 'Players who damage you become marked for a short duration',
+      air: 'Increased jump height and sprint speed; removes fall damage',
+      seven: "Reveals opponents' foot trails for a few seconds",
+      pollo:
+        'Slowly replenishes Shield for you and teammates after an elimination',
+    },
+    variant: {
+      gold: '3× bonus XP from eliminations',
+      gummy: 'Bonus Sprite Dust on extraction',
+      galaxy: 'Bonus ammo when looting',
+      holofoil: '+5% chance to find rare Sprite variants in chests (squad)',
+      cube: 'Overdrive while in the Storm / extra shield on level-up',
+      gem: '30% less fall damage (upcoming)',
+      quack: 'Special Quack themed variant',
+    },
+  },
   collection: {
     owned: 'Owned',
     available: 'Available',

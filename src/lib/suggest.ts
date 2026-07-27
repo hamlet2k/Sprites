@@ -500,22 +500,75 @@ function takeEdge(
   })
 }
 
-/** Resolve assignment reason at display time (so locale switches work on shared plans). */
+/**
+ * Resolve assignment synopsis at display time.
+ * Always prefers structural rebuild for trades so locale switches and older
+ * room plans (English baked `reason`, missing reasonKey) still translate.
+ */
 export function formatAssignmentReason(
   a: BringAssignment,
   t: TFn,
 ): string {
-  if (a.reasonKey) {
-    const vars = a.reasonVars ?? {}
-    if (
-      a.reasonKey === 'suggest.tradeReady' ||
-      a.reasonKey === 'suggest.tradeRepurchase'
-    ) {
-      return formatTradeReason(t, a.reasonKey, vars)
-    }
-    return t(a.reasonKey, vars)
+  // Trades: rebuild from needKind / dust / rarity so EN↔ES always works.
+  if (isExchangeAssignment(a)) {
+    return rebuildTradeReason(a, t)
   }
+
+  // Mastery / hunt: prefer stored reasonKey (thrash vs no-trade wording).
+  if (a.reasonKey) {
+    return t(a.reasonKey, a.reasonVars ?? {})
+  }
+
+  // Legacy mastery / hunt without reasonKey
+  if (a.kind === 'mastery') {
+    if (!a.spriteId) {
+      return t('suggest.huntFree')
+    }
+    if (a.needsRepurchase) {
+      return t('suggest.masteryNoTradeRepurchase', {
+        cost: (a.summonCost ?? 0).toLocaleString(),
+      })
+    }
+    return t('suggest.masteryNoTrade')
+  }
+
   return a.reason
+}
+
+/** Display name for hunt free rows (localized even if plan baked English). */
+export function formatAssignmentSpriteName(
+  a: BringAssignment,
+  t: TFn,
+): string {
+  if (a.kind === 'mastery' && !a.spriteId) {
+    return t('suggest.huntName')
+  }
+  return a.spriteName || '—'
+}
+
+function rebuildTradeReason(a: BringAssignment, t: TFn): string {
+  const sprite = a.spriteId ? SPRITE_BY_ID[a.spriteId] : undefined
+  const difficultyKey = sprite
+    ? difficultyKeyFor(difficultyScore(sprite))
+    : 'suggest.difficulty.common'
+  const needKey =
+    a.needKind === 'lost' ? 'suggest.needLost' : 'suggest.needMissing'
+  const cost = (a.summonCost ?? sprite?.summonCost ?? 0).toLocaleString()
+  const receiver = a.recipientName || ''
+
+  if (a.needsRepurchase || a.kind === 'repurchase') {
+    return formatTradeReason(t, 'suggest.tradeRepurchase', {
+      cost,
+      receiver,
+      needKey,
+      difficultyKey,
+    })
+  }
+  return formatTradeReason(t, 'suggest.tradeReady', {
+    receiver,
+    needKey,
+    difficultyKey,
+  })
 }
 
 function formatTradeReason(

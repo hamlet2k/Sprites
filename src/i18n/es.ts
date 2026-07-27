@@ -42,6 +42,50 @@ const es: MessageTree = {
     gem: 'Gema',
     quack: 'Quack',
   },
+  effects: {
+    family: {
+      batman: 'Capa de murciélago — planeo aéreo potenciado',
+      water:
+        'Regenera escudo para ti y tus compañeros de escuadra mientras estás en el agua',
+      earth:
+        'Mayor probabilidad de encontrar objetos raros adicionales en cofres',
+      fire:
+        'Crea una explosión de fuego tras infligir suficiente daño a un enemigo',
+      duck: 'Emotear o bailar regenera escudo',
+      ghost: 'Otorga camuflaje breve al recargar',
+      dream:
+        'Objeto aleatorio en cada subida de nivel; al nivel 5 explota con botín legendario, se autoextrae y vuelve a 1',
+      demon: 'Absorbe salud y escudo al eliminar',
+      punk: 'Al nivel 5 puede otorgar munición infinita',
+      king: 'Aumenta el daño del pico',
+      'burnt-peanut':
+        'Probabilidad de botín raro extra (a veces mítico) en eliminaciones',
+      'vini-jr':
+        'Al esprintar habilita un deslizamiento dañino; deslizarte hacia enemigos mejora recarga y cadencia',
+      'zero-point':
+        'Burbuja de escudo Jr. al usar un objeto de curación en ti mismo',
+      fishy: 'Mayor velocidad de nado; impulso de velocidad al recibir daño',
+      striker:
+        'Sobreaceleración breve al trepar, saltar obstáculos o escalar muros',
+      aura: 'Carga de Roca de Choque tras infligir suficiente daño (onda expansiva)',
+      boss: 'Aumenta la salud y el escudo máximos',
+      grim: 'Los jugadores que te dañan quedan marcados un breve tiempo',
+      air: 'Mayor salto y velocidad de esprint; elimina el daño por caída',
+      seven: 'Revela las huellas de los oponentes durante unos segundos',
+      pollo:
+        'Regenera lentamente escudo para ti y tus compañeros tras una eliminación',
+    },
+    variant: {
+      gold: '3× XP de bonificación por eliminaciones',
+      gummy: 'Polvo de Espíritu extra al extraer',
+      galaxy: 'Munición extra al saquear',
+      holofoil:
+        '+5% de probabilidad de encontrar variantes raras de espíritus en cofres (escuadra)',
+      cube: 'Sobreaceleración en la tormenta / escudo extra al subir de nivel',
+      gem: '30% menos daño por caída (próximamente)',
+      quack: 'Variante especial temática Quack',
+    },
+  },
   collection: {
     owned: 'Conseguidos',
     available: 'Disponibles',
