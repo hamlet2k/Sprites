@@ -944,6 +944,19 @@ export default function App() {
       <header className="header">
         <h1>{t('app.title')}</h1>
         <div className="header-actions">
+          <a
+            className="btn btn-sm header-support"
+            href={KOFI_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={t('app.supportTitle')}
+            aria-label={t('app.supportTitle')}
+          >
+            <span className="header-support-icon" aria-hidden>
+              ♥
+            </span>
+            {t('app.support')}
+          </a>
           <label className="lang-select-wrap">
             <span className="visually-hidden">{t('lang.label')}</span>
             <select

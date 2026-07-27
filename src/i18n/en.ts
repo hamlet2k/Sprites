@@ -4,6 +4,8 @@ const en: MessageTree = {
   app: {
     title: 'Sprite Squad',
     suggest: 'Exchanges',
+    support: 'Support',
+    supportTitle: 'Optional tip on Ko-fi — opens in a new tab',
   },
   lang: {
     label: 'Language',
