@@ -68,7 +68,7 @@ const es: MessageTree = {
     whoPlaying: '¿Quién juega esta partida?',
     generate: 'Generar plan de regalos / traídas',
     hint:
-      'Cada ronda prefiere trueques mutuos (A↔B) y equilibra quién ha dado vs recibido para que nadie sea siempre solo dador. Rellenar faltantes gana a restaurar perdidos a igualdad de justicia; el ping-pong de solo perdidos pasa a dominio / cazar. Tras la partida: Confirmar, Falló o Ignorar. En sala en vivo, todos ven el mismo plan y se atenúa a la vez.',
+      'Objetivo: completar lo que Falta en la escuadra lo más rápido posible. Cada ronda empaqueta el máximo de rellenos Missing (regalos Listos primero). La rareza solo desempata. Los caminos injustos valen si completan más huecos. El ping-pong de solo perdidos pasa a dominio / cazar. Tras la partida: Confirmar, Falló o Ignorar. En sala en vivo, el plan se comparte y se atenúa a la vez.',
     noAssignments: 'Aún no hay asignaciones. Marca colecciones y elige jugadores.',
     round: 'Ronda {n}',
     exchange: 'intercambio',
@@ -106,7 +106,7 @@ const es: MessageTree = {
     dustBringerMust: 'El portador debe reinvocar con polvo antes de intercambiar',
     selectPlayers: 'Elige quién juega y pulsa Sugerir.',
     summary:
-      '{players} jugadores · 1:1 justo · {exchanges} intercambio(s) · {missing} faltan · {restores} restaurar · {gifts} regalo · {repurchases} recompra · {mastery} dominio',
+      '{players} jugadores · completar primero · {exchanges} intercambio(s) · {missing} rellenos faltantes · {restores} restaurar · {gifts} regalo · {repurchases} recompra · {mastery} dominio',
     needMissing: 'falta en la colección',
     needLost: 'perdido — restaurar sin su polvo',
     tradeRepurchase:

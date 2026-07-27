@@ -74,15 +74,15 @@ Plan + outcomes live on `SquadState.suggestion` so **live rooms** sync greying f
 
 Implemented in `src/lib/suggest.ts`:
 
-1. **Mutual 2-cycles first** (A↔B) so we avoid path/star unfairness (e.g. Jars→Fredek→Antequera where Jars only gives).
-2. **Cumulative debt** (gives − receives across the plan): prefer gifting to players who have given more than they received.
-3. Prefer filling **Missing** over **Lost restores** (within the same fairness tier).
-4. Prefer giver **Ready** inventory over **Lost** (repurchase).
-5. **Hard 1:1 per round:** each active player gives ≤1 and receives ≤1.
-6. Up to **4** bring slots per player (rounds 1–4).
-7. **Pure lost-restore rounds** (all exchanges are restore-only, no Missing fills): drop those trades and assign **mastery / hunt** instead (anti thrash). When thrash is the only option, mastery is preferred over endless Lost↔Ready ping-pong; one-sided “completion” gifts can still happen via residual matching when Missing gaps exist and debt is high.
-8. **Mixed** missing + restore in one round: keep both.
-9. Repurchase-to-fill-Missing is allowed (collaborative).
+**Primary goal: fastest collective catalog completion (Missing fills).** Fairness and rarity are secondary; unfair paths are OK if they complete more gaps.
+
+1. Each round **maximizes Missing fills** under 1-give / 1-receive (full search over assignments).
+2. Prefer **Ready** gifts before repurchase; pack Missing before Lost restores.
+3. **Rarity is only a tiny tie-break** (not a driver).
+4. Up to **4** bring slots per player (rounds 1–4).
+5. **Pure lost-restore rounds** thrash → scrap and use **mastery / hunt** instead.
+6. **Mixed** missing + restore rounds: keep both.
+7. Repurchase-to-fill-Missing is allowed (collaborative).
 
 After the match: individual or round-level **Confirm** / **Failed** / **Ignore** — modals, not `window.confirm`/`alert`.
 

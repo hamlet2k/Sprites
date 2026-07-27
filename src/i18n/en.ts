@@ -68,7 +68,7 @@ const en: MessageTree = {
     whoPlaying: 'Who is playing this match?',
     generate: 'Generate bring / gift plan',
     hint:
-      'Each round prefers mutual swaps (A↔B) and balances who has given vs received so one player is not always the pure giver. Missing fills beat lost restores when fairness is equal; pure lost-restore thrash becomes mastery / hunt. After the match: Confirm, Failed, or Ignore. In a live room, everyone sees the same plan and greys-out together.',
+      'Goal: complete everyone\'s Missing catalog as fast as possible. Each round packs the most Missing fills (Ready gifts first). Rarity is only a tiny tie-break. Unfair paths are OK if they complete more gaps. Pure lost-restore thrash becomes mastery / hunt. After the match: Confirm, Failed, or Ignore. Live rooms share the plan and greys-out together.',
     noAssignments: 'No assignments yet. Mark collections and select players.',
     round: 'Round {n}',
     exchange: 'exchange',
@@ -106,7 +106,7 @@ const en: MessageTree = {
     dustBringerMust: 'Bringer must re-summon with dust before trading',
     selectPlayers: 'Select who is playing, then run Suggest.',
     summary:
-      '{players} players · fair 1:1 · {exchanges} exchange(s) · {missing} missing · {restores} restore · {gifts} gift · {repurchases} repurchase · {mastery} mastery',
+      '{players} players · completion-first · {exchanges} exchange(s) · {missing} missing fills · {restores} restore · {gifts} gift · {repurchases} repurchase · {mastery} mastery',
     needMissing: 'missing from collection',
     needLost: 'lost — restore without their dust',
     tradeRepurchase:
