@@ -3,7 +3,7 @@ import type { MessageTree } from './locales'
 const en: MessageTree = {
   app: {
     title: 'Sprite Squad',
-    suggest: 'Suggest',
+    suggest: 'Exchanges',
   },
   lang: {
     label: 'Language',
@@ -12,7 +12,7 @@ const en: MessageTree = {
   },
   tabs: {
     collection: 'Collection',
-    suggest: 'Suggest',
+    suggest: 'Exchanges',
     squad: 'Squad',
     help: 'Help',
   },
@@ -75,7 +75,7 @@ const en: MessageTree = {
   },
   suggest: {
     whoPlaying: 'Who is playing this match?',
-    generate: 'Generate bring / gift plan',
+    generate: 'Generate Exchange Plan',
     modeLabel: 'Plan style',
     modeCompletion: 'Complete squad',
     modeFair: '100% fair',
@@ -101,12 +101,12 @@ const en: MessageTree = {
     noExchanges: 'No exchanges',
     confirmRemaining: 'Confirm remaining ({n})',
     confirmAll: 'Confirm all',
-    failed: 'Failed',
+    failed: 'Lost',
     failedTitle:
       'Trade failed in-game (died or lost sprite before extract). Bringer → Lost; receiver does not get it.',
-    failedAll: 'Mark all failed',
-    failedRemaining: 'Mark remaining failed ({n})',
-    failedTag: 'Failed (lost)',
+    failedAll: 'Mark all lost',
+    failedRemaining: 'Mark remaining lost ({n})',
+    failedTag: 'Lost',
     ignore: 'Ignore',
     ignoreTitle:
       'Forgot to bring — no collection changes. Receiver does not get it; bringer keeps their status.',
@@ -117,10 +117,10 @@ const en: MessageTree = {
     restoreLost: 'Restore lost',
     mastery: 'Mastery',
     bringerRepurchase: 'Bringer repurchase',
-    confirmedTag: 'Confirmed',
+    confirmedTag: 'Exchanged',
     brings: 'brings',
     dustBringerPays: 'dust (bringer pays)',
-    confirm: 'Confirm',
+    confirm: 'Exchanged',
     done: 'Done',
     dustIfLost: 'Sprite Dust cost if lost / re-summon',
     dustBringerMust: 'Bringer must re-summon with dust before trading',

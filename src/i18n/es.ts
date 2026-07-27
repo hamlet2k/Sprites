@@ -3,7 +3,7 @@ import type { MessageTree } from './locales'
 const es: MessageTree = {
   app: {
     title: 'Sprite Squad',
-    suggest: 'Sugerir',
+    suggest: 'Intercambios',
   },
   lang: {
     label: 'Idioma',
@@ -12,7 +12,7 @@ const es: MessageTree = {
   },
   tabs: {
     collection: 'Colección',
-    suggest: 'Sugerir',
+    suggest: 'Intercambios',
     squad: 'Escuadra',
     help: 'Ayuda',
   },
@@ -75,7 +75,7 @@ const es: MessageTree = {
   },
   suggest: {
     whoPlaying: '¿Quién juega esta partida?',
-    generate: 'Generar plan de regalos / traídas',
+    generate: 'Generar plan de intercambios',
     modeLabel: 'Estilo del plan',
     modeCompletion: 'Completar escuadra',
     modeFair: '100% justo',
@@ -101,12 +101,12 @@ const es: MessageTree = {
     noExchanges: 'Sin intercambios',
     confirmRemaining: 'Confirmar restantes ({n})',
     confirmAll: 'Confirmar todos',
-    failed: 'Falló',
+    failed: 'Perdido',
     failedTitle:
       'El trueque falló en partida (murió o perdió el sprite antes de extraer). Portador → Perdido; el receptor no lo obtiene.',
-    failedAll: 'Marcar todos fallidos',
-    failedRemaining: 'Marcar restantes fallidos ({n})',
-    failedTag: 'Falló (perdido)',
+    failedAll: 'Marcar todos perdidos',
+    failedRemaining: 'Marcar restantes perdidos ({n})',
+    failedTag: 'Perdido',
     ignore: 'Ignorar',
     ignoreTitle:
       'Olvidó traerlo — sin cambios de colección. El receptor no lo obtiene; el portador conserva su estado.',
@@ -117,10 +117,10 @@ const es: MessageTree = {
     restoreLost: 'Restaurar perdido',
     mastery: 'Dominio',
     bringerRepurchase: 'Recompra del portador',
-    confirmedTag: 'Confirmado',
+    confirmedTag: 'Intercambiado',
     brings: 'trae',
     dustBringerPays: 'polvo (paga el portador)',
-    confirm: 'Confirmar',
+    confirm: 'Intercambiado',
     done: 'Hecho',
     dustIfLost: 'Coste de polvo si se pierde / reinvoca',
     dustBringerMust: 'El portador debe reinvocar con polvo antes de intercambiar',
