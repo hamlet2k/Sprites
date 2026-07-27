@@ -784,13 +784,38 @@ button {
   border-left-color: var(--text-muted);
 }
 
+/*
+ * Mobile: actions span full width under art + description (no side-by-side squeeze).
+ * Tablet/desktop: actions sit on the right of the description.
+ */
 .assignment-actions {
-  margin-left: auto;
-  align-self: center;
-  flex-shrink: 0;
+  flex: 1 1 100%;
+  width: 100%;
+  margin-left: 0;
+  align-self: stretch;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  justify-content: stretch;
+}
+
+.assignment-actions .btn {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+@media (min-width: 720px) {
+  .assignment-actions {
+    flex: 0 0 auto;
+    width: auto;
+    margin-left: auto;
+    align-self: center;
+    justify-content: flex-end;
+  }
+
+  .assignment-actions .btn {
+    flex: 0 0 auto;
+  }
 }
 
 .kind-tag.confirmed-tag {
@@ -835,8 +860,9 @@ button {
 }
 
 .assignment-body {
+  /* Share first row with icon; leave room so actions can wrap full-width below on mobile */
   min-width: 0;
-  flex: 1;
+  flex: 1 1 10rem;
   display: flex;
   flex-direction: column;
   gap: 4px;
