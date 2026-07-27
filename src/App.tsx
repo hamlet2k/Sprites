@@ -37,6 +37,7 @@ import {
   buildSuggestionPlan,
   isExchangeAssignment,
   MAX_BRING_PER_PLAYER,
+  type ExchangeApplyMode,
 } from './lib/suggest'
 import type {
   BringAssignment,
@@ -49,9 +50,12 @@ import './App.css'
 type Tab = 'collection' | 'suggest' | 'squad' | 'help'
 type SyncStatus = 'local' | 'connecting' | 'synced' | 'saving' | 'error' | 'offline'
 
+type ExchangeOutcome = 'success' | 'failed'
+
 type AppModal =
   | {
       kind: 'confirm-exchanges'
+      mode: ExchangeApplyMode
       title: string
       subtitle: string
       items: BringAssignment[]
@@ -82,10 +86,10 @@ export default function App() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [sortMode, setSortMode] = useState<SortMode>('type')
   const [plan, setPlan] = useState<SuggestionPlan | null>(null)
-  /** Individual exchanges already confirmed for the current plan. */
-  const [confirmedExchangeKeys, setConfirmedExchangeKeys] = useState<string[]>(
-    [],
-  )
+  /** Exchange keys → success (traded) or failed (died before extract). */
+  const [exchangeOutcomes, setExchangeOutcomes] = useState<
+    Record<string, ExchangeOutcome>
+  >({})
   const [modal, setModal] = useState<AppModal | null>(null)
 
   const [roomCode, setRoomCode] = useState<string | null>(() => roomFromUrl() ?? loadRoomCode())
@@ -108,8 +112,8 @@ export default function App() {
   /** Latest state for async push callbacks (avoid stale closures). */
   const stateRef = useRef(state)
   stateRef.current = state
-  const confirmedKeysRef = useRef(confirmedExchangeKeys)
-  confirmedKeysRef.current = confirmedExchangeKeys
+  const outcomesRef = useRef(exchangeOutcomes)
+  outcomesRef.current = exchangeOutcomes
 
   useEffect(() => {
     if (!selectedPlayerId && state.players[0]) {
@@ -373,25 +377,36 @@ export default function App() {
   function runSuggest() {
     const next = buildSuggestionPlan(state, locale)
     setPlan(next)
-    setConfirmedExchangeKeys([])
+    setExchangeOutcomes({})
+    outcomesRef.current = {}
     setTab('suggest')
   }
 
-  function isExchangeConfirmed(a: BringAssignment): boolean {
-    return confirmedExchangeKeys.includes(exchangeKey(a))
+  function exchangeOutcome(a: BringAssignment): ExchangeOutcome | undefined {
+    return exchangeOutcomes[exchangeKey(a)]
   }
 
-  function openConfirmExchanges(items: BringAssignment[], title: string) {
+  function isExchangeHandled(a: BringAssignment): boolean {
+    return exchangeOutcome(a) !== undefined
+  }
+
+  function openConfirmExchanges(
+    items: BringAssignment[],
+    title: string,
+    mode: ExchangeApplyMode,
+  ) {
     const pending = items.filter(
       (a) =>
         isExchangeAssignment(a) &&
-        !confirmedKeysRef.current.includes(exchangeKey(a)),
+        outcomesRef.current[exchangeKey(a)] === undefined,
     )
     if (pending.length === 0) return
     setModal({
       kind: 'confirm-exchanges',
+      mode,
       title,
-      subtitle: t('confirm.subtitle'),
+      subtitle:
+        mode === 'success' ? t('confirm.subtitle') : t('confirm.failSubtitle'),
       items: pending,
     })
   }
@@ -401,11 +416,11 @@ export default function App() {
    * then show a result modal. Fixes false "nothing updated" alerts when React
    * defers functional updaters.
    */
-  function applyConfirmedExchanges(items: BringAssignment[]) {
+  function applyExchanges(items: BringAssignment[], mode: ExchangeApplyMode) {
     const pending = items.filter(
       (a) =>
         isExchangeAssignment(a) &&
-        !confirmedKeysRef.current.includes(exchangeKey(a)),
+        outcomesRef.current[exchangeKey(a)] === undefined,
     )
     if (pending.length === 0) {
       setModal({
@@ -417,17 +432,17 @@ export default function App() {
       return
     }
 
-    const result = applyExchangeRound(stateRef.current, pending)
+    const result = applyExchangeRound(stateRef.current, pending, mode)
     setState(result.state)
     stateRef.current = result.state
 
-    const keys = pending.map(exchangeKey)
-    setConfirmedExchangeKeys((prev) => {
-      const next = [...prev]
-      for (const k of keys) {
-        if (!next.includes(k)) next.push(k)
+    const outcome: ExchangeOutcome = mode === 'success' ? 'success' : 'failed'
+    setExchangeOutcomes((prev) => {
+      const next = { ...prev }
+      for (const a of pending) {
+        next[exchangeKey(a)] = outcome
       }
-      confirmedKeysRef.current = next
+      outcomesRef.current = next
       return next
     })
 
@@ -464,36 +479,56 @@ export default function App() {
     setModal({
       kind: 'result',
       title:
-        result.applied === 1
-          ? t('confirm.successOne')
-          : t('confirm.successMany', { n: result.applied }),
-      tone: 'success',
-      message: t('confirm.successMsg'),
+        mode === 'success'
+          ? result.applied === 1
+            ? t('confirm.successOne')
+            : t('confirm.successMany', { n: result.applied })
+          : result.applied === 1
+            ? t('confirm.failSuccessOne')
+            : t('confirm.failSuccessMany', { n: result.applied }),
+      tone: mode === 'success' ? 'success' : 'info',
+      message:
+        mode === 'success' ? t('confirm.successMsg') : t('confirm.failSuccessMsg'),
       items: pending,
       skipped: result.skipped.length > 0 ? result.skipped : undefined,
     })
   }
 
-  function confirmRound(round: number) {
+  function confirmRound(round: number, mode: ExchangeApplyMode = 'success') {
     if (!plan) return
     const pending = plan.assignments.filter(
       (a) =>
         a.round === round &&
         isExchangeAssignment(a) &&
-        !isExchangeConfirmed(a),
+        !isExchangeHandled(a),
     )
     if (pending.length === 0) return
     openConfirmExchanges(
       pending,
-      pending.length === 1
-        ? t('confirm.titleRoundOne', { n: round })
-        : t('confirm.titleRoundMany', { count: pending.length, n: round }),
+      mode === 'success'
+        ? pending.length === 1
+          ? t('confirm.titleRoundOne', { n: round })
+          : t('confirm.titleRoundMany', { count: pending.length, n: round })
+        : pending.length === 1
+          ? t('confirm.failTitleRoundOne', { n: round })
+          : t('confirm.failTitleRoundMany', {
+              count: pending.length,
+              n: round,
+            }),
+      mode,
     )
   }
 
-  function confirmSingleExchange(a: BringAssignment) {
-    if (!isExchangeAssignment(a) || isExchangeConfirmed(a)) return
-    openConfirmExchanges([a], t('confirm.titleOne'))
+  function confirmSingleExchange(
+    a: BringAssignment,
+    mode: ExchangeApplyMode = 'success',
+  ) {
+    if (!isExchangeAssignment(a) || isExchangeHandled(a)) return
+    openConfirmExchanges(
+      [a],
+      mode === 'success' ? t('confirm.titleOne') : t('confirm.failTitleOne'),
+      mode,
+    )
   }
 
   function showInfoModal(
@@ -536,7 +571,8 @@ export default function App() {
       setSelectedPlayerId(remaining[0]?.id ?? '')
     }
     setPlan(null)
-    setConfirmedExchangeKeys([])
+    setExchangeOutcomes({})
+    outcomesRef.current = {}
   }
 
   function renamePlayer(id: string, name: string) {
@@ -573,7 +609,8 @@ export default function App() {
           sprites: data.sprites,
         }))
         setPlan(null)
-        setConfirmedExchangeKeys([])
+        setExchangeOutcomes({})
+    outcomesRef.current = {}
         showInfoModal(
           t('importExport.playerImportedTitle'),
           t('importExport.playerImportedMsg', {
@@ -1018,8 +1055,8 @@ export default function App() {
                     .map((round) => {
                       const items = plan.assignments.filter((a) => a.round === round)
                       const exchanges = items.filter(isExchangeAssignment)
-                      const pendingExchanges = exchanges.filter((a) => !isExchangeConfirmed(a))
-                      const confirmedCount = exchanges.length - pendingExchanges.length
+                      const pendingExchanges = exchanges.filter((a) => !isExchangeHandled(a))
+                      const handledCount = exchanges.length - pendingExchanges.length
                       const done =
                         exchanges.length > 0 && pendingExchanges.length === 0
                       return (
@@ -1036,8 +1073,8 @@ export default function App() {
                                   {exchanges.length === 1
                                     ? t('suggest.exchange')
                                     : t('suggest.exchanges')}
-                                  {confirmedCount > 0 && !done
-                                    ? ` · ${t('suggest.confirmed', { n: confirmedCount })}`
+                                  {handledCount > 0 && !done
+                                    ? ` · ${t('suggest.handled', { n: handledCount })}`
                                     : ''}
                                   {items.length > exchanges.length
                                     ? ` · ${t('suggest.masteryCount', {
@@ -1047,22 +1084,39 @@ export default function App() {
                                 </p>
                               </div>
                             </div>
-                            <button
-                              type="button"
-                              className={`btn ${done ? '' : 'btn-primary'}`}
-                              disabled={done || exchanges.length === 0}
-                              onClick={() => confirmRound(round)}
-                            >
-                              {done
-                                ? t('suggest.allConfirmed')
-                                : exchanges.length === 0
-                                  ? t('suggest.noExchanges')
-                                  : confirmedCount > 0
-                                    ? t('suggest.confirmRemaining', {
+                            <div className="round-header-actions">
+                              <button
+                                type="button"
+                                className={`btn ${done ? '' : 'btn-primary'}`}
+                                disabled={done || exchanges.length === 0}
+                                onClick={() => confirmRound(round, 'success')}
+                              >
+                                {done
+                                  ? t('suggest.allHandled')
+                                  : exchanges.length === 0
+                                    ? t('suggest.noExchanges')
+                                    : handledCount > 0
+                                      ? t('suggest.confirmRemaining', {
+                                          n: pendingExchanges.length,
+                                        })
+                                      : t('suggest.confirmAll')}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-warn"
+                                disabled={done || exchanges.length === 0}
+                                onClick={() => confirmRound(round, 'failed')}
+                                title={t('suggest.failedTitle')}
+                              >
+                                {done
+                                  ? t('suggest.done')
+                                  : handledCount > 0
+                                    ? t('suggest.failedRemaining', {
                                         n: pendingExchanges.length,
                                       })
-                                    : t('suggest.confirmAll')}
-                            </button>
+                                    : t('suggest.failedAll')}
+                              </button>
+                            </div>
                           </div>
 
                           <div className="assignment-list">
@@ -1078,12 +1132,17 @@ export default function App() {
                                 (p) => p.id === a.recipientId,
                               )
                               const isExchange = isExchangeAssignment(a)
-                              const exchangeDone = isExchange && isExchangeConfirmed(a)
+                              const outcome = isExchange ? exchangeOutcome(a) : undefined
+                              const exchangeDone = outcome !== undefined
                               return (
                                 <div
                                   key={`${round}-${a.bringerId}-${a.spriteId}-${i}`}
                                   className={`assignment ${a.kind} ${needClass}${
-                                    exchangeDone ? ' assignment-confirmed' : ''
+                                    outcome === 'success'
+                                      ? ' assignment-confirmed'
+                                      : outcome === 'failed'
+                                        ? ' assignment-failed'
+                                        : ''
                                   }`}
                                 >
                                   <span className="round-badge" title={`Round ${round}`}>
@@ -1129,9 +1188,14 @@ export default function App() {
                                           {t('suggest.bringerRepurchase')}
                                         </span>
                                       )}
-                                      {exchangeDone && (
+                                      {outcome === 'success' && (
                                         <span className="kind-tag confirmed-tag">
                                           {t('suggest.confirmedTag')}
+                                        </span>
+                                      )}
+                                      {outcome === 'failed' && (
+                                        <span className="kind-tag failed-tag">
+                                          {t('suggest.failedTag')}
                                         </span>
                                       )}
                                     </div>
@@ -1190,11 +1254,26 @@ export default function App() {
                                         type="button"
                                         className={`btn btn-sm ${exchangeDone ? '' : 'btn-primary'}`}
                                         disabled={exchangeDone}
-                                        onClick={() => confirmSingleExchange(a)}
+                                        onClick={() =>
+                                          confirmSingleExchange(a, 'success')
+                                        }
                                       >
-                                        {exchangeDone
+                                        {outcome === 'success'
                                           ? t('suggest.done')
                                           : t('suggest.confirm')}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className={`btn btn-sm ${exchangeDone ? '' : 'btn-warn'}`}
+                                        disabled={exchangeDone}
+                                        onClick={() =>
+                                          confirmSingleExchange(a, 'failed')
+                                        }
+                                        title={t('suggest.failedTitle')}
+                                      >
+                                        {outcome === 'failed'
+                                          ? t('suggest.done')
+                                          : t('suggest.failed')}
                                       </button>
                                     </div>
                                   )}
@@ -1403,12 +1482,23 @@ export default function App() {
                   </button>
                   <button
                     type="button"
-                    className="btn btn-primary"
-                    onClick={() => applyConfirmedExchanges(modal.items)}
+                    className={
+                      modal.mode === 'success' ? 'btn btn-primary' : 'btn btn-warn'
+                    }
+                    onClick={() => {
+                      const mode = modal.mode
+                      const items = modal.items
+                      setModal(null)
+                      applyExchanges(items, mode)
+                    }}
                   >
-                    {modal.items.length === 1
-                      ? t('confirm.confirmOne')
-                      : t('confirm.confirmMany', { n: modal.items.length })}
+                    {modal.mode === 'success'
+                      ? modal.items.length === 1
+                        ? t('confirm.confirmOne')
+                        : t('confirm.confirmMany', { n: modal.items.length })
+                      : modal.items.length === 1
+                        ? t('confirm.failConfirmOne')
+                        : t('confirm.failConfirmMany', { n: modal.items.length })}
                   </button>
                 </div>
               </>

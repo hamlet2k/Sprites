@@ -149,6 +149,17 @@ button {
   white-space: nowrap;
 }
 
+.btn-warn {
+  background: color-mix(in srgb, var(--lost) 22%, var(--bg-elevated));
+  border-color: color-mix(in srgb, var(--lost) 50%, var(--border));
+  color: var(--lost);
+  font-weight: 700;
+}
+
+.btn-warn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
 .btn-danger {
   background: color-mix(in srgb, var(--danger) 22%, var(--bg-elevated));
   border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
@@ -615,6 +626,13 @@ button {
   margin-bottom: 12px;
 }
 
+.round-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
 .round-title {
   display: flex;
   align-items: center;
@@ -744,15 +762,28 @@ button {
   opacity: 0.72;
 }
 
+.assignment.assignment-failed {
+  opacity: 0.78;
+  border-left-color: var(--lost);
+}
+
 .assignment-actions {
   margin-left: auto;
   align-self: center;
   flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .kind-tag.confirmed-tag {
   background: color-mix(in srgb, var(--available) 22%, transparent);
   color: var(--available);
+}
+
+.kind-tag.failed-tag {
+  background: color-mix(in srgb, var(--lost) 22%, transparent);
+  color: var(--lost);
 }
 
 .assignment-art {

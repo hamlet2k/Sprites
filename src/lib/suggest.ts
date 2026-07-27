@@ -338,10 +338,14 @@ export type ApplyResult = {
   skipped: string[]
 }
 
+/** Successful trade vs failed (died / lost before extract). */
+export type ExchangeApplyMode = 'success' | 'failed'
+
 /**
- * Apply confirmed exchanges for one round:
- * - Recipient gains the sprite as **available**
- * - Bringer marks the sprite as **lost**
+ * Apply exchanges from a plan.
+ *
+ * - **success**: recipient → Ready; bringer → Lost
+ * - **failed**: bringer → Lost only (recipient unchanged — trade never completed)
  *
  * Resolves players by id, then by name (in case cloud reloads rotated UUIDs
  * after the plan was generated).
@@ -349,6 +353,7 @@ export type ApplyResult = {
 export function applyExchangeRound(
   state: SquadState,
   roundAssignments: BringAssignment[],
+  mode: ExchangeApplyMode = 'success',
 ): ApplyResult {
   const players = state.players.map((p) => ({
     ...p,
@@ -381,25 +386,36 @@ export function applyExchangeRound(
     if (a.kind === 'mastery') continue
 
     const bringer = resolve(a.bringerId, a.bringerName)
-    const recipient = resolve(a.recipientId, a.recipientName)
-
-    if (!bringer || !recipient) {
-      skipped.push(
-        `${a.spriteName}: could not find ${!bringer ? a.bringerName : a.recipientName}`,
-      )
+    if (!bringer) {
+      skipped.push(`${a.spriteName}: could not find ${a.bringerName}`)
       continue
     }
 
-    const bringerPrev = getPlayerSprite(bringer, a.spriteId)
-    bringer.sprites[a.spriteId] = {
-      status: 'lost',
-      mastered: bringerPrev.mastered,
-    }
+    if (mode === 'success') {
+      const recipient = resolve(a.recipientId, a.recipientName)
+      if (!recipient) {
+        skipped.push(`${a.spriteName}: could not find ${a.recipientName}`)
+        continue
+      }
 
-    const recipientPrev = getPlayerSprite(recipient, a.spriteId)
-    recipient.sprites[a.spriteId] = {
-      status: 'available',
-      mastered: recipientPrev.mastered,
+      const bringerPrev = getPlayerSprite(bringer, a.spriteId)
+      bringer.sprites[a.spriteId] = {
+        status: 'lost',
+        mastered: bringerPrev.mastered,
+      }
+
+      const recipientPrev = getPlayerSprite(recipient, a.spriteId)
+      recipient.sprites[a.spriteId] = {
+        status: 'available',
+        mastered: recipientPrev.mastered,
+      }
+    } else {
+      // Failed: died / lost before extract — bringer lost it; receiver got nothing
+      const bringerPrev = getPlayerSprite(bringer, a.spriteId)
+      bringer.sprites[a.spriteId] = {
+        status: 'lost',
+        mastered: bringerPrev.mastered,
+      }
     }
 
     applied++

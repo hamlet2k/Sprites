@@ -68,17 +68,25 @@ const es: MessageTree = {
     whoPlaying: '¿Quién juega esta partida?',
     generate: 'Generar plan de regalos / traídas',
     hint:
-      'Cada ronda busca un 1:1 justo: cada jugador da uno y recibe uno cuando sea posible. Rellenar lo que falta siempre gana a restaurar perdidos. Si una ronda solo intercambiaría restauraciones de perdidos (sin huecos nuevos), pasa a dominio / cazar, para no ciclar Listo/Perdido. Las rondas mixtas (falta + restaurar) se mantienen como trueques justos. Tras la partida, confirma cada intercambio que sí ocurrió.',
+      'Cada ronda busca un 1:1 justo: cada jugador da uno y recibe uno cuando sea posible. Rellenar lo que falta siempre gana a restaurar perdidos. Si una ronda solo intercambiaría restauraciones de perdidos (sin huecos nuevos), pasa a dominio / cazar, para no ciclar Listo/Perdido. Las rondas mixtas (falta + restaurar) se mantienen como trueques justos. Tras la partida: Confirmar si el trueque se completó, o Falló si el portador murió / perdió el sprite antes de extraer (portador → Perdido; receptor sin cambio).',
     noAssignments: 'Aún no hay asignaciones. Marca colecciones y elige jugadores.',
     round: 'Ronda {n}',
     exchange: 'intercambio',
     exchanges: 'intercambios',
     confirmed: '{n} confirmados',
+    handled: '{n} resueltos',
     masteryCount: '{n} dominio',
     allConfirmed: 'Todo confirmado',
+    allHandled: 'Todo resuelto',
     noExchanges: 'Sin intercambios',
     confirmRemaining: 'Confirmar restantes ({n})',
     confirmAll: 'Confirmar todos',
+    failed: 'Falló',
+    failedTitle:
+      'El trueque falló en partida (murió o perdió el sprite antes de extraer). Portador → Perdido; el receptor no lo obtiene.',
+    failedAll: 'Marcar todos fallidos',
+    failedRemaining: 'Marcar restantes fallidos ({n})',
+    failedTag: 'Falló (perdido)',
     newMissing: 'Nuevo (falta)',
     restoreLost: 'Restaurar perdido',
     mastery: 'Dominio',
@@ -124,9 +132,17 @@ const es: MessageTree = {
     titleRoundMany: '¿Confirmar {count} intercambios restantes de la ronda {n}?',
     subtitle:
       'Los receptores pasan a Listo; los portadores marcan esos sprites como Perdidos. Confirma solo los trueques que sí ocurrieron.',
+    failTitleOne: '¿Marcar este intercambio como fallido?',
+    failTitleRoundOne: '¿Marcar el intercambio de la ronda {n} como fallido?',
+    failTitleRoundMany:
+      '¿Marcar {count} intercambios restantes de la ronda {n} como fallidos?',
+    failSubtitle:
+      'Úsalo si el portador murió o perdió el sprite antes de extraer. Portador → Perdido. El receptor se queda Falta/Perdido (no lo adquiere).',
     cancel: 'Cancelar',
     confirmOne: 'Confirmar intercambio',
     confirmMany: 'Confirmar {n} intercambios',
+    failConfirmOne: 'Marcar como fallido',
+    failConfirmMany: 'Marcar {n} como fallidos',
     nothingTitle: 'Nada actualizado',
     nothingSkipped: 'No se pudieron aplicar estos intercambios.',
     nothingIds:
@@ -135,7 +151,11 @@ const es: MessageTree = {
     successMany: '{n} intercambios confirmados',
     successMsg:
       'Colecciones actualizadas: receptores Listo, portadores Perdido. Revisa Colección si quieres comprobarlo.',
-    alreadyTitle: 'Ya confirmado',
+    failSuccessOne: 'Intercambio marcado fallido',
+    failSuccessMany: '{n} intercambios marcados fallidos',
+    failSuccessMsg:
+      'Portadores marcados Perdido. Los receptores no recibieron el sprite. Revisa Colección si quieres comprobarlo.',
+    alreadyTitle: 'Ya resuelto',
     alreadyMsg: 'Estos intercambios ya se aplicaron en este plan.',
     ok: 'Vale',
     tagNew: 'Nuevo',

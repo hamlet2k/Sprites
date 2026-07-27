@@ -64,7 +64,8 @@ Persistence key: `fortnite-sprite-squad-v1` (localStorage). Locale: `fortnite-sp
 
 **Card tap:** Missing → Ready, then Ready ↔ Lost. **Crossed-circle** sets Missing. **Crown** toggles Mastered.
 
-**Confirm exchange:** recipient → Ready; bringer → Lost for that sprite.
+**Confirm exchange (success):** recipient → Ready; bringer → Lost for that sprite.  
+**Failed exchange (died / lost before extract):** bringer → Lost only; recipient unchanged.
 
 ## Suggestion rules (current behavior)
 
@@ -78,9 +79,9 @@ Implemented in `src/lib/suggest.ts`:
 6. **Mixed** missing + restore in one round: keep both (fairness).
 7. Repurchase-to-fill-Missing is allowed (collaborative).
 
-After confirm: individual exchange confirm and “confirm remaining round” both supported (modals, not `window.confirm`/`alert`).
+After the match: individual or round-level **Confirm** (success) and **Failed** (lost before extract) — modals, not `window.confirm`/`alert`.
 
-Apply exchanges with `applyExchangeRound` using **`stateRef.current`** (not side effects inside `setState`) — false “nothing updated” alerts were caused by deferred updaters.
+Apply with `applyExchangeRound(state, items, mode)` where `mode` is `'success' | 'failed'`, using **`stateRef.current`** (not side effects inside `setState`).
 
 ## User preferences (this project)
 
