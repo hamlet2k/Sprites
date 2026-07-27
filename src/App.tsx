@@ -975,13 +975,6 @@ export default function App() {
               {syncLabel(syncStatus, roomCode, t)}
             </button>
           )}
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => runSuggest(suggestMode)}
-          >
-            {t('app.suggest')}
-          </button>
         </div>
       </header>
 
@@ -1071,8 +1064,10 @@ export default function App() {
               onClick={onLegendTapCycle}
               title={t('collection.legendTapTitle')}
             >
-              <i className="swatch" style={{ background: 'var(--available)' }} />{' '}
-              {t('collection.legendTap')}
+              {t('collection.legendTapPrefix')}{' '}
+              <span className="legend-ready">{t('status.ready')}</span>
+              {' ↔ '}
+              <span className="legend-lost">{t('status.lost')}</span>
             </button>
             <button
               type="button"
@@ -1218,7 +1213,9 @@ export default function App() {
                         <div className="card-actions">
                           <button
                             type="button"
-                            className={`card-action-btn missing-btn ${st.status === 'none' ? 'on' : ''}`}
+                            className={`card-action-btn missing-btn ${
+                              st.status === 'available' ? 'on' : ''
+                            }`}
                             onClick={(e) => onMarkMissing(sprite, e)}
                             title={t('collection.markMissing')}
                             aria-label={t('collection.markMissing')}
