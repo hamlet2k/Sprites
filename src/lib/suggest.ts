@@ -51,7 +51,7 @@ type TFn = (key: string, vars?: Record<string, string | number>) => string
 
 /**
  * Build a bring/gift plan for the active squad.
- * @param mode completion = fastest Missing fills; fair = mutual 1:1 + debt balance
+ * @param mode completion = fastest new acquisitions; fair = mutual 1:1 + debt balance
  */
 export function buildSuggestionPlan(
   state: SquadState,
@@ -140,7 +140,7 @@ export function buildSuggestionPlan(
       return best
     }
 
-    // --- completion mode: maximize Missing fills ---
+    // --- completion mode: maximize new acquisitions ---
     const packMaxCompletion = (
       readyOnly: boolean | null,
       missingOnly: boolean,
@@ -505,14 +505,15 @@ export function formatAssignmentReason(
   a: BringAssignment,
   t: TFn,
 ): string {
-  if (a.reasonKey && a.reasonVars) {
+  if (a.reasonKey) {
+    const vars = a.reasonVars ?? {}
     if (
       a.reasonKey === 'suggest.tradeReady' ||
       a.reasonKey === 'suggest.tradeRepurchase'
     ) {
-      return formatTradeReason(t, a.reasonKey, a.reasonVars)
+      return formatTradeReason(t, a.reasonKey, vars)
     }
-    return t(a.reasonKey, a.reasonVars)
+    return t(a.reasonKey, vars)
   }
   return a.reason
 }

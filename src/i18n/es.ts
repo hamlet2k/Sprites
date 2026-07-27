@@ -167,19 +167,19 @@ const es: MessageTree = {
     titleRoundMany:
       '¿Marcar {count} intercambios restantes de la Partida {n} como hechos?',
     subtitle:
-      'Los receptores pasan a Listo; los portadores marcan esos sprites como Perdidos. Marca solo los trueques que sí ocurrieron.',
+      'Los receptores pasan a Listo; los portadores marcan esos espíritus como Perdidos. Marca solo los trueques que sí ocurrieron.',
     failTitleOne: '¿Marcar este intercambio como perdido?',
     failTitleRoundOne: '¿Marcar el intercambio de la Partida {n} como perdido?',
     failTitleRoundMany:
       '¿Marcar {count} intercambios restantes de la Partida {n} como perdidos?',
     failSubtitle:
-      'Úsalo si el portador murió o perdió el sprite antes de extraer. Portador → Perdido. El receptor se queda Falta/Perdido (no lo adquiere).',
+      'Úsalo si el portador murió o perdió el espíritu antes de extraer. Portador → Perdido. El receptor se queda Falta/Perdido (no lo adquiere).',
     ignoreTitleOne: '¿Ignorar este intercambio?',
     ignoreTitleRoundOne: '¿Ignorar el intercambio de la Partida {n}?',
     ignoreTitleRoundMany:
       '¿Ignorar {count} intercambios restantes de la Partida {n}?',
     ignoreSubtitle:
-      'Úsalo si alguien olvidó traer el sprite. Sin cambios de colección para portador ni receptor — solo se cierra esta fila del plan.',
+      'Úsalo si alguien olvidó traer el espíritu. Sin cambios de colección para portador ni receptor — solo se cierra esta fila del plan.',
     cancel: 'Cancelar',
     confirmOne: 'Intercambiado',
     confirmMany: 'Intercambiado ({n})',
@@ -198,7 +198,7 @@ const es: MessageTree = {
     failSuccessOne: 'Intercambio marcado perdido',
     failSuccessMany: '{n} intercambios marcados perdidos',
     failSuccessMsg:
-      'Portadores marcados Perdido. Los receptores no recibieron el sprite. Revisa Colección si quieres comprobarlo.',
+      'Portadores marcados Perdido. Los receptores no recibieron el espíritu. Revisa Colección si quieres comprobarlo.',
     ignoreSuccessOne: 'Intercambio ignorado',
     ignoreSuccessMany: '{n} intercambios ignorados',
     ignoreSuccessMsg:
@@ -206,7 +206,7 @@ const es: MessageTree = {
     alreadyTitle: 'Ya resuelto',
     alreadyMsg: 'Estos intercambios ya se aplicaron en este plan.',
     ok: 'Vale',
-    tagNew: 'Nuevo',
+    tagNew: 'Nueva adquisición',
     tagRestore: 'Restaurar',
     tagRepurchase: 'Recompra',
   },
@@ -281,9 +281,9 @@ const es: MessageTree = {
     start2:
       'Opcional: crea una sala y comparte el enlace o el código para que todos vean la misma lista en el móvil.',
     start3:
-      'Abre Colección. Elige un jugador y toca los sprites para marcar lo que tiene.',
+      'Abre Colección. Elige un jugador y toca los espíritus para marcar lo que tiene.',
     start4:
-      'Cuando hagáis cola, abre Sugerir, marca quién entra en esa partida y genera un plan.',
+      'Cuando hagáis cola, abre Intercambios, marca quién entra en esa partida y genera un plan.',
     start5:
       'Después de la partida, confirma solo los trueques que de verdad ocurrieron.',
 

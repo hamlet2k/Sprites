@@ -318,11 +318,11 @@ const en: MessageTree = {
 
     suggestTitle: 'What the plan tries to do',
     suggest1:
-      'First fill real gaps (Missing) for squad mates, using fair one-give / one-receive trades each round.',
+      'First prioritize new acquisitions (Missing gaps) for squad mates, using fair one-give / one-receive trades each round.',
     suggest2:
       'If someone already has a sprite but Lost it, restores can be mixed in when that is fair.',
     suggest3:
-      'If a round would only swap Lost restores back and forth (no new Missing fills), it suggests mastery or free hunting instead — so you do not ping-pong the same Lost/Ready cycle forever.',
+      'If a round would only swap Lost restores back and forth (no new acquisitions), it suggests mastery or free hunting instead — so you do not ping-pong the same Lost/Ready cycle forever.',
     suggest4:
       'It prefers bringers who already have the sprite Ready (no dust) when possible.',
 
