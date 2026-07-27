@@ -80,13 +80,13 @@ const en: MessageTree = {
     modeCompletion: 'Focus Completion',
     modeFair: 'Focus Parity',
     modeCompletionHint:
-      'Maximize Missing fills each match. Unfair paths OK if the squad finishes faster.',
+      'Maximize new acquisitions each match. Unfair paths OK if the squad finishes faster.',
     modeFairHint:
       'Prefer mutual A↔B trades and balance who gives vs receives every match.',
     hintCompletion:
       'Complete everyone’s Missing catalog as fast as possible. Ready gifts first; rarity is only a tiny tie-break. Unfair paths OK if they complete more gaps. Pure lost thrash → mastery. Exchanged / Lost / Ignore after the match.',
     hintFair:
-      'Fair 1:1 trades: mutual swaps first and balance give/receive so nobody is only a pure giver. Missing before lost restores; pure lost thrash → mastery. Exchanged / Lost / Ignore after the match.',
+      'Fair 1:1 trades: mutual swaps first and balance give/receive so nobody is only a pure giver. New acquisitions before lost restores; pure lost thrash → mastery. Exchanged / Lost / Ignore after the match.',
     modeMismatch:
       'This plan was built with a different style. Generate again to apply the selected style.',
     noAssignments: 'No assignments yet. Mark collections and select players.',
@@ -113,7 +113,7 @@ const en: MessageTree = {
     ignoreAll: 'Ignore all',
     ignoreRemaining: 'Ignore remaining ({n})',
     ignoredTag: 'Ignored',
-    newMissing: 'New (missing)',
+    newMissing: 'New acquisition',
     restoreLost: 'Restore lost',
     mastery: 'Mastery',
     bringerRepurchase: 'Bringer repurchase',
@@ -127,16 +127,16 @@ const en: MessageTree = {
     selectPlayers: 'Select who is playing, then open Exchanges.',
     summaryPlayers: '{n} players',
     summaryExchanges: '{n} exchanges',
-    summaryMissing: '{n} missing fills',
+    summaryMissing: '{n} new acquisitions',
     summaryRestores: '{n} restores',
     summaryGifts: '{n} gifts',
     summaryRepurchases: '{n} repurchases',
     summaryMastery: '{n} mastery',
     summaryCompletion:
-      '{players} players · Focus Completion · {exchanges} exchange(s) · {missing} missing fills · {restores} restore · {gifts} gift · {repurchases} repurchase · {mastery} mastery',
+      '{players} players · Focus Completion · {exchanges} exchange(s) · {missing} new acquisitions · {restores} restore · {gifts} gift · {repurchases} repurchase · {mastery} mastery',
     summaryFair:
-      '{players} players · Focus Parity · {exchanges} exchange(s) · {missing} missing fills · {restores} restore · {gifts} gift · {repurchases} repurchase · {mastery} mastery',
-    needMissing: 'missing from collection',
+      '{players} players · Focus Parity · {exchanges} exchange(s) · {missing} new acquisitions · {restores} restore · {gifts} gift · {repurchases} repurchase · {mastery} mastery',
+    needMissing: 'new acquisition for their collection',
     needLost: 'lost — restore without their dust',
     tradeRepurchase:
       'Repurchase first ({cost} dust) → {receiver} ({need}, {difficulty})',
@@ -145,10 +145,10 @@ const en: MessageTree = {
       'No trades — repurchase & level for mastery ({cost} dust)',
     masteryNoTrade: 'No valuable trades — bring to level toward mastery',
     masteryThrashRepurchase:
-      'Pure lost-restore round skipped — repurchase & level mastery ({cost} dust)',
-    masteryThrash: 'Pure lost-restore round skipped — bring to level toward mastery',
+      'Pure lost-restore match skipped — repurchase & level mastery ({cost} dust)',
+    masteryThrash: 'Pure lost-restore match skipped — bring to level toward mastery',
     huntThrash:
-      'This round only had lost-restore swaps (skipped thrash) — hunt / trade mid-game for new finds',
+      'This match only had lost-restore swaps (skipped thrash) — hunt / trade mid-game for new finds',
     huntFree:
       'No trade or mastery targets — open chests / trade mid-game for new finds',
     huntName: 'Hunt freely',

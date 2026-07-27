@@ -35,6 +35,7 @@ import { useI18n } from './i18n'
 import {
   applyExchangeRound,
   buildSuggestionPlan,
+  formatAssignmentReason,
   isExchangeAssignment,
   loadSuggestMode,
   MAX_BRING_PER_PLAYER,
@@ -1590,7 +1591,9 @@ export default function App() {
                                           : t('collection.dust')}
                                       </div>
                                     )}
-                                    <div className="assignment-reason">{a.reason}</div>
+                                    <div className="assignment-reason">
+                                      {formatAssignmentReason(a, t)}
+                                    </div>
                                   </div>
                                   {isExchange && (
                                     <div className="assignment-actions">

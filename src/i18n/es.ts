@@ -21,8 +21,8 @@ const es: MessageTree = {
     ready: 'Listo',
     available: 'Disponible',
     lost: 'Perdido',
-    mastered: 'Dominado',
-    notMastered: 'Sin Dominar',
+    mastered: 'Maestría',
+    notMastered: 'Sin Maestría',
   },
   rarity: {
     rare: 'Raro',
@@ -46,47 +46,47 @@ const es: MessageTree = {
     owned: 'Conseguidos',
     available: 'Disponibles',
     lost: 'Perdidos',
-    mastered: 'Dominados',
+    mastered: 'Maestría',
     legendTapPrefix: 'Toca:',
     legendMissing: '✕ Falta',
-    legendMastered: '♛ Dominado',
+    legendMastered: '♛ Maestría',
     statsFilterLabel: 'Filtros rápidos de estado',
     legendFilterLabel: 'Filtros de la leyenda',
-    filterOwnedTitle: 'Mostrar todos los sprites',
+    filterOwnedTitle: 'Mostrar todos los espíritus',
     filterAvailableTitle: 'Mostrar solo Listos',
     filterLostTitle: 'Mostrar solo Perdidos',
-    filterMasteredTitle: 'Mostrar solo Dominados',
+    filterMasteredTitle: 'Mostrar solo con Maestría',
     legendTapTitle: 'Alternar Listo ↔ Falta + Perdidos',
     legendMissingTitle: 'Mostrar solo los que Faltan',
-    legendMasteredTitle: 'Mostrar solo Dominados',
-    searchPlaceholder: 'Buscar sprites…',
+    legendMasteredTitle: 'Mostrar solo con Maestría',
+    searchPlaceholder: 'Buscar espíritus…',
     sortTitle: 'Ordenar familias',
     sortType: 'Orden: Tipo',
     sortRarity: 'Orden: Rareza',
     sortDust: 'Orden: Coste',
     allStatus: 'Todos los Estados',
     needFilter: 'Falta + Perdidos',
-    dustTitle: 'Polvo de Sprite para reinvocar tras perderlo',
+    dustTitle: 'Polvo de Espíritu para reinvocar tras perderlo',
     dust: 'polvo',
     markMissing: 'Marcar como falta',
-    toggleMastered: 'Alternar dominado',
-    masteredBadge: 'Dominado',
-    noMatch: 'Ningún sprite coincide con los filtros.',
+    toggleMastered: 'Alternar maestría',
+    masteredBadge: 'Maestría',
+    noMatch: 'Ningún espíritu coincide con los filtros.',
   },
   suggest: {
     whoPlaying: '¿Quién juega esta partida?',
     generate: 'Generar plan de intercambios',
     modeLabel: 'Estilo del plan',
-    modeCompletion: 'Focus Completion',
-    modeFair: 'Focus Parity',
+    modeCompletion: 'Enfoque Completar',
+    modeFair: 'Enfoque Paridad',
     modeCompletionHint:
-      'Maximiza rellenar lo que Falta cada partida. Los caminos injustos valen si la escuadra termina antes.',
+      'Maximiza nuevas adquisiciones cada partida. Los caminos injustos valen si la escuadra termina antes.',
     modeFairHint:
       'Prioriza trueques mutuos A↔B y equilibra quién da y quién recibe en cada partida.',
     hintCompletion:
-      'Completar lo que Falta lo más rápido posible. Regalos Listos primero; la rareza solo desempata. Caminos injustos OK si completan más huecos. Ping-pong de perdidos → dominio. Tras la partida: Intercambiado / Perdido / Ignorar.',
+      'Completar lo que Falta lo más rápido posible. Regalos Listos primero; la rareza solo desempata. Caminos injustos OK si completan más huecos. Ping-pong de perdidos → maestría. Tras la partida: Intercambiado / Perdido / Ignorar.',
     hintFair:
-      'Trueques 1:1 justos: primero intercambios mutuos y balance dar/recibir para que nadie sea solo dador. Faltantes antes que restaurar perdidos; solo perdidos → dominio. Tras la partida: Intercambiado / Perdido / Ignorar.',
+      'Trueques 1:1 justos: primero intercambios mutuos y balance dar/recibir para que nadie sea solo dador. Nuevas adquisiciones antes que restaurar perdidos; solo perdidos → maestría. Tras la partida: Intercambiado / Perdido / Ignorar.',
     modeMismatch:
       'Este plan se generó con otro estilo. Vuelve a generar para aplicar el estilo seleccionado.',
     noAssignments: 'Aún no hay asignaciones. Marca colecciones y elige jugadores.',
@@ -95,7 +95,7 @@ const es: MessageTree = {
     exchanges: 'intercambios',
     confirmed: '{n} intercambiados',
     handled: '{n} resueltos',
-    masteryCount: '{n} dominio',
+    masteryCount: '{n} maestría',
     allConfirmed: 'Todo resuelto',
     allHandled: 'Todo resuelto',
     noExchanges: 'Sin intercambios',
@@ -103,7 +103,7 @@ const es: MessageTree = {
     confirmAll: 'Intercambiar todos',
     failed: 'Perdido',
     failedTitle:
-      'El trueque falló en partida (murió o perdió el sprite antes de extraer). Portador → Perdido; el receptor no lo obtiene.',
+      'El trueque falló en partida (murió o perdió el espíritu antes de extraer). Portador → Perdido; el receptor no lo obtiene.',
     failedAll: 'Marcar todos perdidos',
     failedRemaining: 'Marcar restantes perdidos ({n})',
     failedTag: 'Perdido',
@@ -113,9 +113,9 @@ const es: MessageTree = {
     ignoreAll: 'Ignorar todos',
     ignoreRemaining: 'Ignorar restantes ({n})',
     ignoredTag: 'Ignorado',
-    newMissing: 'Nuevo (falta)',
+    newMissing: 'Nueva adquisición',
     restoreLost: 'Restaurar perdido',
-    mastery: 'Dominio',
+    mastery: 'Maestría',
     bringerRepurchase: 'Recompra del portador',
     confirmedTag: 'Intercambiado',
     brings: 'trae',
@@ -127,31 +127,31 @@ const es: MessageTree = {
     selectPlayers: 'Elige quién juega y abre Intercambios.',
     summaryPlayers: '{n} jugadores',
     summaryExchanges: '{n} intercambios',
-    summaryMissing: '{n} rellenos faltantes',
+    summaryMissing: '{n} nuevas adquisiciones',
     summaryRestores: '{n} restauraciones',
     summaryGifts: '{n} regalos',
     summaryRepurchases: '{n} recompras',
-    summaryMastery: '{n} dominio',
+    summaryMastery: '{n} maestría',
     summaryCompletion:
-      '{players} jugadores · Focus Completion · {exchanges} intercambio(s) · {missing} rellenos faltantes · {restores} restaurar · {gifts} regalo · {repurchases} recompra · {mastery} dominio',
+      '{players} jugadores · Enfoque Completar · {exchanges} intercambio(s) · {missing} nuevas adquisiciones · {restores} restaurar · {gifts} regalo · {repurchases} recompra · {mastery} maestría',
     summaryFair:
-      '{players} jugadores · Focus Parity · {exchanges} intercambio(s) · {missing} rellenos faltantes · {restores} restaurar · {gifts} regalo · {repurchases} recompra · {mastery} dominio',
-    needMissing: 'falta en la colección',
+      '{players} jugadores · Enfoque Paridad · {exchanges} intercambio(s) · {missing} nuevas adquisiciones · {restores} restaurar · {gifts} regalo · {repurchases} recompra · {mastery} maestría',
+    needMissing: 'nueva adquisición para su colección',
     needLost: 'perdido — restaurar sin su polvo',
     tradeRepurchase:
       'Recompra primero ({cost} polvo) → {receiver} ({need}, {difficulty})',
     tradeReady: 'Trueque a {receiver} — {need} ({difficulty})',
     masteryNoTradeRepurchase:
-      'Sin trueques — recompra y sube dominio ({cost} polvo)',
-    masteryNoTrade: 'Sin trueques útiles — tráelo para subir dominio',
+      'Sin trueques — recompra y sube maestría ({cost} polvo)',
+    masteryNoTrade: 'Sin trueques útiles — tráelo para subir maestría',
     masteryThrashRepurchase:
-      'Ronda solo de restaurar perdidos omitida — recompra y dominio ({cost} polvo)',
+      'Partida solo de restaurar perdidos omitida — recompra y maestría ({cost} polvo)',
     masteryThrash:
-      'Ronda solo de restaurar perdidos omitida — tráelo para subir dominio',
+      'Partida solo de restaurar perdidos omitida — tráelo para subir maestría',
     huntThrash:
-      'Esta ronda solo tenía intercambios de perdidos (omitidos) — caza / truequea a mitad de partida',
+      'Esta partida solo tenía intercambios de perdidos (omitidos) — caza / truequea a mitad de partida',
     huntFree:
-      'Sin trueque ni objetivos de dominio — abre cofres / truequea a mitad de partida',
+      'Sin trueque ni objetivos de maestría — abre cofres / truequea a mitad de partida',
     huntName: 'Cazar libremente',
     difficulty: {
       ultraRare: 'ultra raro',
@@ -271,7 +271,7 @@ const es: MessageTree = {
   help: {
     introTitle: '¿Qué es Sprite Squad?',
     introP1:
-      'Un ayudante sencillo para tu escuadra de Fortnite con los Sprites de Capítulo 7 Temporada 3. Úsalo en el lobby o entre partidas para saber quién tiene qué — y quién debería llevar cada sprite para truequear con los amigos.',
+      'Un ayudante sencillo para tu escuadra de Fortnite con los Espíritus de Capítulo 7 Temporada 3. Úsalo en el lobby o entre partidas para saber quién tiene qué — y quién debería llevar cada espíritu para truequear con los amigos.',
     introP2:
       'No modifica el juego. Tú actualizas la app mientras jugáis y luego seguís el plan de trueques que sugiere.',
 
@@ -287,16 +287,16 @@ const es: MessageTree = {
     start5:
       'Después de la partida, confirma solo los trueques que de verdad ocurrieron.',
 
-    statusesTitle: 'Estados de un sprite (lo importante)',
+    statusesTitle: 'Estados de un espíritu (lo importante)',
     statusMissingTitle: 'Falta',
     statusMissingBody: 'Nunca lo metió en la colección.',
     statusReadyTitle: 'Listo',
     statusReadyBody:
-      'Está en su colección y puede equiparlo/llevarlo sin gastar Polvo de Sprite.',
+      'Está en su colección y puede equiparlo/llevarlo sin gastar Polvo de Espíritu.',
     statusLostTitle: 'Perdido',
     statusLostBody:
-      'Lo tuvo, pero necesita Polvo de Sprite para reinvocarlo antes de poder llevarlo otra vez.',
-    statusMasteredTitle: 'Dominado (corona)',
+      'Lo tuvo, pero necesita Polvo de Espíritu para reinvocarlo antes de poder llevarlo otra vez.',
+    statusMasteredTitle: 'Maestría (corona)',
     statusMasteredBody:
       'Extraído al nivel máximo (nivel 5). Va aparte de Listo/Perdido: usa el botón de la corona para marcarlo.',
 
@@ -310,50 +310,50 @@ const es: MessageTree = {
 
     matchTitle: 'Antes y después de una partida',
     matchBeforeTitle: 'Antes de entrar',
-    matchBefore1: 'Ve a Sugerir y marca quién juega esta partida.',
-    matchBefore2: 'Pulsa Generar (o Sugerir en la cabecera).',
+    matchBefore1: 'Ve a Intercambios y marca quién juega esta partida.',
+    matchBefore2: 'Pulsa Generar plan de intercambios.',
     matchBefore3:
-      'Lee cada ronda: quién trae qué sprite → quién lo recibe. Hasta 4 huecos por jugador.',
+      'Lee cada partida: quién trae qué espíritu → quién lo recibe. Hasta 4 huecos por jugador.',
     matchAfterTitle: 'Después de la partida',
     matchAfter1:
-      'Confirma cada trueque que salió bien (uno a uno, o los restantes de una ronda).',
+      'Marca cada trueque que salió bien (uno a uno, o los restantes de una partida).',
     matchAfter2:
-      'Al confirmar, la app actualiza la lista: el receptor queda Listo y el portador Perdido en ese sprite.',
+      'Al marcarlo como Intercambiado, la app actualiza la lista: el receptor queda Listo y el portador Perdido en ese espíritu.',
     matchAfter3:
-      'No confirmes trueques fallidos (alguien murió con el sprite, persona equivocada, etc.).',
+      'Usa Perdido si el trueque falló (alguien murió con el espíritu, persona equivocada, etc.).',
 
     suggestTitle: 'Qué intenta hacer el plan',
     suggest1:
-      'Primero rellenar huecos reales (Falta) de los compañeros, con trueques justos de uno da / uno recibe por ronda.',
+      'Primero rellenar huecos reales (Falta / nuevas adquisiciones) de los compañeros, con trueques de uno da / uno recibe por partida.',
     suggest2:
-      'Si alguien ya lo tenía pero está Perdido, las restauraciones se pueden mezclar cuando sea justo.',
+      'Si alguien ya lo tenía pero está Perdido, las restauraciones se pueden mezclar cuando el plan lo elija.',
     suggest3:
-      'Si una ronda solo intercambiaría restauraciones de Perdidos (sin rellenar Faltas nuevas), sugiere dominio o cazar libremente — para no ciclar el mismo Listo/Perdido sin fin.',
+      'Si una partida solo intercambiaría restauraciones de Perdidos (sin nuevas adquisiciones), sugiere maestría o cazar libremente — para no ciclar el mismo Listo/Perdido sin fin.',
     suggest4:
-      'Prefiere portadores que ya tienen el sprite Listo (sin polvo) cuando puede.',
+      'Prefiere portadores que ya tienen el espíritu Listo (sin polvo) cuando puede.',
 
     shareTitle: 'Jugar con amigos en la misma lista',
     share1:
-      'Pestaña Escuadra → Crear sala. Copia el enlace (o diles el código).',
+      'Pestaña Escuadra → Iniciar sesión. Copia el enlace (o diles el código de sesión).',
     share2:
       'Los amigos abren el enlace, o escriben el código y pulsan Unirse. Todos editan las mismas colecciones en vivo.',
     share3:
-      'Salir de la sala deja de sincronizar en tu dispositivo; la copia local se queda. Luego puedes unirte a otro código.',
+      'Salir de la sesión deja de sincronizar en tu dispositivo; la copia local se queda. Luego puedes unirte a otro código.',
     shareNote:
-      'Si en esta versión no hay salas en vivo, usa Exportar / Importar archivos para compartir los datos.',
+      'Si en esta versión no hay sesiones compartidas, usa Exportar / Importar archivos para compartir los datos.',
 
     backupTitle: 'Copias de seguridad (opcionales pero útiles)',
     backupFull:
-      'Exportar escuadra completa guarda a todos. Importar escuadra completa sustituye toda la escuadra por ese archivo — úsalo con cuidado.',
+      'Exportar escuadra guarda a todos. Importar escuadra sustituye toda la escuadra por ese archivo — úsalo con cuidado.',
     backupPlayer:
       'Exportar / Importar en la fila de un jugador solo actualiza a esa persona. Ideal para un respaldo personal o cargar un amigo sin tocar al resto.',
 
     tipTitle: 'Consejos',
-    tip1: 'Actualiza la colección en cuanto extraigáis o perdáis un sprite para que Sugerir sea fiable.',
-    tip2: 'Confirma solo los trueques que de verdad pasaron en la partida.',
+    tip1: 'Actualiza la colección en cuanto extraigáis o perdáis un espíritu para que Intercambios sea fiable.',
+    tip2: 'Marca solo los trueques que de verdad pasaron en la partida.',
     tip3: 'Puedes cambiar el idioma cuando quieras con el selector de la barra superior (English / Español).',
     tipCatalog:
-      'La app lista {sprites} combinaciones de sprites en {families} familias (catálogo de la comunidad; Epic puede añadir más durante la temporada).',
+      'La app lista {sprites} combinaciones de espíritus en {families} familias (catálogo de la comunidad; Epic puede añadir más durante la temporada).',
   },
   close: 'Cerrar',
 }

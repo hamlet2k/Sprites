@@ -74,8 +74,11 @@ export interface BringAssignment {
    * Round 1 = first priority trade for each player, etc.
    */
   round: number
-  /** Why this was chosen */
+  /** Why this was chosen (fallback for older plans / display default) */
   reason: string
+  /** i18n key for the reason line (preferred over baked `reason` text) */
+  reasonKey?: string
+  reasonVars?: Record<string, string | number>
   score: number
   needsRepurchase: boolean
 }

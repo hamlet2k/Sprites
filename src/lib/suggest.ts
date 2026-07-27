@@ -338,6 +338,9 @@ export function buildSuggestionPlan(
         assignments.push(mastery)
         giveThisRound.add(player.id)
       } else if (round === 1 || skippedPureLostRestores) {
+        const huntKey = skippedPureLostRestores
+          ? 'suggest.huntThrash'
+          : 'suggest.huntFree'
         assignments.push({
           kind: 'mastery',
           bringerId: player.id,
@@ -345,9 +348,9 @@ export function buildSuggestionPlan(
           spriteId: '',
           spriteName: t('suggest.huntName'),
           round,
-          reason: skippedPureLostRestores
-            ? t('suggest.huntThrash')
-            : t('suggest.huntFree'),
+          reason: t(huntKey),
+          reasonKey: huntKey,
+          reasonVars: {},
           score: 0,
           needsRepurchase: false,
         })
@@ -447,22 +450,35 @@ function takeEdge(
   if (!sprite) return
 
   const giftKey = `${e.giver.id}::${e.spriteId}`
-  const needKey = `${e.receiver.id}::${e.spriteId}`
-  if (usedGift.has(giftKey) || coveredNeed.has(needKey)) return
+  const coverKey = `${e.receiver.id}::${e.spriteId}`
+  if (usedGift.has(giftKey) || coveredNeed.has(coverKey)) return
   if (giveThisRound.has(e.giver.id)) return
   if (receiveThisRound.has(e.receiver.id)) return
 
   usedGift.add(giftKey)
-  coveredNeed.add(needKey)
+  coveredNeed.add(coverKey)
   giveThisRound.add(e.giver.id)
   receiveThisRound.add(e.receiver.id)
 
   const kind = e.needsRepurchase ? 'repurchase' : 'gift'
-  const needPhrase =
-    e.needKind === 'missing'
-      ? t('suggest.needMissing')
-      : t('suggest.needLost')
-  const difficulty = difficultyLabel(difficultyScore(sprite), t)
+  const difficultyKey = difficultyKeyFor(difficultyScore(sprite))
+  const needPhraseKey =
+    e.needKind === 'missing' ? 'suggest.needMissing' : 'suggest.needLost'
+  const reasonKey = e.needsRepurchase
+    ? 'suggest.tradeRepurchase'
+    : 'suggest.tradeReady'
+  const reasonVars: Record<string, string | number> = e.needsRepurchase
+    ? {
+        cost: e.summonCost.toLocaleString(),
+        receiver: e.receiver.name,
+        needKey: needPhraseKey,
+        difficultyKey,
+      }
+    : {
+        receiver: e.receiver.name,
+        needKey: needPhraseKey,
+        difficultyKey,
+      }
 
   assignments.push({
     kind,
@@ -476,21 +492,55 @@ function takeEdge(
     recipientName: e.receiver.name,
     needKind: e.needKind,
     round,
-    reason: e.needsRepurchase
-      ? t('suggest.tradeRepurchase', {
-          cost: e.summonCost.toLocaleString(),
-          receiver: e.receiver.name,
-          need: needPhrase,
-          difficulty,
-        })
-      : t('suggest.tradeReady', {
-          receiver: e.receiver.name,
-          need: needPhrase,
-          difficulty,
-        }),
+    reason: formatTradeReason(t, reasonKey, reasonVars),
+    reasonKey,
+    reasonVars,
     score: e.score,
     needsRepurchase: e.needsRepurchase,
   })
+}
+
+/** Resolve assignment reason at display time (so locale switches work on shared plans). */
+export function formatAssignmentReason(
+  a: BringAssignment,
+  t: TFn,
+): string {
+  if (a.reasonKey && a.reasonVars) {
+    if (
+      a.reasonKey === 'suggest.tradeReady' ||
+      a.reasonKey === 'suggest.tradeRepurchase'
+    ) {
+      return formatTradeReason(t, a.reasonKey, a.reasonVars)
+    }
+    return t(a.reasonKey, a.reasonVars)
+  }
+  return a.reason
+}
+
+function formatTradeReason(
+  t: TFn,
+  reasonKey: string,
+  vars: Record<string, string | number>,
+): string {
+  const needKey = String(vars.needKey || 'suggest.needMissing')
+  const difficultyKey = String(
+    vars.difficultyKey || 'suggest.difficulty.common',
+  )
+  const need = t(needKey)
+  const difficulty = t(difficultyKey)
+  return t(reasonKey, {
+    ...vars,
+    need,
+    difficulty,
+  })
+}
+
+function difficultyKeyFor(score: number): string {
+  if (score >= 50) return 'suggest.difficulty.ultraRare'
+  if (score >= 35) return 'suggest.difficulty.veryRare'
+  if (score >= 25) return 'suggest.difficulty.rare'
+  if (score >= 15) return 'suggest.difficulty.uncommon'
+  return 'suggest.difficulty.common'
 }
 
 export type ApplyResult = {
@@ -623,6 +673,16 @@ function pickMasterySprite(
   const needsRepurchase = best.st.status === 'lost'
   const thrashSkip = context === 'pure-lost-round'
   const cost = best.sprite.summonCost.toLocaleString()
+  const reasonKey = thrashSkip
+    ? needsRepurchase
+      ? 'suggest.masteryThrashRepurchase'
+      : 'suggest.masteryThrash'
+    : needsRepurchase
+      ? 'suggest.masteryNoTradeRepurchase'
+      : 'suggest.masteryNoTrade'
+  const reasonVars: Record<string, string | number> = needsRepurchase
+    ? { cost }
+    : {}
   return {
     kind: 'mastery',
     bringerId: player.id,
@@ -633,22 +693,10 @@ function pickMasterySprite(
     summonCost: best.sprite.summonCost,
     needKind: undefined,
     round: 0,
-    reason: thrashSkip
-      ? needsRepurchase
-        ? t('suggest.masteryThrashRepurchase', { cost })
-        : t('suggest.masteryThrash')
-      : needsRepurchase
-        ? t('suggest.masteryNoTradeRepurchase', { cost })
-        : t('suggest.masteryNoTrade'),
+    reason: t(reasonKey, reasonVars),
+    reasonKey,
+    reasonVars,
     score: difficultyScore(best.sprite),
     needsRepurchase,
   }
-}
-
-function difficultyLabel(score: number, t: TFn): string {
-  if (score >= 50) return t('suggest.difficulty.ultraRare')
-  if (score >= 35) return t('suggest.difficulty.veryRare')
-  if (score >= 25) return t('suggest.difficulty.rare')
-  if (score >= 15) return t('suggest.difficulty.uncommon')
-  return t('suggest.difficulty.common')
 }
