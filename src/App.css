@@ -303,7 +303,7 @@ button {
 .stats-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 14px;
+  gap: 8px;
   font-size: 0.8rem;
   color: var(--text-muted);
   margin-bottom: 10px;
@@ -313,14 +313,50 @@ button {
   color: var(--text);
 }
 
+.stat-chip,
+.legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+
+.stat-chip:hover,
+.legend-chip:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  color: var(--text);
+}
+
+.stat-chip.active,
+.legend-chip.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-elevated));
+  color: var(--text);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
 /* Legend */
 .legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   font-size: 0.75rem;
   color: var(--text-muted);
   margin-bottom: 12px;
+}
+
+.legend-chip {
+  font-size: 0.75rem;
 }
 
 .legend span {
@@ -1248,10 +1284,16 @@ button {
   border: 1px solid var(--border);
   background: var(--bg-elevated);
   color: var(--text-muted);
-  max-width: 160px;
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: default;
+}
+
+.sync-pill:disabled {
+  opacity: 1;
+  cursor: default;
 }
 
 .sync-pill.sync-synced {
@@ -1262,11 +1304,73 @@ button {
 .sync-pill.sync-saving,
 .sync-pill.sync-connecting {
   color: var(--lost);
+  cursor: wait;
 }
 
-.sync-pill.sync-error {
+.sync-pill.sync-error,
+.sync-pill.sync-pill-clickable {
   color: var(--danger);
   border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
+  cursor: pointer;
+}
+
+.sync-pill.sync-error:hover {
+  filter: brightness(1.1);
+}
+
+/* Full-page wait while room is saving so fast taps cannot fight the network */
+.sync-busy-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(11, 14, 20, 0.42);
+  cursor: wait;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 5rem;
+  pointer-events: all;
+}
+
+.sync-busy-label {
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--lost);
+  font-size: 0.85rem;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.app-sync-busy {
+  cursor: wait;
+}
+
+.app-sync-busy .header {
+  position: relative;
+  z-index: 110;
+}
+
+.app-sync-busy .header .btn,
+.app-sync-busy .header .lang-select-wrap {
+  pointer-events: none;
+}
+
+.app-sync-busy .sync-pill {
+  pointer-events: auto;
+  position: relative;
+  z-index: 120;
+}
+
+.app-sync-busy .sync-pill.sync-saving,
+.app-sync-busy .sync-pill.sync-connecting {
+  cursor: wait;
+}
+
+.app-sync-busy .sync-pill.sync-error {
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .cloud-box .room-code {

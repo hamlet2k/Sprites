@@ -116,6 +116,23 @@ export default function App() {
   /** Latest state for async push callbacks (avoid stale closures). */
   const stateRef = useRef(state)
   stateRef.current = state
+  /** Bumps on every local edit; used so a slow save cannot wipe newer taps. */
+  const editSeqRef = useRef(0)
+  const saveInFlightRef = useRef(false)
+  const needsResaveRef = useRef(false)
+  /** One automatic room re-fetch per error streak (no reload loops). */
+  const autoRecoverAttemptedRef = useRef(false)
+
+  const roomLive = Boolean(roomCode && cloudReady && roomHydrated)
+  const interactionLocked =
+    roomLive && (syncStatus === 'saving' || syncStatus === 'connecting')
+
+  const bumpEdit = useCallback(() => {
+    editSeqRef.current += 1
+    if (roomCode && cloudReady && roomHydrated) {
+      setSyncStatus('saving')
+    }
+  }, [roomCode, roomHydrated])
 
   useEffect(() => {
     if (!selectedPlayerId && state.players[0]) {
@@ -193,15 +210,19 @@ export default function App() {
     const sub = subscribeRoom(
       roomCode,
       (remote) => {
-        // Ignore older/equal revisions when possible
+        // Don't clobber in-flight local edits or a save mid-flight
+        if (saveInFlightRef.current || needsResaveRef.current) return
+
         const localRev = stateRef.current.revision ?? 0
         const remoteRev = remote.revision ?? 0
         if (remoteRev > 0 && remoteRev < localRev) return
 
         skipPushRef.current = true
         setState(remote)
+        stateRef.current = remote
         setSyncStatus('synced')
         setSyncError(null)
+        autoRecoverAttemptedRef.current = false
       },
       (msg) => {
         setSyncError(msg)
@@ -212,6 +233,64 @@ export default function App() {
     return () => sub.unsubscribe()
   }, [roomCode, roomHydrated])
 
+  const flushRoomSave = useCallback(async () => {
+    if (!roomCode || !cloudReady || !roomHydrated) return
+    if (saveInFlightRef.current) {
+      needsResaveRef.current = true
+      return
+    }
+
+    saveInFlightRef.current = true
+    needsResaveRef.current = false
+    setSyncStatus('saving')
+
+    const code = roomCode
+    const seqAtStart = editSeqRef.current
+    const snapshot = stateRef.current
+
+    const result = await pushRoom(code, snapshot)
+
+    saveInFlightRef.current = false
+
+    if (!result.ok) {
+      if (result.error.includes('Blocked overwrite')) {
+        const reloaded = await fetchRoom(code)
+        if (reloaded.ok) {
+          skipPushRef.current = true
+          setState(reloaded.data)
+          stateRef.current = reloaded.data
+          setSyncStatus('synced')
+          setSyncError(null)
+          autoRecoverAttemptedRef.current = false
+          return
+        }
+      }
+      setSyncError(result.error)
+      setSyncStatus('error')
+      return
+    }
+
+    autoRecoverAttemptedRef.current = false
+
+    // Local changed while the network save was in flight — keep local, save again
+    if (editSeqRef.current !== seqAtStart || needsResaveRef.current) {
+      needsResaveRef.current = false
+      setSyncStatus('saving')
+      if (pushTimerRef.current) clearTimeout(pushTimerRef.current)
+      pushTimerRef.current = setTimeout(() => {
+        void flushRoomSave()
+      }, 200)
+      return
+    }
+
+    // Safe to take server snapshot (includes bumped revision)
+    skipPushRef.current = true
+    setState(result.data)
+    stateRef.current = result.data
+    setSyncStatus('synced')
+    setSyncError(null)
+  }, [roomCode, roomHydrated])
+
   // Debounced push of local edits — only after room is hydrated
   useEffect(() => {
     if (!roomCode || !cloudReady || !roomHydrated) return
@@ -220,53 +299,79 @@ export default function App() {
       return
     }
 
-    if (pushTimerRef.current) clearTimeout(pushTimerRef.current)
     setSyncStatus('saving')
-    const code = roomCode
-    const snapshot = state
+    if (pushTimerRef.current) clearTimeout(pushTimerRef.current)
     pushTimerRef.current = setTimeout(() => {
-      void (async () => {
-        const result = await pushRoom(code, snapshot)
-        if (!result.ok) {
-          // If we blocked a wipe, re-fetch room so UI recovers
-          if (result.error.includes('Blocked overwrite')) {
-            const reloaded = await fetchRoom(code)
-            if (reloaded.ok) {
-              skipPushRef.current = true
-              setState(reloaded.data)
-              setSyncStatus('synced')
-              setSyncError('Recovered room data (blocked empty overwrite from this device).')
-              return
-            }
-          }
-          setSyncError(result.error)
-          setSyncStatus('error')
-          return
-        }
-        // Keep local revision in sync with what we saved
-        skipPushRef.current = true
-        setState(result.data)
-        setSyncStatus('synced')
-        setSyncError(null)
-      })()
+      void flushRoomSave()
     }, 450)
 
     return () => {
       if (pushTimerRef.current) clearTimeout(pushTimerRef.current)
     }
-  }, [state, roomCode, roomHydrated])
+  }, [state, roomCode, roomHydrated, flushRoomSave])
+
+  // One automatic re-fetch when sync errors (no full reload loop)
+  useEffect(() => {
+    if (syncStatus !== 'error' || !roomCode || !cloudReady) return
+    if (autoRecoverAttemptedRef.current) return
+    autoRecoverAttemptedRef.current = true
+
+    let cancelled = false
+    void (async () => {
+      const reloaded = await fetchRoom(roomCode)
+      if (cancelled) return
+      if (reloaded.ok) {
+        skipPushRef.current = true
+        setState(reloaded.data)
+        stateRef.current = reloaded.data
+        setRoomHydrated(true)
+        setSyncStatus('synced')
+        setSyncError(null)
+        autoRecoverAttemptedRef.current = false
+        return
+      }
+      // Stay in error; user can tap the pill to hard-refresh
+      setSyncError(reloaded.error)
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [syncStatus, roomCode])
 
   const selectedPlayer = useMemo(
     () => state.players.find((p) => p.id === selectedPlayerId) ?? state.players[0],
     [state.players, selectedPlayerId],
   )
 
-  const updatePlayer = useCallback((playerId: string, fn: (p: Player) => Player) => {
-    setState((s) => ({
-      ...s,
-      players: s.players.map((p) => (p.id === playerId ? fn(p) : p)),
-    }))
-  }, [])
+  const updatePlayer = useCallback(
+    (playerId: string, fn: (p: Player) => Player) => {
+      if (interactionLocked) return
+      bumpEdit()
+      setState((s) => ({
+        ...s,
+        players: s.players.map((p) => (p.id === playerId ? fn(p) : p)),
+      }))
+    },
+    [interactionLocked, bumpEdit],
+  )
+
+  function setStatusFilterSmart(next: string) {
+    setStatusFilter((prev) => (prev === next ? 'all' : next))
+  }
+
+  function onLegendTapCycle() {
+    // Green legend: toggle Ready ↔ Missing+Lost
+    setStatusFilter((prev) =>
+      prev === 'available' ? 'need' : prev === 'need' ? 'available' : 'available',
+    )
+  }
+
+  function onSyncPillClick() {
+    if (syncStatus === 'error') {
+      window.location.reload()
+    }
+  }
 
   const stats = useMemo(() => {
     if (!selectedPlayer) return { owned: 0, available: 0, lost: 0, mastered: 0 }
@@ -828,7 +933,12 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className={`app${interactionLocked ? ' app-sync-busy' : ''}`}>
+      {interactionLocked && (
+        <div className="sync-busy-overlay" aria-live="polite" aria-busy="true">
+          <span className="sync-busy-label">{t('sync.pleaseWait')}</span>
+        </div>
+      )}
       <header className="header">
         <h1>{t('app.title')}</h1>
         <div className="header-actions">
@@ -849,9 +959,21 @@ export default function App() {
             </select>
           </label>
           {roomCode && (
-            <span className={`sync-pill sync-${syncStatus}`} title={syncError ?? undefined}>
+            <button
+              type="button"
+              className={`sync-pill sync-${syncStatus}${
+                syncStatus === 'error' ? ' sync-pill-clickable' : ''
+              }`}
+              title={
+                syncStatus === 'error'
+                  ? t('sync.errorTapRefresh')
+                  : (syncError ?? undefined)
+              }
+              onClick={onSyncPillClick}
+              disabled={syncStatus !== 'error'}
+            >
               {syncLabel(syncStatus, roomCode, t)}
-            </span>
+            </button>
           )}
           <button
             type="button"
@@ -902,37 +1024,74 @@ export default function App() {
             ))}
           </div>
 
-          <div className="stats-bar">
-            <span>
+          <div className="stats-bar" role="toolbar" aria-label={t('collection.statsFilterLabel')}>
+            <button
+              type="button"
+              className={`stat-chip${statusFilter === 'all' ? ' active' : ''}`}
+              onClick={() => setStatusFilterSmart('all')}
+              title={t('collection.filterOwnedTitle')}
+            >
               <strong>{stats.owned}</strong> / {SPRITES.length} {t('collection.owned')}
-            </span>
-            <span>
+            </button>
+            <button
+              type="button"
+              className={`stat-chip${statusFilter === 'available' ? ' active' : ''}`}
+              onClick={() => setStatusFilterSmart('available')}
+              title={t('collection.filterAvailableTitle')}
+            >
               <strong style={{ color: 'var(--available)' }}>{stats.available}</strong>{' '}
               {t('collection.available')}
-            </span>
-            <span>
+            </button>
+            <button
+              type="button"
+              className={`stat-chip${statusFilter === 'lost' ? ' active' : ''}`}
+              onClick={() => setStatusFilterSmart('lost')}
+              title={t('collection.filterLostTitle')}
+            >
               <strong style={{ color: 'var(--lost)' }}>{stats.lost}</strong>{' '}
               {t('collection.lost')}
-            </span>
-            <span>
+            </button>
+            <button
+              type="button"
+              className={`stat-chip${statusFilter === 'mastered' ? ' active' : ''}`}
+              onClick={() => setStatusFilterSmart('mastered')}
+              title={t('collection.filterMasteredTitle')}
+            >
               <strong style={{ color: 'var(--master-gold)' }}>{stats.mastered}</strong>{' '}
               {t('collection.mastered')}
-            </span>
+            </button>
           </div>
 
-          <div className="legend">
-            <span>
+          <div className="legend" role="toolbar" aria-label={t('collection.legendFilterLabel')}>
+            <button
+              type="button"
+              className={`legend-chip${
+                statusFilter === 'available' || statusFilter === 'need' ? ' active' : ''
+              }`}
+              onClick={onLegendTapCycle}
+              title={t('collection.legendTapTitle')}
+            >
               <i className="swatch" style={{ background: 'var(--available)' }} />{' '}
               {t('collection.legendTap')}
-            </span>
-            <span>
+            </button>
+            <button
+              type="button"
+              className={`legend-chip${statusFilter === 'missing' ? ' active' : ''}`}
+              onClick={() => setStatusFilterSmart('missing')}
+              title={t('collection.legendMissingTitle')}
+            >
               <i className="swatch" style={{ background: 'var(--none)' }} />{' '}
               {t('collection.legendMissing')}
-            </span>
-            <span>
+            </button>
+            <button
+              type="button"
+              className={`legend-chip${statusFilter === 'mastered' ? ' active' : ''}`}
+              onClick={() => setStatusFilterSmart('mastered')}
+              title={t('collection.legendMasteredTitle')}
+            >
               <i className="swatch" style={{ background: 'var(--master-gold)' }} />{' '}
               {t('collection.legendMastered')}
-            </span>
+            </button>
           </div>
 
           <div className="toolbar">
