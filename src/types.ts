@@ -20,6 +20,9 @@ export interface Player {
 /** How a planned exchange was resolved after a match. */
 export type ExchangeOutcome = 'success' | 'failed' | 'ignored'
 
+/** Suggestion engine style (synced with shared plan in rooms). */
+export type SuggestMode = 'completion' | 'fair'
+
 /**
  * Shared suggestion plan + per-exchange outcomes.
  * Stored on SquadState so cloud rooms sync plan + Confirm/Failed/Ignore for everyone.
@@ -29,6 +32,8 @@ export interface SharedSuggestion {
   plan: SuggestionPlan
   /** exchangeKey → outcome */
   outcomes: Record<string, ExchangeOutcome>
+  /** Engine mode used to build this plan */
+  mode?: SuggestMode
 }
 
 export interface SquadState {

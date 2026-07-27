@@ -612,6 +612,68 @@ button {
   color: var(--text-muted);
 }
 
+.suggest-mode-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.suggest-mode-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.suggest-mode-toggle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: var(--bg-elevated);
+}
+
+.suggest-mode-btn {
+  border-radius: 0 !important;
+  border: none !important;
+  min-height: 40px;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.suggest-mode-btn + .suggest-mode-btn {
+  border-left: 1px solid var(--border) !important;
+}
+
+.suggest-mode-btn.active {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+.suggest-mode-badge {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--accent);
+  vertical-align: middle;
+}
+
+.suggest-mode-mismatch {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--lost);
+  font-weight: 600;
+}
+
 .round-list {
   display: flex;
   flex-direction: column;

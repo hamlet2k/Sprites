@@ -67,8 +67,19 @@ const es: MessageTree = {
   suggest: {
     whoPlaying: '¿Quién juega esta partida?',
     generate: 'Generar plan de regalos / traídas',
-    hint:
-      'Objetivo: completar lo que Falta en la escuadra lo más rápido posible. Cada ronda empaqueta el máximo de rellenos Missing (regalos Listos primero). La rareza solo desempata. Los caminos injustos valen si completan más huecos. El ping-pong de solo perdidos pasa a dominio / cazar. Tras la partida: Confirmar, Falló o Ignorar. En sala en vivo, el plan se comparte y se atenúa a la vez.',
+    modeLabel: 'Estilo del plan',
+    modeCompletion: 'Completar escuadra',
+    modeFair: '100% justo',
+    modeCompletionHint:
+      'Maximiza rellenar lo que Falta cada ronda. Los caminos injustos valen si la escuadra termina antes.',
+    modeFairHint:
+      'Prioriza trueques mutuos A↔B y equilibra quién da y quién recibe en cada ronda.',
+    hintCompletion:
+      'Completar lo que Falta lo más rápido posible. Regalos Listos primero; la rareza solo desempata. Caminos injustos OK si completan más huecos. Ping-pong de perdidos → dominio. Tras la partida: Confirmar / Falló / Ignorar.',
+    hintFair:
+      'Trueques 1:1 justos: primero intercambios mutuos y balance dar/recibir para que nadie sea solo dador. Faltantes antes que restaurar perdidos; solo perdidos → dominio. Tras la partida: Confirmar / Falló / Ignorar.',
+    modeMismatch:
+      'Este plan se generó con otro estilo. Vuelve a generar para aplicar el estilo seleccionado.',
     noAssignments: 'Aún no hay asignaciones. Marca colecciones y elige jugadores.',
     round: 'Ronda {n}',
     exchange: 'intercambio',
@@ -105,8 +116,10 @@ const es: MessageTree = {
     dustIfLost: 'Coste de polvo si se pierde / reinvoca',
     dustBringerMust: 'El portador debe reinvocar con polvo antes de intercambiar',
     selectPlayers: 'Elige quién juega y pulsa Sugerir.',
-    summary:
-      '{players} jugadores · completar primero · {exchanges} intercambio(s) · {missing} rellenos faltantes · {restores} restaurar · {gifts} regalo · {repurchases} recompra · {mastery} dominio',
+    summaryCompletion:
+      '{players} jugadores · completar escuadra · {exchanges} intercambio(s) · {missing} rellenos faltantes · {restores} restaurar · {gifts} regalo · {repurchases} recompra · {mastery} dominio',
+    summaryFair:
+      '{players} jugadores · 100% justo · {exchanges} intercambio(s) · {missing} rellenos faltantes · {restores} restaurar · {gifts} regalo · {repurchases} recompra · {mastery} dominio',
     needMissing: 'falta en la colección',
     needLost: 'perdido — restaurar sin su polvo',
     tradeRepurchase:

@@ -67,8 +67,19 @@ const en: MessageTree = {
   suggest: {
     whoPlaying: 'Who is playing this match?',
     generate: 'Generate bring / gift plan',
-    hint:
-      'Goal: complete everyone\'s Missing catalog as fast as possible. Each round packs the most Missing fills (Ready gifts first). Rarity is only a tiny tie-break. Unfair paths are OK if they complete more gaps. Pure lost-restore thrash becomes mastery / hunt. After the match: Confirm, Failed, or Ignore. Live rooms share the plan and greys-out together.',
+    modeLabel: 'Plan style',
+    modeCompletion: 'Complete squad',
+    modeFair: '100% fair',
+    modeCompletionHint:
+      'Maximize Missing fills each round. Unfair paths OK if the squad finishes faster.',
+    modeFairHint:
+      'Prefer mutual A↔B trades and balance who gives vs receives every round.',
+    hintCompletion:
+      'Complete everyone’s Missing catalog as fast as possible. Ready gifts first; rarity is only a tiny tie-break. Unfair paths OK if they complete more gaps. Pure lost thrash → mastery. Confirm / Failed / Ignore after the match.',
+    hintFair:
+      'Fair 1:1 trades: mutual swaps first and balance give/receive so nobody is only a pure giver. Missing before lost restores; pure lost thrash → mastery. Confirm / Failed / Ignore after the match.',
+    modeMismatch:
+      'This plan was built with a different style. Generate again to apply the selected style.',
     noAssignments: 'No assignments yet. Mark collections and select players.',
     round: 'Round {n}',
     exchange: 'exchange',
@@ -105,8 +116,10 @@ const en: MessageTree = {
     dustIfLost: 'Sprite Dust cost if lost / re-summon',
     dustBringerMust: 'Bringer must re-summon with dust before trading',
     selectPlayers: 'Select who is playing, then run Suggest.',
-    summary:
-      '{players} players · completion-first · {exchanges} exchange(s) · {missing} missing fills · {restores} restore · {gifts} gift · {repurchases} repurchase · {mastery} mastery',
+    summaryCompletion:
+      '{players} players · complete squad · {exchanges} exchange(s) · {missing} missing fills · {restores} restore · {gifts} gift · {repurchases} repurchase · {mastery} mastery',
+    summaryFair:
+      '{players} players · 100% fair · {exchanges} exchange(s) · {missing} missing fills · {restores} restore · {gifts} gift · {repurchases} repurchase · {mastery} mastery',
     needMissing: 'missing from collection',
     needLost: 'lost — restore without their dust',
     tradeRepurchase:

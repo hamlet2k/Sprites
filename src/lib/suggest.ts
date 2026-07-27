@@ -8,11 +8,34 @@ import type {
   PlayerSpriteState,
   SuggestionPlan,
   SquadState,
+  SuggestMode,
 } from '../types'
 import { getPlayerSprite } from './storage'
 
 /** Max sprites to recommend a player bring (equip + inventory). */
 export const MAX_BRING_PER_PLAYER = 4
+
+export type { SuggestMode }
+
+export const SUGGEST_MODE_KEY = 'fortnite-sprite-squad-suggest-mode'
+
+export function loadSuggestMode(): SuggestMode {
+  try {
+    const raw = localStorage.getItem(SUGGEST_MODE_KEY)
+    if (raw === 'fair' || raw === 'completion') return raw
+  } catch {
+    /* ignore */
+  }
+  return 'completion'
+}
+
+export function saveSuggestMode(mode: SuggestMode): void {
+  try {
+    localStorage.setItem(SUGGEST_MODE_KEY, mode)
+  } catch {
+    /* ignore */
+  }
+}
 
 type Edge = {
   giver: Player
@@ -24,23 +47,16 @@ type Edge = {
   needKind: NeedKind
 }
 
+type TFn = (key: string, vars?: Record<string, string | number>) => string
+
 /**
  * Build a bring/gift plan for the active squad.
- *
- * Primary goal: **fastest collective completion** — maximize Missing fills
- * (sprites someone never collected). Fairness and rarity are secondary.
- *
- * Rules:
- * 1. Maximize Missing fills per round under 1-give / 1-receive per player.
- * 2. Prefer Ready inventory (no dust) before repurchase.
- * 3. Lost restores only after Missing fills for the round are packed.
- * 4. Rarity is a tiny tie-break only (not a driver).
- * 5. Unfair paths are OK if they complete more Missing slots.
- * 6. Pure lost-restore rounds thrash → scrap and use mastery / hunt instead.
+ * @param mode completion = fastest Missing fills; fair = mutual 1:1 + debt balance
  */
 export function buildSuggestionPlan(
   state: SquadState,
   locale: Locale = 'en',
+  mode: SuggestMode = 'completion',
 ): SuggestionPlan {
   const t = (key: string, vars?: Record<string, string | number>) =>
     tLocale(locale, key, vars)
@@ -57,10 +73,27 @@ export function buildSuggestionPlan(
     }
   }
 
-  const edges = buildEdges(active)
+  const edges = buildEdges(active, mode)
   const assignments: BringAssignment[] = []
-  const usedGift = new Set<string>() // giverId::spriteId
-  const coveredNeed = new Set<string>() // receiverId::spriteId
+  const usedGift = new Set<string>()
+  const coveredNeed = new Set<string>()
+
+  const giveTotal = new Map<string, number>()
+  const receiveTotal = new Map<string, number>()
+  for (const p of active) {
+    giveTotal.set(p.id, 0)
+    receiveTotal.set(p.id, 0)
+  }
+  const debt = (id: string) =>
+    (giveTotal.get(id) ?? 0) - (receiveTotal.get(id) ?? 0)
+  const noteExchange = (g: string, r: string) => {
+    giveTotal.set(g, (giveTotal.get(g) ?? 0) + 1)
+    receiveTotal.set(r, (receiveTotal.get(r) ?? 0) + 1)
+  }
+  const unnoteExchange = (g: string, r: string) => {
+    giveTotal.set(g, Math.max(0, (giveTotal.get(g) ?? 0) - 1))
+    receiveTotal.set(r, Math.max(0, (receiveTotal.get(r) ?? 0) - 1))
+  }
 
   for (let round = 1; round <= MAX_BRING_PER_PLAYER; round++) {
     const giveThisRound = new Set<string>()
@@ -88,14 +121,26 @@ export function buildSuggestionPlan(
         receiveThisRound,
         t,
       )
-      return assignments.length > before
+      if (assignments.length === before) return false
+      noteExchange(e.giver.id, e.receiver.id)
+      return true
     }
 
-    /**
-     * Maximum-completion assignment among free players:
-     * maximize Missing fills, then #exchanges, then tiny score (rarity almost ignored).
-     * Explores all partial assignments (n≤6 is fine for a squad).
-     */
+    const bestEdge = (
+      fromId: string,
+      toId: string,
+      readyOnly: boolean | null,
+    ): Edge | null => {
+      let best: Edge | null = null
+      for (const e of edges) {
+        if (e.giver.id !== fromId || e.receiver.id !== toId) continue
+        if (!isOpen(e, readyOnly)) continue
+        if (!best || e.score > best.score) best = e
+      }
+      return best
+    }
+
+    // --- completion mode: maximize Missing fills ---
     const packMaxCompletion = (
       readyOnly: boolean | null,
       missingOnly: boolean,
@@ -106,7 +151,6 @@ export function buildSuggestionPlan(
       const n = free.length
       if (n < 2) return
 
-      // best open edge free[i] → free[j]
       const matrix: (Edge | null)[][] = Array.from({ length: n }, () =>
         Array.from({ length: n }, () => null),
       )
@@ -145,7 +189,6 @@ export function buildSuggestionPlan(
           if (better(pack, best)) best = pack
           return
         }
-        // Skip this giver (allows partial matchings / paths)
         dfs(giverIdx + 1, usedRecv, chosen)
         for (let j = 0; j < n; j++) {
           if (giverIdx === j || usedRecv[j]) continue
@@ -160,19 +203,89 @@ export function buildSuggestionPlan(
       }
 
       dfs(0, Array.from({ length: n }, () => false), [])
-
       for (const e of best.edges) {
         if (isOpen(e, readyOnly)) tryTake(e)
       }
     }
 
-    // --- Completion packing: Missing first, Ready first ---
-    packMaxCompletion(true, true) // Missing + Ready
-    packMaxCompletion(false, true) // Missing + repurchase if needed
-    packMaxCompletion(true, false) // Lost restores + Ready (only leftover slots)
-    packMaxCompletion(false, false) // Lost + repurchase leftovers
+    // --- fair mode: mutual pairs + residual with debt ---
+    const matchMutualPairs = (readyOnly: boolean | null) => {
+      type Pair = { ab: Edge; ba: Edge; rank: number }
+      const pairs: Pair[] = []
+      for (let i = 0; i < active.length; i++) {
+        for (let j = i + 1; j < active.length; j++) {
+          const a = active[i]
+          const b = active[j]
+          if (giveThisRound.has(a.id) || giveThisRound.has(b.id)) continue
+          if (receiveThisRound.has(a.id) || receiveThisRound.has(b.id)) continue
+          const ab = bestEdge(a.id, b.id, readyOnly)
+          const ba = bestEdge(b.id, a.id, readyOnly)
+          if (!ab || !ba) continue
+          const missingN =
+            (ab.needKind === 'missing' ? 1 : 0) +
+            (ba.needKind === 'missing' ? 1 : 0)
+          const debtBoost = debt(a.id) + debt(b.id)
+          const rank =
+            missingN * 1_000_000 + debtBoost * 50_000 + ab.score + ba.score
+          pairs.push({ ab, ba, rank })
+        }
+      }
+      pairs.sort((x, y) => y.rank - x.rank)
+      for (const pair of pairs) {
+        if (
+          giveThisRound.has(pair.ab.giver.id) ||
+          giveThisRound.has(pair.ba.giver.id) ||
+          receiveThisRound.has(pair.ab.receiver.id) ||
+          receiveThisRound.has(pair.ba.receiver.id)
+        ) {
+          continue
+        }
+        if (!isOpen(pair.ab, readyOnly) || !isOpen(pair.ba, readyOnly)) continue
+        tryTake(pair.ab)
+        tryTake(pair.ba)
+      }
+    }
 
-    // Pure lost-restore rounds thrash — scrap and use mastery instead.
+    const matchResidualFair = (readyOnly: boolean | null) => {
+      const list = edges.filter((e) => isOpen(e, readyOnly))
+      list.sort((a, b) => {
+        const debtDiff = debt(b.receiver.id) - debt(a.receiver.id)
+        if (debtDiff !== 0) return debtDiff
+        const aSink = debt(a.receiver.id) < 0 ? 1 : 0
+        const bSink = debt(b.receiver.id) < 0 ? 1 : 0
+        if (aSink !== bSink) return aSink - bSink
+        if (a.needKind !== b.needKind) {
+          return a.needKind === 'missing' ? -1 : 1
+        }
+        if (a.needsRepurchase !== b.needsRepurchase) {
+          return a.needsRepurchase ? 1 : -1
+        }
+        const aMut = bestEdge(a.receiver.id, a.giver.id, readyOnly) ? 1 : 0
+        const bMut = bestEdge(b.receiver.id, b.giver.id, readyOnly) ? 1 : 0
+        if (aMut !== bMut) return bMut - aMut
+        return b.score - a.score
+      })
+      for (const e of list) {
+        if (giveThisRound.has(e.giver.id)) continue
+        if (receiveThisRound.has(e.receiver.id)) continue
+        if (!isOpen(e, readyOnly)) continue
+        tryTake(e)
+      }
+    }
+
+    if (mode === 'completion') {
+      packMaxCompletion(true, true)
+      packMaxCompletion(false, true)
+      packMaxCompletion(true, false)
+      packMaxCompletion(false, false)
+    } else {
+      matchMutualPairs(true)
+      matchResidualFair(true)
+      matchMutualPairs(false)
+      matchResidualFair(false)
+    }
+
+    // Pure lost-restore thrash → mastery
     let skippedPureLostRestores = false
     const roundExchanges = assignments.filter(
       (a) => a.round === round && isExchangeAssignment(a),
@@ -186,6 +299,7 @@ export function buildSuggestionPlan(
         usedGift.delete(`${a.bringerId}::${a.spriteId}`)
         if (a.recipientId) {
           coveredNeed.delete(`${a.recipientId}::${a.spriteId}`)
+          unnoteExchange(a.bringerId, a.recipientId)
         }
         giveThisRound.delete(a.bringerId)
         if (a.recipientId) receiveThisRound.delete(a.recipientId)
@@ -202,7 +316,6 @@ export function buildSuggestionPlan(
       }
     }
 
-    // Mastery / hunt for anyone not bringing an exchange this round
     for (const player of active) {
       if (giveThisRound.has(player.id)) continue
       const alreadyBringing = assignments.some(
@@ -257,11 +370,14 @@ export function buildSuggestionPlan(
   const missingFills = assignments.filter((a) => a.needKind === 'missing').length
   const exchangeN = assignments.filter(isExchangeAssignment).length
 
+  const summaryKey =
+    mode === 'fair' ? 'suggest.summaryFair' : 'suggest.summaryCompletion'
+
   return {
     generatedAt: new Date().toISOString(),
     activePlayerIds: active.map((p) => p.id),
     assignments,
-    summary: t('suggest.summary', {
+    summary: t(summaryKey, {
       players: active.length,
       exchanges: exchangeN,
       missing: missingFills,
@@ -273,7 +389,7 @@ export function buildSuggestionPlan(
   }
 }
 
-function buildEdges(active: Player[]): Edge[] {
+function buildEdges(active: Player[], mode: SuggestMode): Edge[] {
   const edges: Edge[] = []
   for (const giver of active) {
     for (const receiver of active) {
@@ -288,16 +404,18 @@ function buildEdges(active: Player[]): Edge[] {
         if (!needKind) continue
         if (g.status === 'none') continue
 
-        // Completion first: Missing >> Lost restore; Ready >> repurchase.
-        // Rarity is only a tiny tie-break (cool factor, not the goal).
         const needTier = needKind === 'missing' ? 1_000_000 : 1_000
         const readyTier = g.status === 'available' ? 10_000 : 0
-        const rarityTie = difficultyScore(sprite) * 0.01
+        // Completion: rarity tiny. Fair: rarity matters more for "cool" trades.
+        const rarity =
+          mode === 'completion'
+            ? difficultyScore(sprite) * 0.01
+            : difficultyScore(sprite)
         const score =
           needTier +
           readyTier +
-          rarityTie +
-          (g.mastered ? 0.001 : 0) -
+          rarity +
+          (g.mastered ? (mode === 'fair' ? 2 : 0.001) : 0) -
           (g.status === 'lost' ? 50 : 0)
 
         edges.push({
@@ -314,8 +432,6 @@ function buildEdges(active: Player[]): Edge[] {
   }
   return edges
 }
-
-type TFn = (key: string, vars?: Record<string, string | number>) => string
 
 function takeEdge(
   e: Edge,
@@ -383,23 +499,8 @@ export type ApplyResult = {
   skipped: string[]
 }
 
-/**
- * - success: trade completed
- * - failed: died / lost before extract
- * - ignored: forgot to bring — no collection changes
- */
 export type ExchangeApplyMode = 'success' | 'failed' | 'ignored'
 
-/**
- * Apply exchanges from a plan.
- *
- * - **success**: recipient → Ready; bringer → Lost
- * - **failed**: bringer → Lost only (recipient unchanged — trade never completed)
- * - **ignored**: no collection changes (forgot to bring / skipped)
- *
- * Resolves players by id, then by name (in case cloud reloads rotated UUIDs
- * after the plan was generated).
- */
 export function applyExchangeRound(
   state: SquadState,
   roundAssignments: BringAssignment[],

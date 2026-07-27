@@ -74,15 +74,21 @@ Plan + outcomes live on `SquadState.suggestion` so **live rooms** sync greying f
 
 Implemented in `src/lib/suggest.ts`:
 
-**Primary goal: fastest collective catalog completion (Missing fills).** Fairness and rarity are secondary; unfair paths are OK if they complete more gaps.
+Two engine modes (UI toggle on Suggest; stored in `localStorage` + `suggestion.mode` when a plan is generated):
 
-1. Each round **maximizes Missing fills** under 1-give / 1-receive (full search over assignments).
-2. Prefer **Ready** gifts before repurchase; pack Missing before Lost restores.
-3. **Rarity is only a tiny tie-break** (not a driver).
-4. Up to **4** bring slots per player (rounds 1–4).
-5. **Pure lost-restore rounds** thrash → scrap and use **mastery / hunt** instead.
-6. **Mixed** missing + restore rounds: keep both.
-7. Repurchase-to-fill-Missing is allowed (collaborative).
+### `completion` (default) — complete squad fastest
+1. Each round **maximizes Missing fills** under 1-give / 1-receive.
+2. Prefer **Ready** before repurchase; Missing before Lost restores.
+3. **Rarity is only a tiny tie-break**. Unfair paths OK if they complete more.
+4. Pure lost-restore thrash → mastery / hunt.
+
+### `fair` — 100% fair trades
+1. **Mutual 2-cycles first** (A↔B).
+2. **Cumulative debt** (gives − receives): prefer gifting to net givers.
+3. Missing before Lost; Ready before repurchase; rarity stronger for “cool” picks.
+4. Pure lost-restore thrash → mastery / hunt.
+
+Shared: up to **4** rounds; repurchase-to-fill-Missing allowed; Confirm / Failed / Ignore.
 
 After the match: individual or round-level **Confirm** / **Failed** / **Ignore** — modals, not `window.confirm`/`alert`.
 

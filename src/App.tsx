@@ -36,7 +36,9 @@ import {
   applyExchangeRound,
   buildSuggestionPlan,
   isExchangeAssignment,
+  loadSuggestMode,
   MAX_BRING_PER_PLAYER,
+  saveSuggestMode,
   type ExchangeApplyMode,
 } from './lib/suggest'
 import type {
@@ -44,6 +46,7 @@ import type {
   ExchangeOutcome,
   Player,
   SquadState,
+  SuggestMode,
 } from './types'
 import './App.css'
 
@@ -83,11 +86,15 @@ export default function App() {
   const [variantFilter, setVariantFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [sortMode, setSortMode] = useState<SortMode>('type')
+  const [suggestMode, setSuggestMode] = useState<SuggestMode>(() =>
+    loadSuggestMode(),
+  )
   const [modal, setModal] = useState<AppModal | null>(null)
 
   /** Shared plan + outcomes live on SquadState so the room syncs them. */
   const plan = state.suggestion?.plan ?? null
   const exchangeOutcomes = state.suggestion?.outcomes ?? {}
+  const planMode = state.suggestion?.mode ?? suggestMode
 
   const [roomCode, setRoomCode] = useState<string | null>(() => roomFromUrl() ?? loadRoomCode())
   const [joinInput, setJoinInput] = useState('')
@@ -369,8 +376,13 @@ export default function App() {
     })
   }
 
-  function runSuggest() {
-    const built = buildSuggestionPlan(state, locale)
+  function setSuggestModeAndSave(mode: SuggestMode) {
+    setSuggestMode(mode)
+    saveSuggestMode(mode)
+  }
+
+  function runSuggest(mode: SuggestMode = suggestMode) {
+    const built = buildSuggestionPlan(state, locale, mode)
     const planId = crypto.randomUUID()
     const nextPlan = { ...built, planId }
     setState((s) => {
@@ -380,6 +392,7 @@ export default function App() {
           planId,
           plan: nextPlan,
           outcomes: {},
+          mode,
         },
       }
       stateRef.current = next
@@ -493,6 +506,7 @@ export default function App() {
             planId: shared.planId,
             plan: shared.plan,
             outcomes: nextOutcomes,
+            mode: shared.mode ?? suggestMode,
           }
         : {
             planId: plan?.planId ?? crypto.randomUUID(),
@@ -504,6 +518,7 @@ export default function App() {
               summary: '',
             },
             outcomes: nextOutcomes,
+            mode: suggestMode,
           },
     }
 
@@ -838,7 +853,11 @@ export default function App() {
               {syncLabel(syncStatus, roomCode, t)}
             </span>
           )}
-          <button type="button" className="btn btn-primary" onClick={runSuggest}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => runSuggest(suggestMode)}
+          >
             {t('app.suggest')}
           </button>
         </div>
@@ -1102,14 +1121,56 @@ export default function App() {
             </div>
           </div>
 
-          <button type="button" className="btn btn-primary" onClick={runSuggest}>
+          <div className="suggest-mode-bar">
+            <span className="suggest-mode-label">{t('suggest.modeLabel')}</span>
+            <div className="suggest-mode-toggle" role="group" aria-label={t('suggest.modeLabel')}>
+              <button
+                type="button"
+                className={`btn btn-sm suggest-mode-btn ${suggestMode === 'completion' ? 'active' : ''}`}
+                onClick={() => setSuggestModeAndSave('completion')}
+                title={t('suggest.modeCompletionHint')}
+              >
+                {t('suggest.modeCompletion')}
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm suggest-mode-btn ${suggestMode === 'fair' ? 'active' : ''}`}
+                onClick={() => setSuggestModeAndSave('fair')}
+                title={t('suggest.modeFairHint')}
+              >
+                {t('suggest.modeFair')}
+              </button>
+            </div>
+          </div>
+          <p className="suggest-hint">
+            {suggestMode === 'fair'
+              ? t('suggest.hintFair')
+              : t('suggest.hintCompletion')}
+          </p>
+
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => runSuggest(suggestMode)}
+          >
             {t('suggest.generate')}
           </button>
 
           {plan && (
             <>
-              <div className="suggest-summary">{plan.summary}</div>
-              <p className="suggest-hint">{t('suggest.hint')}</p>
+              <div className="suggest-summary">
+                <span className="suggest-mode-badge">
+                  {planMode === 'fair'
+                    ? t('suggest.modeFair')
+                    : t('suggest.modeCompletion')}
+                </span>
+                {plan.summary}
+              </div>
+              {planMode !== suggestMode && (
+                <p className="suggest-mode-mismatch">
+                  {t('suggest.modeMismatch')}
+                </p>
+              )}
 
               {plan.assignments.length === 0 ? (
                 <p className="empty-hint">{t('suggest.noAssignments')}</p>
