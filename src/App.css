@@ -650,11 +650,92 @@ button {
 }
 
 .suggest-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
   padding: 12px 14px;
   border-radius: var(--radius);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   font-size: 0.9rem;
+}
+
+.suggest-stat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1 1 auto;
+}
+
+.suggest-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.suggest-stat-chip.chip-players {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--text) 25%, var(--border));
+}
+
+.suggest-stat-chip.chip-exchanges {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.suggest-stat-chip.chip-missing {
+  color: var(--available);
+  border-color: color-mix(in srgb, var(--available) 40%, var(--border));
+  background: color-mix(in srgb, var(--available) 12%, transparent);
+}
+
+.suggest-stat-chip.chip-restores {
+  color: var(--lost);
+  border-color: color-mix(in srgb, var(--lost) 40%, var(--border));
+  background: color-mix(in srgb, var(--lost) 12%, transparent);
+}
+
+.suggest-stat-chip.chip-gifts {
+  color: #7dd3fc;
+  border-color: color-mix(in srgb, #7dd3fc 40%, var(--border));
+  background: color-mix(in srgb, #7dd3fc 12%, transparent);
+}
+
+.suggest-stat-chip.chip-repurchase {
+  color: #fbbf24;
+  border-color: color-mix(in srgb, #fbbf24 40%, var(--border));
+  background: color-mix(in srgb, #fbbf24 12%, transparent);
+}
+
+.suggest-stat-chip.chip-mastery {
+  color: var(--mastered);
+  border-color: color-mix(in srgb, var(--mastered) 40%, var(--border));
+  background: color-mix(in srgb, var(--mastered) 12%, transparent);
+}
+
+.assignment-actions .btn-primary {
+  border: 1px solid color-mix(in srgb, #fff 40%, var(--accent));
+}
+
+.assignment-actions .btn-mute {
+  border: 1px solid color-mix(in srgb, var(--text-muted) 55%, var(--border));
+}
+
+.round-header-actions .btn-primary {
+  border: 1px solid color-mix(in srgb, #fff 40%, var(--accent));
+}
+
+.round-header-actions .btn-mute {
+  border: 1px solid color-mix(in srgb, var(--text-muted) 55%, var(--border));
 }
 
 .suggest-hint {

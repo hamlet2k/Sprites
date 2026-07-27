@@ -1320,7 +1320,47 @@ export default function App() {
                     ? t('suggest.modeFair')
                     : t('suggest.modeCompletion')}
                 </span>
-                {plan.summary}
+                <div className="suggest-stat-chips" aria-label={plan.summary}>
+                  <span className="suggest-stat-chip chip-players">
+                    {t('suggest.summaryPlayers', {
+                      n: plan.activePlayerIds.length,
+                    })}
+                  </span>
+                  <span className="suggest-stat-chip chip-exchanges">
+                    {t('suggest.summaryExchanges', {
+                      n: plan.assignments.filter(isExchangeAssignment).length,
+                    })}
+                  </span>
+                  <span className="suggest-stat-chip chip-missing">
+                    {t('suggest.summaryMissing', {
+                      n: plan.assignments.filter((a) => a.needKind === 'missing')
+                        .length,
+                    })}
+                  </span>
+                  <span className="suggest-stat-chip chip-restores">
+                    {t('suggest.summaryRestores', {
+                      n: plan.assignments.filter((a) => a.needKind === 'lost')
+                        .length,
+                    })}
+                  </span>
+                  <span className="suggest-stat-chip chip-gifts">
+                    {t('suggest.summaryGifts', {
+                      n: plan.assignments.filter((a) => a.kind === 'gift').length,
+                    })}
+                  </span>
+                  <span className="suggest-stat-chip chip-repurchase">
+                    {t('suggest.summaryRepurchases', {
+                      n: plan.assignments.filter((a) => a.kind === 'repurchase')
+                        .length,
+                    })}
+                  </span>
+                  <span className="suggest-stat-chip chip-mastery">
+                    {t('suggest.summaryMastery', {
+                      n: plan.assignments.filter((a) => a.kind === 'mastery')
+                        .length,
+                    })}
+                  </span>
+                </div>
               </div>
               {planMode !== suggestMode && (
                 <p className="suggest-mode-mismatch">
