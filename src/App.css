@@ -1249,6 +1249,38 @@ button {
   );
 }
 
+.help-disclaimer {
+  border-color: color-mix(in srgb, var(--text-muted) 40%, var(--border));
+  background: color-mix(in srgb, var(--text-muted) 8%, var(--bg-elevated));
+  font-size: 0.86rem;
+}
+
+.help-disclaimer h3 {
+  font-size: 0.95rem;
+}
+
+.help-support {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+}
+
+.help-support-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
+  text-decoration: none;
+  width: 100%;
+  max-width: 280px;
+  min-height: var(--touch);
+  box-sizing: border-box;
+}
+
+@media (min-width: 480px) {
+  .help-support-btn {
+    width: auto;
+  }
+}
+
 .help-steps {
   list-style: none;
   padding-left: 0;

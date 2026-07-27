@@ -319,6 +319,16 @@ const es: MessageTree = {
     introP2:
       'No modifica el juego. Tú actualizas la app mientras jugáis y luego seguís el plan de trueques que sugiere.',
 
+    disclaimerTitle: 'Aviso legal',
+    disclaimerBody:
+      'Herramienta no oficial hecha por fans. No está afiliada, respaldada ni conectada con Epic Games de ninguna forma. Todos los nombres, recursos y datos de Fortnite pertenecen a Epic Games. Esta herramienta es gratis. Las donaciones son totalmente opcionales y solo apoyan el desarrollo.',
+
+    supportTitle: 'Apoyar el desarrollo',
+    supportBody:
+      'Sprite Squad sigue siendo gratis para todos — sin muros de pago ni funciones exclusivas. Si te gusta y quieres aportar de forma opcional, puedes invitarme a un café. Es completamente voluntario.',
+    supportButton: 'Apoyar en Ko-fi',
+    supportLinkHint: 'Abre ko-fi.com en una pestaña nueva',
+
     startTitle: 'Empezar (primera vez)',
     start1:
       'Abre la pestaña Escuadra. Pon el nombre de cada jugador (añade o quita gente si hace falta).',

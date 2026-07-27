@@ -1969,6 +1969,11 @@ export default function App() {
             <p>{t('help.introP2')}</p>
           </section>
 
+          <section className="help-section help-disclaimer" aria-label={t('help.disclaimerTitle')}>
+            <h3>{t('help.disclaimerTitle')}</h3>
+            <p>{t('help.disclaimerBody')}</p>
+          </section>
+
           <section className="help-section">
             <h3>{t('help.startTitle')}</h3>
             <ol className="help-steps">
@@ -2075,11 +2080,28 @@ export default function App() {
               </li>
             </ul>
           </section>
+
+          <section className="help-section help-support">
+            <h3>{t('help.supportTitle')}</h3>
+            <p>{t('help.supportBody')}</p>
+            <a
+              className="btn btn-primary help-support-btn"
+              href={KOFI_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={t('help.supportLinkHint')}
+            >
+              {t('help.supportButton')}
+            </a>
+          </section>
         </div>
       )}
     </div>
   )
 }
+
+/** Optional voluntary tips — never gates features. */
+const KOFI_URL = 'https://ko-fi.com/hamlet2k'
 
 /** Stable key for tracking which plan exchanges were already applied. */
 function exchangeKey(a: BringAssignment): string {

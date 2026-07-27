@@ -2,6 +2,18 @@
 
 Local-first Fortnite **Chapter 7 Season 3** squad tool for tracking Sprite collections and planning who brings what for trades / extractions.
 
+**Unofficial fan tool.** Not affiliated with, endorsed by, or connected to Epic Games in any way. Fortnite names, assets, and game data belong to Epic Games / their respective owners. This project is free and open source ([MIT](./LICENSE)).
+
+## Support / donations
+
+Sprite Squad is **completely free**. There are no paywalls and no exclusive features.
+
+If you like the tool and want to support optional development costs (hosting, coffee, spare time), you can tip on Ko-fi — **only if you want to**:
+
+**[ko-fi.com/hamlet2k](https://ko-fi.com/hamlet2k)**
+
+Donations never unlock anything in the app.
+
 ## Features
 
 - **Per-player collection** for all **91** known sprite combinations (21 families × live variants)

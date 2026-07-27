@@ -307,6 +307,16 @@ const en: MessageTree = {
     introP2:
       'It does not change the game. You update it while you play, then follow the trade plan it suggests.',
 
+    disclaimerTitle: 'Disclaimer',
+    disclaimerBody:
+      'Unofficial fan tool. Not affiliated with, endorsed by, or connected to Epic Games in any way. All Fortnite names, assets and data belong to Epic Games. This tool is free. Donations are completely optional and only support development.',
+
+    supportTitle: 'Support development',
+    supportBody:
+      'Sprite Squad stays free for everyone — no paywalls, no exclusive features. If you enjoy it and want to chip in optionally, you can buy me a coffee. Totally voluntary.',
+    supportButton: 'Support on Ko-fi',
+    supportLinkHint: 'Opens ko-fi.com in a new tab',
+
     startTitle: 'Quick start (first time)',
     start1:
       'Open the Squad tab. Rename the players to your squad (and add or remove people if needed).',
