@@ -122,8 +122,22 @@ export default function App() {
   const editSeqRef = useRef(0)
   const saveInFlightRef = useRef(false)
   const needsResaveRef = useRef(false)
+  /**
+   * Bumped when a newer remote snapshot is applied mid-save so the in-flight
+   * push result is discarded (prevents idle tabs from re-applying old plans).
+   */
+  const saveEpochRef = useRef(0)
   /** One automatic room re-fetch per error streak (no reload loops). */
   const autoRecoverAttemptedRef = useRef(false)
+
+  const adoptRemoteState = useCallback((remote: SquadState) => {
+    skipPushRef.current = true
+    setState(remote)
+    stateRef.current = remote
+    setSyncStatus('synced')
+    setSyncError(null)
+    autoRecoverAttemptedRef.current = false
+  }, [])
 
   const roomLive = Boolean(roomCode && cloudReady && roomHydrated)
   const interactionLocked =
@@ -212,19 +226,22 @@ export default function App() {
     const sub = subscribeRoom(
       roomCode,
       (remote) => {
-        // Don't clobber in-flight local edits or a save mid-flight
-        if (saveInFlightRef.current || needsResaveRef.current) return
-
         const localRev = stateRef.current.revision ?? 0
         const remoteRev = remote.revision ?? 0
-        if (remoteRev > 0 && remoteRev < localRev) return
 
-        skipPushRef.current = true
-        setState(remote)
-        stateRef.current = remote
-        setSyncStatus('synced')
-        setSyncError(null)
-        autoRecoverAttemptedRef.current = false
+        // Only adopt strictly newer revisions (skip our own echo / equal rev).
+        if (remoteRev > 0 && remoteRev <= localRev) return
+        // Legacy rooms with no revision: still accept sparse-safe remotes once.
+        if (remoteRev === 0 && localRev > 0) return
+
+        // Newer remote always wins — even mid-save. Invalidate the in-flight push
+        // so a stale snapshot cannot finish and re-apply an old plan.
+        if (saveInFlightRef.current || needsResaveRef.current) {
+          saveEpochRef.current += 1
+          needsResaveRef.current = false
+        }
+
+        adoptRemoteState(remote)
       },
       (msg) => {
         setSyncError(msg)
@@ -233,7 +250,7 @@ export default function App() {
     )
 
     return () => sub.unsubscribe()
-  }, [roomCode, roomHydrated])
+  }, [roomCode, roomHydrated, adoptRemoteState])
 
   const flushRoomSave = useCallback(async () => {
     if (!roomCode || !cloudReady || !roomHydrated) return
@@ -248,22 +265,32 @@ export default function App() {
 
     const code = roomCode
     const seqAtStart = editSeqRef.current
+    const epochAtStart = saveEpochRef.current
     const snapshot = stateRef.current
 
     const result = await pushRoom(code, snapshot)
 
     saveInFlightRef.current = false
 
+    // A newer remote was adopted while this push was in flight — drop this result.
+    if (epochAtStart !== saveEpochRef.current) {
+      setSyncStatus('synced')
+      return
+    }
+
     if (!result.ok) {
+      if (result.stale && result.data) {
+        adoptRemoteState(result.data)
+        return
+      }
       if (result.error.includes('Blocked overwrite')) {
+        if (result.data) {
+          adoptRemoteState(result.data)
+          return
+        }
         const reloaded = await fetchRoom(code)
         if (reloaded.ok) {
-          skipPushRef.current = true
-          setState(reloaded.data)
-          stateRef.current = reloaded.data
-          setSyncStatus('synced')
-          setSyncError(null)
-          autoRecoverAttemptedRef.current = false
+          adoptRemoteState(reloaded.data)
           return
         }
       }
@@ -286,12 +313,8 @@ export default function App() {
     }
 
     // Safe to take server snapshot (includes bumped revision)
-    skipPushRef.current = true
-    setState(result.data)
-    stateRef.current = result.data
-    setSyncStatus('synced')
-    setSyncError(null)
-  }, [roomCode, roomHydrated])
+    adoptRemoteState(result.data)
+  }, [roomCode, roomHydrated, adoptRemoteState])
 
   // Debounced push of local edits — only after room is hydrated
   useEffect(() => {
@@ -323,13 +346,8 @@ export default function App() {
       const reloaded = await fetchRoom(roomCode)
       if (cancelled) return
       if (reloaded.ok) {
-        skipPushRef.current = true
-        setState(reloaded.data)
-        stateRef.current = reloaded.data
+        adoptRemoteState(reloaded.data)
         setRoomHydrated(true)
-        setSyncStatus('synced')
-        setSyncError(null)
-        autoRecoverAttemptedRef.current = false
         return
       }
       // Stay in error; user can tap the pill to hard-refresh
@@ -339,7 +357,35 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [syncStatus, roomCode])
+  }, [syncStatus, roomCode, adoptRemoteState])
+
+  // After idle / background: pull latest room so we don't keep showing a stale plan.
+  // Read-only — never push on focus (pushing is what let idle tabs overwrite others).
+  useEffect(() => {
+    if (!roomCode || !cloudReady || !roomHydrated) return
+
+    const pullIfNewer = () => {
+      if (document.visibilityState !== 'visible') return
+      if (saveInFlightRef.current) return
+      const code = roomCode
+      void fetchRoom(code).then((res) => {
+        if (!res.ok) return
+        const remoteRev = res.data.revision ?? 0
+        const localRev = stateRef.current.revision ?? 0
+        if (remoteRev > localRev || (remoteRev === 0 && localRev === 0)) {
+          // Only take remote when strictly newer; equal 0 legacy: skip to avoid loops
+          if (remoteRev > localRev) adoptRemoteState(res.data)
+        }
+      })
+    }
+
+    document.addEventListener('visibilitychange', pullIfNewer)
+    window.addEventListener('focus', pullIfNewer)
+    return () => {
+      document.removeEventListener('visibilitychange', pullIfNewer)
+      window.removeEventListener('focus', pullIfNewer)
+    }
+  }, [roomCode, roomHydrated, adoptRemoteState])
 
   const selectedPlayer = useMemo(
     () => state.players.find((p) => p.id === selectedPlayerId) ?? state.players[0],
@@ -633,13 +679,16 @@ export default function App() {
     stateRef.current = nextState
 
     if (result.applied > 0 && roomCode && cloudReady && roomHydrated) {
+      // Prefer the debounced room save path (revision-aware). Immediate push
+      // still used so Confirm greys out quickly for teammates.
       skipPushRef.current = true
+      const epochAtStart = saveEpochRef.current
       void pushRoom(roomCode, nextState).then((res) => {
+        if (epochAtStart !== saveEpochRef.current) return
         if (res.ok) {
-          skipPushRef.current = true
-          setState(res.data)
-          stateRef.current = res.data
-          setSyncStatus('synced')
+          adoptRemoteState(res.data)
+        } else if (res.stale && res.data) {
+          adoptRemoteState(res.data)
         } else {
           setSyncError(res.error)
           setSyncStatus('error')
@@ -834,11 +883,13 @@ export default function App() {
       setSyncStatus('error')
       return
     }
-    // Create already wrote current state — skip the first push echo
+    // Create already wrote current state — adopt revision so later pushes are not "stale"
     skipPushRef.current = true
-    setRoomCode(result.data)
-    saveRoomCode(result.data)
-    writeRoomToUrl(result.data)
+    setState(result.data.state)
+    stateRef.current = result.data.state
+    setRoomCode(result.data.code)
+    saveRoomCode(result.data.code)
+    writeRoomToUrl(result.data.code)
     setRoomHydrated(true)
     setSyncStatus('synced')
   }

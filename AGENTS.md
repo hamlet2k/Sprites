@@ -45,7 +45,7 @@ Env (optional cloud): see `.env.example` — `VITE_SUPABASE_URL`, `VITE_SUPABASE
 | `src/lib/suggest.ts` | Suggestion / matching engine |
 | `src/lib/cycle.ts` | Card status cycle + mark missing / mastered |
 | `src/lib/storage.ts` | localStorage squad + player export/import |
-| `src/lib/cloud.ts` | Supabase rooms, hydrate/push, wipe protection |
+| `src/lib/cloud.ts` | Supabase rooms, hydrate/push, wipe protection, stale-revision guards |
 | `src/lib/squadScore.ts` | Sparse overwrite / room wipe guards |
 | `src/data/sprites.ts` | C7S3 catalog (names/abilities stay EN as game data) |
 | `src/i18n/` | `en.ts`, `es.ts`, `catalog.ts`, `I18nProvider` |
@@ -69,6 +69,8 @@ Persistence key: `fortnite-sprite-squad-v1` (localStorage). Locale: `fortnite-sp
 **Ignore (forgot to bring):** no collection changes; row just cleared.  
 
 Plan + outcomes live on `SquadState.suggestion` so **live rooms** sync greying for every teammate.
+
+**Room revision rule:** only a client at the current `state.revision` may push the next one. Stale idle tabs must **adopt** a higher remote revision — never overwrite it with an old plan (see `pushRoom` stale + CAS filter).
 
 ## Suggestion rules (current behavior)
 

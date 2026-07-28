@@ -54,9 +54,18 @@ export function normalizeRoomCode(raw: string): string {
 
 export type CloudResult<T> =
   | { ok: true; data: T }
-  | { ok: false; error: string }
+  | {
+      ok: false
+      error: string
+      /** Present when the room already has a newer revision (stale client). */
+      data?: T
+      /** True when push was refused because remote is ahead of local. */
+      stale?: boolean
+    }
 
-export async function createRoom(state: SquadState): Promise<CloudResult<string>> {
+export async function createRoom(
+  state: SquadState,
+): Promise<CloudResult<{ code: string; state: SquadState }>> {
   const sb = getSupabase()
   if (!sb) return { ok: false, error: 'Cloud is not configured on this deployment.' }
 
@@ -68,7 +77,7 @@ export async function createRoom(state: SquadState): Promise<CloudResult<string>
       state: payload,
       updated_at: new Date().toISOString(),
     })
-    if (!error) return { ok: true, data: code }
+    if (!error) return { ok: true, data: { code, state: payload } }
     if (error.code !== '23505') {
       return { ok: false, error: error.message }
     }
@@ -103,8 +112,10 @@ export async function fetchRoom(code: string): Promise<CloudResult<SquadState>> 
 
 /**
  * Push local squad to the room.
- * Safety: never overwrite a room that has real progress with empty/sparse local data
- * (the main cause of "room wiped after deploy / new device").
+ * Safety:
+ * - never overwrite a room that has real progress with empty/sparse local data
+ * - never overwrite a *newer* remote revision with a stale idle tab (last-write
+ *   races were flipping shared suggestion plans after ~1 min idle).
  */
 export async function pushRoom(
   code: string,
@@ -130,13 +141,30 @@ export async function pushRoom(
       ok: false,
       error:
         'Blocked overwrite: this device has almost no collection data vs the room. Reloading room instead of wiping it.',
+      data: remote,
     }
   }
 
-  const nextRevision = Math.max(state.revision ?? 0, remote?.revision ?? 0) + 1
+  const localRev = state.revision ?? 0
+  const remoteRev = remote?.revision ?? 0
+
+  // Idle / background clients often keep an old plan at a lower revision.
+  // Raising revision with max(local,remote)+1 used to let them clobber a newer plan.
+  if (remoteRev > localRev) {
+    return {
+      ok: false,
+      error: 'Room was updated on another device. Loaded the latest session.',
+      data: remote ?? undefined,
+      stale: true,
+    }
+  }
+
+  // Advance from *our* base revision only (not remote+1 when remote is behind).
+  const nextRevision = localRev + 1
   const payload = withRevision(state, nextRevision)
 
-  const { error } = await sb
+  // Optimistic lock when we know the expected revision (skips pure concurrent races).
+  let query = sb
     .from('squad_rooms')
     .update({
       state: payload,
@@ -144,8 +172,34 @@ export async function pushRoom(
     })
     .eq('code', normalized)
 
+  if (localRev > 0) {
+    // state->>revision is text in PostgREST filters
+    query = query.eq('state->>revision', String(localRev))
+  }
+
+  const { data: updated, error } = await query.select('state').maybeSingle()
+
   if (error) return { ok: false, error: error.message }
-  return { ok: true, data: payload }
+
+  // No row matched the revision filter → someone else wrote first.
+  if (localRev > 0 && !updated) {
+    const latest = await fetchRoom(normalized)
+    if (latest.ok) {
+      return {
+        ok: false,
+        error: 'Room was updated on another device. Loaded the latest session.',
+        data: latest.data,
+        stale: true,
+      }
+    }
+    return {
+      ok: false,
+      error: latest.error || 'Room update conflict. Refresh and try again.',
+    }
+  }
+
+  const saved = updated ? normalizeSquad(updated.state) : payload
+  return { ok: true, data: saved ?? payload }
 }
 
 export type RoomSubscription = {
@@ -179,6 +233,7 @@ export function subscribeRoom(
         if (!state?.players?.length) return
         // Ignore empty realtime payloads that would wipe a filled client
         if (isSparseSquad(state)) return
+        // Always deliver; client decides by revision (must not drop newer plans).
         onRemote(state)
       },
     )
