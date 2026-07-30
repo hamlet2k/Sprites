@@ -20,6 +20,12 @@ function mapUser(user: User, displayName?: string | null): AuthUser {
     displayName ||
     (typeof meta.full_name === 'string' && meta.full_name) ||
     (typeof meta.name === 'string' && meta.name) ||
+    (typeof meta.custom_claims === 'object' &&
+      meta.custom_claims &&
+      typeof (meta.custom_claims as { global_name?: string }).global_name ===
+        'string' &&
+      (meta.custom_claims as { global_name: string }).global_name) ||
+    (typeof meta.preferred_username === 'string' && meta.preferred_username) ||
     (user.email ? user.email.split('@')[0] : null) ||
     'Player'
   return {
@@ -29,9 +35,43 @@ function mapUser(user: User, displayName?: string | null): AuthUser {
   }
 }
 
+/** Prefer current origin + path + room query so OAuth returns to the same squad. */
 export function authRedirectUrl(): string {
   if (typeof window === 'undefined') return ''
-  return `${window.location.origin}/`
+  const u = new URL(window.location.href)
+  // Drop OAuth callback noise; keep room= etc.
+  u.searchParams.delete('code')
+  u.searchParams.delete('state')
+  u.searchParams.delete('error')
+  u.searchParams.delete('error_code')
+  u.searchParams.delete('error_description')
+  u.hash = ''
+  return u.toString()
+}
+
+function stripAuthParamsFromUrl(): void {
+  if (typeof window === 'undefined') return
+  const u = new URL(window.location.href)
+  let changed = false
+  for (const key of [
+    'code',
+    'state',
+    'error',
+    'error_code',
+    'error_description',
+  ]) {
+    if (u.searchParams.has(key)) {
+      u.searchParams.delete(key)
+      changed = true
+    }
+  }
+  if (u.hash && (u.hash.includes('access_token') || u.hash.includes('error'))) {
+    u.hash = ''
+    changed = true
+  }
+  if (changed) {
+    window.history.replaceState({}, '', u.pathname + u.search + u.hash)
+  }
 }
 
 export async function getSession(): Promise<Session | null> {
@@ -54,14 +94,87 @@ export async function getCurrentAuthUser(): Promise<AuthUser | null> {
   return mapUser(data.user, profile?.display_name)
 }
 
+/**
+ * Finish PKCE/OAuth return (Discord/Google) before the rest of the app runs.
+ * Surfaces provider errors that Supabase puts on the query string.
+ */
+export async function recoverSessionFromUrl(): Promise<{
+  user: AuthUser | null
+  error?: string
+  event?: string
+}> {
+  const sb = getSupabase()
+  if (!sb || typeof window === 'undefined') return { user: null }
+
+  const url = new URL(window.location.href)
+  const errDesc =
+    url.searchParams.get('error_description') ||
+    url.searchParams.get('error') ||
+    null
+  if (errDesc) {
+    stripAuthParamsFromUrl()
+    return { user: null, error: decodeURIComponent(errDesc.replace(/\+/g, ' ')) }
+  }
+
+  const code = url.searchParams.get('code')
+  if (code) {
+    const { data, error } = await sb.auth.exchangeCodeForSession(code)
+    stripAuthParamsFromUrl()
+    if (error) {
+      return { user: null, error: error.message, event: 'exchange_failed' }
+    }
+    if (data.user) {
+      const { data: profile } = await sb
+        .from('profiles')
+        .select('display_name')
+        .eq('id', data.user.id)
+        .maybeSingle()
+      // Ensure profile row exists (trigger may lag)
+      if (!profile) {
+        await sb.from('profiles').upsert({
+          id: data.user.id,
+          display_name: mapUser(data.user).displayName,
+        })
+      }
+      return {
+        user: mapUser(data.user, profile?.display_name),
+        event: 'signed_in',
+      }
+    }
+  }
+
+  // Implicit / hash tokens or already-persisted session
+  const { data: sessionData } = await sb.auth.getSession()
+  if (sessionData.session?.user) {
+    stripAuthParamsFromUrl()
+    const u = sessionData.session.user
+    const { data: profile } = await sb
+      .from('profiles')
+      .select('display_name')
+      .eq('id', u.id)
+      .maybeSingle()
+    return { user: mapUser(u, profile?.display_name), event: 'session' }
+  }
+
+  return { user: null }
+}
+
 export function onAuthStateChange(
-  cb: (user: AuthUser | null) => void,
+  cb: (user: AuthUser | null, meta?: { event: string }) => void,
 ): () => void {
   const sb = getSupabase()
   if (!sb) return () => {}
-  const { data } = sb.auth.onAuthStateChange((_event, session) => {
+  const { data } = sb.auth.onAuthStateChange((event, session) => {
     if (!session?.user) {
-      cb(null)
+      // Ignore transient signed-out during PKCE exchange noise when URL still has code
+      if (
+        event === 'INITIAL_SESSION' &&
+        typeof window !== 'undefined' &&
+        new URL(window.location.href).searchParams.has('code')
+      ) {
+        return
+      }
+      cb(null, { event })
       return
     }
     void (async () => {
@@ -70,7 +183,7 @@ export function onAuthStateChange(
         .select('display_name')
         .eq('id', session.user.id)
         .maybeSingle()
-      cb(mapUser(session.user, profile?.display_name))
+      cb(mapUser(session.user, profile?.display_name), { event })
     })()
   })
   return () => data.subscription.unsubscribe()
@@ -157,6 +270,13 @@ export async function signInWithOAuth(
     provider,
     options: {
       redirectTo: authRedirectUrl(),
+      skipBrowserRedirect: false,
+      // Discord needs identify; email is optional but helps profiles
+      scopes: provider === 'discord' ? 'identify email' : undefined,
+      queryParams:
+        provider === 'google'
+          ? { access_type: 'online', prompt: 'select_account' }
+          : undefined,
     },
   })
   if (error) return { ok: false, error: error.message }

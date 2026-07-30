@@ -37,6 +37,11 @@ const es: MessageTree = {
     newPassword: 'Elige una contraseña nueva',
     savePassword: 'Guardar contraseña',
     passwordUpdated: 'Contraseña actualizada. Puedes seguir usando la app.',
+    linkTitle: 'Vincular tu cuenta a un asiento de la escuadra',
+    linkBody:
+      'Esta escuadra ya tiene jugadores con colección que no están vinculados a una cuenta. Elige quién eres para no crear un asiento duplicado. Tu colección portátil se fusionará con ese asiento y te acompañará en todas las escuadras.',
+    linkCreateNew: 'Ninguno de estos — asiento nuevo',
+    oauthError: 'El inicio de sesión no se completó: {msg}',
   },
   lang: {
     label: 'Idioma',

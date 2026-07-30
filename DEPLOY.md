@@ -132,10 +132,15 @@ If a secret was pasted into chat or a commit, rotate it in Google Cloud.
 ### 4e. Discord
 
 1. Discord Developer Portal → OAuth2.
-2. Redirects: `https://YOUR_PROJECT_REF.supabase.co/auth/v1/callback`
+2. Redirects must include **exactly**:
+   `https://YOUR_PROJECT_REF.supabase.co/auth/v1/callback`
+   (not the Vercel app URL — Supabase receives Discord, then sends the user back to the app).
 3. Supabase → **Authentication → Providers → Discord** → enable with **Client ID** + **Client Secret**.
+4. Site URL / redirect allow list must include your app origin (e.g. `https://sprites-amber.vercel.app/**`).
 
 Note: Discord’s “Public Key” is for bot interactions, **not** OAuth. Use the OAuth2 **Client Secret** from Discord.
+
+If Discord “authorizes” but you land logged out, check the address bar for `?error=` / `error_description=` (wrong secret or redirect). The app now surfaces that message and completes the PKCE `code` exchange on return.
 
 ### 4f. App behavior when signed in
 

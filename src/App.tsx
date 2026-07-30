@@ -13,6 +13,7 @@ import {
   listRecentSquads,
   loadUserCollection,
   onAuthStateChange,
+  recoverSessionFromUrl,
   rememberJoinedSquad,
   saveUserCollection,
   signOut,
@@ -22,11 +23,12 @@ import {
 } from './lib/auth'
 import {
   createRoom,
-  ensureUserPlayerInSquad,
   fetchRoom,
   isCloudConfigured,
+  mergeSpriteMaps,
   normalizeRoomCode,
   pushRoom,
+  resolveUserSeatInSquad,
   roomFromUrl,
   shareUrl,
   subscribeRoom,
@@ -93,6 +95,11 @@ type AppModal =
   | {
       kind: 'password-recovery'
     }
+  | {
+      kind: 'link-player'
+      user: AuthUser
+      candidates: Player[]
+    }
 
 const cloudReady = isCloudConfigured()
 
@@ -153,79 +160,31 @@ export default function App() {
   const autoRecoverAttemptedRef = useRef(false)
 
   const adoptRemoteState = useCallback((remote: SquadState) => {
+    // Overlay portable collection onto our linked seat so edits from other
+    // squads (via account store) stay visible, and we don't lose local account progress.
+    let next = remote
+    const uid = authUser?.id
+    if (uid) {
+      const mine = remote.players.find((p) => p.userId === uid)
+      if (mine) {
+        // Prefer remote seat for room-local greying of exchanges, but keep mastered/owned
+        // from whatever is richer when we next save — for live view use remote as-is
+        // if it already has our userId (collection was pushed with the room).
+        next = remote
+      }
+    }
     skipPushRef.current = true
-    setState(remote)
-    stateRef.current = remote
-    if (remote.name) setSquadNameDraft(remote.name)
+    setState(next)
+    stateRef.current = next
+    if (next.name) setSquadNameDraft(next.name)
     setSyncStatus('synced')
     setSyncError(null)
     autoRecoverAttemptedRef.current = false
-  }, [])
+  }, [authUser?.id])
 
   const refreshRecentSquads = useCallback(async (userId: string) => {
     const res = await listRecentSquads(userId)
     if (res.ok) setRecentSquads(res.data)
-  }, [])
-
-  const applyAuthUser = useCallback(
-    async (user: AuthUser | null) => {
-      setAuthUser(user)
-      if (!user) {
-        setRecentSquads([])
-        return
-      }
-
-      const col = await loadUserCollection(user.id)
-      let portable = col.ok ? col.data : {}
-      if (Object.keys(portable).length === 0) {
-        const cur = stateRef.current
-        const seed =
-          cur.players.find((p) => p.userId === user.id) ??
-          cur.players.find((p) => p.id === selectedPlayerId) ??
-          cur.players[0]
-        if (seed && Object.keys(seed.sprites ?? {}).length > 0) {
-          portable = seed.sprites
-          void saveUserCollection(user.id, portable)
-        }
-      }
-
-      const { state: next, playerId } = ensureUserPlayerInSquad(
-        stateRef.current,
-        user,
-        portable,
-      )
-      // Only mark skip when in a room so we don't block first local push incorrectly
-      if (roomCode && roomHydrated) skipPushRef.current = true
-      setState(next)
-      stateRef.current = next
-      setSelectedPlayerId(playerId)
-      await refreshRecentSquads(user.id)
-      if (roomCode) {
-        void rememberJoinedSquad(user.id, roomCode, next.name)
-      }
-    },
-    [refreshRecentSquads, roomCode, roomHydrated, selectedPlayerId],
-  )
-
-  // Optional account session
-  useEffect(() => {
-    if (!cloudReady) return
-    let cancelled = false
-    void getCurrentAuthUser().then((u) => {
-      if (!cancelled) void applyAuthUser(u)
-    })
-    const unsub = onAuthStateChange((u) => {
-      void applyAuthUser(u)
-      // Password recovery deep link
-      if (u && window.location.hash.includes('type=recovery')) {
-        setModal({ kind: 'password-recovery' })
-      }
-    })
-    return () => {
-      cancelled = true
-      unsub()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- once on mount
   }, [])
 
   const roomLive = Boolean(roomCode && cloudReady && roomHydrated)
@@ -238,6 +197,121 @@ export default function App() {
       setSyncStatus('saving')
     }
   }, [roomCode, roomHydrated])
+
+  const finishSeatReady = useCallback(
+    async (
+      user: AuthUser,
+      next: SquadState,
+      playerId: string,
+      portable: Record<string, import('./types').PlayerSpriteState>,
+    ) => {
+      const me = next.players.find((p) => p.id === playerId)
+      if (me) {
+        void saveUserCollection(user.id, me.sprites ?? portable)
+      }
+      setState(next)
+      stateRef.current = next
+      setSelectedPlayerId(playerId)
+      if (roomCode && roomHydrated) {
+        // Linked seat must sync to the room
+        skipPushRef.current = false
+        bumpEdit()
+      }
+      await refreshRecentSquads(user.id)
+      if (roomCode) {
+        void rememberJoinedSquad(user.id, roomCode, next.name)
+      }
+    },
+    [bumpEdit, refreshRecentSquads, roomCode, roomHydrated],
+  )
+
+  const applyAuthUser = useCallback(
+    async (
+      user: AuthUser | null,
+      seatOpts?: { claimPlayerId?: string; createNew?: boolean },
+    ) => {
+      setAuthUser(user)
+      if (!user) {
+        setRecentSquads([])
+        return
+      }
+
+      const col = await loadUserCollection(user.id)
+      let portable = col.ok ? col.data : {}
+      if (Object.keys(portable).length === 0) {
+        const cur = stateRef.current
+        const seed =
+          cur.players.find((p) => p.userId === user.id) ??
+          (seatOpts?.claimPlayerId
+            ? cur.players.find((p) => p.id === seatOpts.claimPlayerId)
+            : undefined) ??
+          cur.players.find((p) => p.id === selectedPlayerId)
+        if (seed && Object.keys(seed.sprites ?? {}).length > 0) {
+          portable = seed.sprites
+          void saveUserCollection(user.id, portable)
+        }
+      }
+
+      const resolved = resolveUserSeatInSquad(
+        stateRef.current,
+        user,
+        portable,
+        seatOpts,
+      )
+
+      if (resolved.kind === 'needs_link') {
+        setModal({
+          kind: 'link-player',
+          user,
+          candidates: resolved.candidates,
+        })
+        await refreshRecentSquads(user.id)
+        return
+      }
+
+      await finishSeatReady(user, resolved.state, resolved.playerId, portable)
+    },
+    [finishSeatReady, refreshRecentSquads, selectedPlayerId],
+  )
+
+  // Recover OAuth PKCE (Discord/Google) before treating the user as logged out
+  useEffect(() => {
+    if (!cloudReady) return
+    let cancelled = false
+    void (async () => {
+      const recovered = await recoverSessionFromUrl()
+      if (cancelled) return
+      if (recovered.error) {
+        setSyncError(recovered.error)
+      }
+      if (recovered.user) {
+        await applyAuthUser(recovered.user)
+        if (
+          typeof window !== 'undefined' &&
+          window.location.hash.includes('type=recovery')
+        ) {
+          setModal({ kind: 'password-recovery' })
+        }
+      }
+    })()
+    const unsub = onAuthStateChange((u, meta) => {
+      if (meta?.event === 'INITIAL_SESSION' && !u) return
+      if (meta?.event === 'TOKEN_REFRESHED') return
+      void applyAuthUser(u)
+      if (
+        u &&
+        typeof window !== 'undefined' &&
+        window.location.hash.includes('type=recovery')
+      ) {
+        setModal({ kind: 'password-recovery' })
+      }
+    })
+    return () => {
+      cancelled = true
+      unsub()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once on mount
+  }, [])
 
   useEffect(() => {
     if (!selectedPlayerId && state.players[0]) {
@@ -299,13 +373,35 @@ export default function App() {
         setAuthUser(user)
         const col = await loadUserCollection(user.id)
         const portable = col.ok ? col.data : {}
-        const linked = ensureUserPlayerInSquad(result.data, user, portable)
+        const resolved = resolveUserSeatInSquad(result.data, user, portable)
+        if (resolved.kind === 'needs_link') {
+          skipPushRef.current = true
+          setState(result.data)
+          stateRef.current = result.data
+          if (result.data.name) setSquadNameDraft(result.data.name)
+          setRoomCode(normalized)
+          saveRoomCode(normalized)
+          writeRoomToUrl(normalized)
+          setRoomHydrated(true)
+          setSyncStatus('synced')
+          setSyncError(null)
+          setModal({
+            kind: 'link-player',
+            user,
+            candidates: resolved.candidates,
+          })
+          void rememberJoinedSquad(user.id, normalized, result.data.name)
+          void listRecentSquads(user.id).then((r) => {
+            if (r.ok) setRecentSquads(r.data)
+          })
+          return
+        }
         skipPushRef.current = false
-        setState(linked.state)
-        stateRef.current = linked.state
-        setSelectedPlayerId(linked.playerId)
-        if (linked.state.name) setSquadNameDraft(linked.state.name)
-        void rememberJoinedSquad(user.id, normalized, linked.state.name)
+        setState(resolved.state)
+        stateRef.current = resolved.state
+        setSelectedPlayerId(resolved.playerId)
+        if (resolved.state.name) setSquadNameDraft(resolved.state.name)
+        void rememberJoinedSquad(user.id, normalized, resolved.state.name)
         void listRecentSquads(user.id).then((r) => {
           if (r.ok) setRecentSquads(r.data)
         })
@@ -476,8 +572,7 @@ export default function App() {
     }
   }, [syncStatus, roomCode, adoptRemoteState])
 
-  // After idle / background: pull latest room so we don't keep showing a stale plan.
-  // Read-only — never push on focus (pushing is what let idle tabs overwrite others).
+  // After idle / background: pull latest room + re-apply portable collection.
   useEffect(() => {
     if (!roomCode || !cloudReady || !roomHydrated) return
 
@@ -485,15 +580,38 @@ export default function App() {
       if (document.visibilityState !== 'visible') return
       if (saveInFlightRef.current) return
       const code = roomCode
-      void fetchRoom(code).then((res) => {
+      void (async () => {
+        const res = await fetchRoom(code)
         if (!res.ok) return
         const remoteRev = res.data.revision ?? 0
         const localRev = stateRef.current.revision ?? 0
-        if (remoteRev > localRev || (remoteRev === 0 && localRev === 0)) {
-          // Only take remote when strictly newer; equal 0 legacy: skip to avoid loops
-          if (remoteRev > localRev) adoptRemoteState(res.data)
+        let base = res.data
+        if (remoteRev > localRev) {
+          adoptRemoteState(res.data)
+          base = res.data
         }
-      })
+        // Re-overlay account collection so edits made in another squad show up
+        const user = authUser
+        if (!user) return
+        const col = await loadUserCollection(user.id)
+        if (!col.ok) return
+        const cur = stateRef.current
+        const mine = cur.players.find((p) => p.userId === user.id)
+        if (!mine) return
+        const merged = mergeSpriteMaps(col.data, mine.sprites ?? {})
+        const same =
+          JSON.stringify(merged) === JSON.stringify(mine.sprites ?? {})
+        if (same) return
+        const players = cur.players.map((p) =>
+          p.userId === user.id ? { ...p, sprites: merged } : p,
+        )
+        const next = { ...cur, players }
+        setState(next)
+        stateRef.current = next
+        skipPushRef.current = false
+        bumpEdit()
+        void base
+      })()
     }
 
     document.addEventListener('visibilitychange', pullIfNewer)
@@ -502,7 +620,7 @@ export default function App() {
       document.removeEventListener('visibilitychange', pullIfNewer)
       window.removeEventListener('focus', pullIfNewer)
     }
-  }, [roomCode, roomHydrated, adoptRemoteState])
+  }, [roomCode, roomHydrated, adoptRemoteState, authUser, bumpEdit])
 
   const selectedPlayer = useMemo(
     () => state.players.find((p) => p.id === selectedPlayerId) ?? state.players[0],
@@ -1002,14 +1120,33 @@ export default function App() {
     if (authUser) {
       const col = await loadUserCollection(authUser.id)
       const portable = col.ok ? col.data : {}
-      const linked = ensureUserPlayerInSquad(remote, authUser, portable)
-      next = linked.state
-      playerId = linked.playerId
+      const resolved = resolveUserSeatInSquad(remote, authUser, portable)
+      if (resolved.kind === 'needs_link') {
+        skipPushRef.current = true
+        setState(remote)
+        stateRef.current = remote
+        setRoomCode(code)
+        saveRoomCode(code)
+        writeRoomToUrl(code)
+        setRoomHydrated(true)
+        setSyncStatus('synced')
+        setModal({
+          kind: 'link-player',
+          user: authUser,
+          candidates: resolved.candidates,
+        })
+        void rememberJoinedSquad(authUser.id, code, remote.name)
+        void refreshRecentSquads(authUser.id)
+        return
+      }
+      next = resolved.state
+      playerId = resolved.playerId
       shouldPush = true
+      const me = next.players.find((p) => p.id === playerId)
+      if (me) void saveUserCollection(authUser.id, me.sprites)
       void rememberJoinedSquad(authUser.id, code, next.name)
       void refreshRecentSquads(authUser.id)
     }
-    // Skip push only when we adopted remote as-is (no local user injection).
     skipPushRef.current = !shouldPush
     setState(next)
     stateRef.current = next
@@ -1034,7 +1171,20 @@ export default function App() {
     if (authUser) {
       const col = await loadUserCollection(authUser.id)
       const portable = col.ok ? col.data : {}
-      base = ensureUserPlayerInSquad(state, authUser, portable).state
+      const resolved = resolveUserSeatInSquad(state, authUser, portable, {
+        createNew: false,
+      })
+      if (resolved.kind === 'needs_link') {
+        setBusy(false)
+        setRoomHydrated(true)
+        setModal({
+          kind: 'link-player',
+          user: authUser,
+          candidates: resolved.candidates,
+        })
+        return
+      }
+      base = resolved.state
     }
     const name = squadNameDraft.trim() || undefined
     if (name) base = { ...base, name }
@@ -2154,7 +2304,9 @@ export default function App() {
                   ? t('deletePlayer.title')
                   : modal.kind === 'password-recovery'
                     ? t('auth.forgotTitle')
-                    : modal.title}
+                    : modal.kind === 'link-player'
+                      ? t('auth.linkTitle')
+                      : modal.title}
               </h2>
               <button
                 type="button"
@@ -2165,6 +2317,52 @@ export default function App() {
                 ×
               </button>
             </div>
+
+            {modal.kind === 'link-player' && (
+              <>
+                <p className="modal-subtitle">{t('auth.linkBody')}</p>
+                <div className="link-player-list">
+                  {modal.candidates.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      className="btn link-player-option"
+                      onClick={() => {
+                        const u = modal.user
+                        setModal(null)
+                        void applyAuthUser(u, { claimPlayerId: p.id })
+                      }}
+                    >
+                      <span
+                        className="dot"
+                        style={{ background: p.color, width: 12, height: 12 }}
+                      />
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
+                <div className="modal-footer" style={{ flexWrap: 'wrap', gap: 8 }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      const u = modal.user
+                      setModal(null)
+                      void applyAuthUser(u, { createNew: true })
+                    }}
+                  >
+                    {t('auth.linkCreateNew')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => setModal(null)}
+                  >
+                    {t('confirm.cancel')}
+                  </button>
+                </div>
+              </>
+            )}
 
             {modal.kind === 'password-recovery' && (
               <>

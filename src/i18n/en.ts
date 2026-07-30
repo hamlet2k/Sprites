@@ -37,6 +37,11 @@ const en: MessageTree = {
     newPassword: 'Choose a new password',
     savePassword: 'Save new password',
     passwordUpdated: 'Password updated. You can keep using the app.',
+    linkTitle: 'Link your account to a squad seat',
+    linkBody:
+      'This squad already has players with collections that are not linked to an account. Pick who you are so we do not create a duplicate seat. Your portable collection will merge with that seat and follow you into every squad.',
+    linkCreateNew: 'None of these — new seat',
+    oauthError: 'Sign-in did not complete: {msg}',
   },
   lang: {
     label: 'Language',

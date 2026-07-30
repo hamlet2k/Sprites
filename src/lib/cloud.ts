@@ -1,6 +1,6 @@
 import { createClient, type RealtimeChannel, type SupabaseClient } from '@supabase/supabase-js'
-import type { SquadState } from '../types'
-import { emptySquad } from './storage'
+import type { Player, PlayerSpriteState, SquadState } from '../types'
+import { defaultSpriteState, emptySquad } from './storage'
 import { isSparseSquad, wouldWipeRoom } from './squadScore'
 
 /**
@@ -30,7 +30,15 @@ export function isCloudConfigured(): boolean {
 export function getSupabase(): SupabaseClient | null {
   if (!isCloudConfigured()) return null
   if (!client) {
-    client = createClient(url!, anonKey!)
+    client = createClient(url!, anonKey!, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce',
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      },
+    })
   }
   return client
 }
@@ -312,15 +320,79 @@ function normalizeSquad(raw: unknown): SquadState | null {
   }
 }
 
+const PLAYER_COLORS = [
+  '#5b8def',
+  '#f0a030',
+  '#3ecf8e',
+  '#e85d75',
+  '#b48ef0',
+  '#4ecdc4',
+]
+
+/** Prefer richer ownership when merging portable vs seat collections. */
+export function mergeSpriteMaps(
+  a: Record<string, PlayerSpriteState>,
+  b: Record<string, PlayerSpriteState>,
+): Record<string, PlayerSpriteState> {
+  const rank = (s: PlayerSpriteState) => {
+    let r = s.status === 'available' ? 3 : s.status === 'lost' ? 2 : 0
+    if (s.mastered) r += 1
+    return r
+  }
+  const out: Record<string, PlayerSpriteState> = { ...a }
+  for (const [id, st] of Object.entries(b)) {
+    const cur = out[id] ?? defaultSpriteState()
+    out[id] = rank(st) >= rank(cur) ? st : cur
+    if (cur.mastered || st.mastered) {
+      out[id] = { ...out[id], mastered: true }
+    }
+  }
+  return out
+}
+
+export type SeatResolveOptions = {
+  /** Explicitly claim this unlinked player seat. */
+  claimPlayerId?: string
+  /** Force a brand-new seat even if claimable seats exist. */
+  createNew?: boolean
+}
+
+export type SeatResolveResult =
+  | { kind: 'ready'; state: SquadState; playerId: string }
+  | { kind: 'needs_link'; candidates: Player[] }
+
+function playerHasProgress(p: Player): boolean {
+  return Object.values(p.sprites ?? {}).some(
+    (st) => st.mastered || st.status !== 'none',
+  )
+}
+
+function applyPortableToPlayer(
+  p: Player,
+  user: { id: string; displayName: string },
+  portableSprites: Record<string, PlayerSpriteState>,
+): Player {
+  const merged = mergeSpriteMaps(p.sprites ?? {}, portableSprites)
+  return {
+    ...p,
+    userId: user.id,
+    name: p.name?.trim() ? p.name : user.displayName,
+    sprites: Object.keys(portableSprites).length > 0 ? mergeSpriteMaps(portableSprites, p.sprites ?? {}) : merged,
+  }
+}
+
 /**
- * Ensure a logged-in user has a player slot in the squad, carrying their portable collection.
- * Returns updated squad + the player id for this user.
+ * Resolve how a logged-in account sits in a squad.
+ * - Already linked by userId → overlay portable collection (source of truth).
+ * - Else may need user to pick an existing unlinked seat (avoid duplicates).
+ * - Else claim empty default seat or create a new one.
  */
-export function ensureUserPlayerInSquad(
+export function resolveUserSeatInSquad(
   state: SquadState,
   user: { id: string; displayName: string },
-  portableSprites: Record<string, import('../types').PlayerSpriteState>,
-): { state: SquadState; playerId: string } {
+  portableSprites: Record<string, PlayerSpriteState>,
+  options: SeatResolveOptions = {},
+): SeatResolveResult {
   const existing = state.players.find((p) => p.userId === user.id)
   if (existing) {
     const players = state.players.map((p) =>
@@ -328,46 +400,80 @@ export function ensureUserPlayerInSquad(
         ? {
             ...p,
             name: p.name || user.displayName,
-            sprites: { ...portableSprites },
+            // Portable collection wins for account holders; seat fills gaps.
+            sprites: mergeSpriteMaps(portableSprites, p.sprites ?? {}),
           }
         : p,
     )
-    return { state: { ...state, players }, playerId: existing.id }
+    return { kind: 'ready', state: { ...state, players }, playerId: existing.id }
+  }
+
+  if (options.claimPlayerId) {
+    const target = state.players.find(
+      (p) => p.id === options.claimPlayerId && !p.userId,
+    )
+    if (target) {
+      const linked = applyPortableToPlayer(target, user, portableSprites)
+      const players = state.players.map((p) =>
+        p.id === target.id ? linked : p,
+      )
+      return { kind: 'ready', state: { ...state, players }, playerId: target.id }
+    }
+  }
+
+  const unlinkedWithProgress = state.players.filter(
+    (p) => !p.userId && playerHasProgress(p),
+  )
+  if (
+    !options.createNew &&
+    !options.claimPlayerId &&
+    unlinkedWithProgress.length > 0
+  ) {
+    return { kind: 'needs_link', candidates: unlinkedWithProgress }
   }
 
   // Reuse an empty default slot if possible
   const emptySlot = state.players.find(
     (p) =>
       !p.userId &&
-      Object.keys(p.sprites ?? {}).length === 0 &&
+      !playerHasProgress(p) &&
       /^Player \d+$/i.test(p.name),
   )
-  if (emptySlot) {
+  if (emptySlot && !options.createNew) {
+    const linked = applyPortableToPlayer(emptySlot, user, portableSprites)
     const players = state.players.map((p) =>
       p.id === emptySlot.id
-        ? {
-            ...p,
-            name: user.displayName,
-            userId: user.id,
-            sprites: { ...portableSprites },
-          }
+        ? { ...linked, name: user.displayName }
         : p,
     )
-    return { state: { ...state, players }, playerId: emptySlot.id }
+    return { kind: 'ready', state: { ...state, players }, playerId: emptySlot.id }
   }
 
   const index = state.players.length
-  const player = {
+  const player: Player = {
     id: crypto.randomUUID(),
     name: user.displayName,
-    color: ['#5b8def', '#f0a030', '#3ecf8e', '#e85d75', '#b48ef0', '#4ecdc4'][
-      index % 6
-    ],
+    color: PLAYER_COLORS[index % PLAYER_COLORS.length],
     sprites: { ...portableSprites },
     userId: user.id,
   }
   return {
+    kind: 'ready',
     state: { ...state, players: [...state.players, player] },
     playerId: player.id,
   }
+}
+
+/** @deprecated use resolveUserSeatInSquad */
+export function ensureUserPlayerInSquad(
+  state: SquadState,
+  user: { id: string; displayName: string },
+  portableSprites: Record<string, PlayerSpriteState>,
+): { state: SquadState; playerId: string } {
+  const res = resolveUserSeatInSquad(state, user, portableSprites, {
+    createNew: true,
+  })
+  if (res.kind === 'ready') return { state: res.state, playerId: res.playerId }
+  // Fallback should not happen with createNew
+  return { state, playerId: state.players[0]?.id ?? '' }
 }

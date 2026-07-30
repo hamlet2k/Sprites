@@ -75,6 +75,14 @@ Plan + outcomes live on `SquadState.suggestion` so **live rooms** sync greying f
 
 **Room revision rule:** only a client at the current `state.revision` may push the next one. Stale idle tabs must **adopt** a higher remote revision — never overwrite it with an old plan (see `pushRoom` stale + CAS filter).
 
+### Portable accounts (optional login)
+
+- **Source of truth for sprites:** `user_collections` (per auth user).
+- **Squad seats** are denormalized copies with `Player.userId` linking a seat to an account.
+- On login/join: `resolveUserSeatInSquad` — if already linked by `userId`, load portable collection; if unlinked seats have progress, **prompt to link** (no auto-duplicate); else claim empty seat or create one.
+- Edits by a linked seat write **both** the room and `user_collections`. Other squads pick up changes on join/focus.
+- Guests without accounts keep working with local/room-only seats.
+
 ## Suggestion rules (current behavior)
 
 Implemented in `src/lib/suggest.ts`:
