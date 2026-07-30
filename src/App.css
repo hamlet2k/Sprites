@@ -282,6 +282,43 @@ button {
   min-height: var(--touch);
 }
 
+.player-chip.is-you {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.player-chip .chip-you {
+  margin-left: 4px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.seat-switch-btn {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.seat-readonly-banner {
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--text-muted) 12%, var(--bg-elevated));
+  border: 1px solid var(--border);
+}
+
+.sprite-card-readonly {
+  cursor: default;
+  opacity: 0.92;
+}
+
+.sprite-card-readonly:hover {
+  transform: none;
+}
+
 .lang-select-wrap {
   display: inline-flex;
   align-items: center;

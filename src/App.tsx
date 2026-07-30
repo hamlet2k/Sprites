@@ -39,11 +39,15 @@ import {
   createPlayer,
   exportPlayer,
   exportSquad,
+  freshSquadForCreate,
   getPlayerSprite,
   importSquad,
+  loadActorSeatId,
   loadRoomCode,
   loadSquad,
+  localDraftFromActor,
   parsePlayerImport,
+  saveActorSeatId,
   saveRoomCode,
   saveSquad,
 } from './lib/storage'
@@ -100,13 +104,29 @@ type AppModal =
       user: AuthUser
       candidates: Player[]
     }
+  | {
+      kind: 'choose-seat'
+      reason: 'needed' | 'join'
+    }
 
 const cloudReady = isCloudConfigured()
 
 export default function App() {
   const { t, locale, setLocale, locales } = useI18n()
   const [state, setState] = useState<SquadState>(() => loadSquad())
-  const [selectedPlayerId, setSelectedPlayerId] = useState<string>('')
+  /** This device's seat — only this collection is editable. */
+  const [actorSeatId, setActorSeatIdState] = useState<string | null>(() =>
+    loadActorSeatId(),
+  )
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string>(
+    () => loadActorSeatId() || '',
+  )
+
+  const setActorSeatId = useCallback((id: string | null) => {
+    setActorSeatIdState(id)
+    saveActorSeatId(id)
+    if (id) setSelectedPlayerId(id)
+  }, [])
   const [tab, setTab] = useState<Tab>('collection')
   const [query, setQuery] = useState('')
   const [variantFilter, setVariantFilter] = useState<string>('all')
@@ -211,7 +231,7 @@ export default function App() {
       }
       setState(next)
       stateRef.current = next
-      setSelectedPlayerId(playerId)
+      setActorSeatId(playerId)
       if (roomCode && roomHydrated) {
         // Linked seat must sync to the room
         skipPushRef.current = false
@@ -222,7 +242,7 @@ export default function App() {
         void rememberJoinedSquad(user.id, roomCode, next.name)
       }
     },
-    [bumpEdit, refreshRecentSquads, roomCode, roomHydrated],
+    [bumpEdit, refreshRecentSquads, roomCode, roomHydrated, setActorSeatId],
   )
 
   const applyAuthUser = useCallback(
@@ -313,11 +333,25 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once on mount
   }, [])
 
+  // Ensure we always know who "I" am on this device
   useEffect(() => {
-    if (!selectedPlayerId && state.players[0]) {
-      setSelectedPlayerId(state.players[0].id)
+    const stillHere =
+      actorSeatId && state.players.some((p) => p.id === actorSeatId)
+    if (stillHere) {
+      if (!selectedPlayerId || !state.players.some((p) => p.id === selectedPlayerId)) {
+        setSelectedPlayerId(actorSeatId!)
+      }
+      return
     }
-  }, [state.players, selectedPlayerId])
+    // Actor missing from roster (new room / join) → force seat choice
+    if (state.players.length > 0) {
+      setModal((m) =>
+        m?.kind === 'choose-seat' || m?.kind === 'link-player' || m?.kind === 'password-recovery'
+          ? m
+          : { kind: 'choose-seat', reason: roomCode ? 'join' : 'needed' },
+      )
+    }
+  }, [actorSeatId, state.players, selectedPlayerId, roomCode])
 
   useEffect(() => {
     if (!modal) return
@@ -627,6 +661,10 @@ export default function App() {
     [state.players, selectedPlayerId],
   )
 
+  const isViewingOwnCollection = Boolean(
+    actorSeatId && selectedPlayer?.id === actorSeatId,
+  )
+
   const persistPortableCollection = useCallback(
     (player: Player) => {
       if (!authUser || player.userId !== authUser.id) return
@@ -635,19 +673,64 @@ export default function App() {
     [authUser],
   )
 
-  const updatePlayer = useCallback(
-    (playerId: string, fn: (p: Player) => Player) => {
-      if (interactionLocked) return
+  /** Collection edits (sprites) only allowed on this device's seat. */
+  const updateOwnCollection = useCallback(
+    (fn: (p: Player) => Player) => {
+      if (interactionLocked || !actorSeatId) return
       bumpEdit()
       setState((s) => {
-        const players = s.players.map((p) => (p.id === playerId ? fn(p) : p))
-        const updated = players.find((p) => p.id === playerId)
+        const players = s.players.map((p) => (p.id === actorSeatId ? fn(p) : p))
+        const updated = players.find((p) => p.id === actorSeatId)
         if (updated) persistPortableCollection(updated)
         return { ...s, players }
       })
     },
-    [interactionLocked, bumpEdit, persistPortableCollection],
+    [interactionLocked, bumpEdit, persistPortableCollection, actorSeatId],
   )
+
+  /** Non-collection roster edits (name of any seat, etc.). */
+  const updatePlayer = useCallback(
+    (playerId: string, fn: (p: Player) => Player) => {
+      if (interactionLocked) return
+      bumpEdit()
+      setState((s) => ({
+        ...s,
+        players: s.players.map((p) => (p.id === playerId ? fn(p) : p)),
+      }))
+    },
+    [interactionLocked, bumpEdit],
+  )
+
+  function claimSeat(playerId: string) {
+    const p = stateRef.current.players.find((x) => x.id === playerId)
+    if (!p) return
+    setActorSeatId(playerId)
+    setModal(null)
+    // If logged in, link account to this seat
+    if (authUser) {
+      void applyAuthUser(authUser, { claimPlayerId: playerId })
+    }
+  }
+
+  function claimNewSeat() {
+    const index = stateRef.current.players.length
+    const p = createPlayer(
+      authUser?.displayName || t('squad.playerN', { n: index + 1 }),
+      index,
+      authUser?.id,
+    )
+    bumpEdit()
+    setState((s) => ({ ...s, players: [...s.players, p] }))
+    stateRef.current = {
+      ...stateRef.current,
+      players: [...stateRef.current.players, p],
+    }
+    setActorSeatId(p.id)
+    setModal(null)
+    if (authUser) {
+      void applyAuthUser(authUser, { claimPlayerId: p.id, createNew: true })
+    }
+  }
 
   function setStatusFilterSmart(next: string) {
     setStatusFilter((prev) => (prev === next ? 'all' : next))
@@ -723,8 +806,8 @@ export default function App() {
   }, [selectedPlayer, query, variantFilter, statusFilter, sortMode])
 
   function onSpriteTap(sprite: SpriteEntry) {
-    if (!selectedPlayer) return
-    updatePlayer(selectedPlayer.id, (p) => {
+    if (!isViewingOwnCollection) return
+    updateOwnCollection((p) => {
       const cur = getPlayerSprite(p, sprite.id)
       const next = cyclePlayerSprite(cur, 'status')
       return {
@@ -736,8 +819,8 @@ export default function App() {
 
   function onMasterToggle(sprite: SpriteEntry, e: React.MouseEvent) {
     e.stopPropagation()
-    if (!selectedPlayer) return
-    updatePlayer(selectedPlayer.id, (p) => {
+    if (!isViewingOwnCollection) return
+    updateOwnCollection((p) => {
       const cur = getPlayerSprite(p, sprite.id)
       const next = cyclePlayerSprite(cur, 'mastered')
       return {
@@ -749,8 +832,8 @@ export default function App() {
 
   function onMarkMissing(sprite: SpriteEntry, e: React.MouseEvent) {
     e.stopPropagation()
-    if (!selectedPlayer) return
-    updatePlayer(selectedPlayer.id, (p) => {
+    if (!isViewingOwnCollection) return
+    updateOwnCollection((p) => {
       const cur = getPlayerSprite(p, sprite.id)
       if (cur.status === 'none') return p
       const next = cyclePlayerSprite(cur, 'missing')
@@ -1047,6 +1130,8 @@ export default function App() {
   }
 
   function removePlayer(id: string) {
+    // Never remove this device's seat while still chosen as actor
+    if (id === actorSeatId) return
     const remaining = state.players.filter((p) => p.id !== id)
     setState((s) => ({
       ...s,
@@ -1054,12 +1139,14 @@ export default function App() {
       activePlayerIds: s.activePlayerIds.filter((x) => x !== id),
     }))
     if (selectedPlayerId === id) {
-      setSelectedPlayerId(remaining[0]?.id ?? '')
+      setSelectedPlayerId(actorSeatId ?? remaining[0]?.id ?? '')
     }
     clearSharedSuggestion()
   }
 
   function renamePlayer(id: string, name: string) {
+    // Only rename your own seat (avoids accidental renames of teammates)
+    if (id !== actorSeatId) return
     updatePlayer(id, (p) => ({ ...p, name }))
   }
 
@@ -1077,6 +1164,10 @@ export default function App() {
   }
 
   function doImportPlayer(id: string) {
+    if (id !== actorSeatId) {
+      showInfoModal(t('seat.lockedTitle'), t('seat.lockedImport'), 'info')
+      return
+    }
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'application/json'
@@ -1086,7 +1177,7 @@ export default function App() {
       try {
         const text = await file.text()
         const data = parsePlayerImport(text)
-        updatePlayer(id, (p) => ({
+        updateOwnCollection((p) => ({
           ...p,
           name: data.name || p.name,
           color: data.color ?? p.color,
@@ -1115,8 +1206,10 @@ export default function App() {
 
   async function enterRoomState(code: string, remote: SquadState) {
     let next = remote
-    let playerId = remote.players[0]?.id ?? ''
+    let playerId = ''
     let shouldPush = false
+    let needSeatPick = false
+
     if (authUser) {
       const col = await loadUserCollection(authUser.id)
       const portable = col.ok ? col.data : {}
@@ -1130,6 +1223,7 @@ export default function App() {
         writeRoomToUrl(code)
         setRoomHydrated(true)
         setSyncStatus('synced')
+        if (remote.name) setSquadNameDraft(remote.name)
         setModal({
           kind: 'link-player',
           user: authUser,
@@ -1146,17 +1240,31 @@ export default function App() {
       if (me) void saveUserCollection(authUser.id, me.sprites)
       void rememberJoinedSquad(authUser.id, code, next.name)
       void refreshRecentSquads(authUser.id)
+    } else {
+      // Guest: keep seat if this player id is still in the room
+      const prev = actorSeatId
+      if (prev && remote.players.some((p) => p.id === prev)) {
+        playerId = prev
+      } else {
+        needSeatPick = true
+        playerId = remote.players[0]?.id ?? ''
+      }
     }
+
     skipPushRef.current = !shouldPush
     setState(next)
     stateRef.current = next
-    setSelectedPlayerId(playerId)
+    if (playerId && !needSeatPick) setActorSeatId(playerId)
+    else if (playerId) setSelectedPlayerId(playerId)
     if (next.name) setSquadNameDraft(next.name)
     setRoomCode(code)
     saveRoomCode(code)
     writeRoomToUrl(code)
     setRoomHydrated(true)
     setSyncStatus(shouldPush ? 'saving' : 'synced')
+    if (needSeatPick) {
+      setModal({ kind: 'choose-seat', reason: 'join' })
+    }
   }
 
   async function handleCreateRoom() {
@@ -1164,30 +1272,30 @@ export default function App() {
       setSyncError(t('squad.cloudNotAvailable'))
       return
     }
-    setBusy(true)
-    setSyncError(null)
-    setRoomHydrated(false)
-    let base = state
+    let actor =
+      (actorSeatId && state.players.find((p) => p.id === actorSeatId)) || null
+    if (!actor) {
+      setModal({ kind: 'choose-seat', reason: 'needed' })
+      return
+    }
+    // Logged-in: overlay portable collection onto actor before seeding the room
     if (authUser) {
       const col = await loadUserCollection(authUser.id)
       const portable = col.ok ? col.data : {}
-      const resolved = resolveUserSeatInSquad(state, authUser, portable, {
-        createNew: false,
-      })
-      if (resolved.kind === 'needs_link') {
-        setBusy(false)
-        setRoomHydrated(true)
-        setModal({
-          kind: 'link-player',
-          user: authUser,
-          candidates: resolved.candidates,
-        })
-        return
+      actor = {
+        ...actor,
+        userId: authUser.id,
+        name: actor.name || authUser.displayName,
+        sprites: mergeSpriteMaps(portable, actor.sprites ?? {}),
       }
-      base = resolved.state
+      void saveUserCollection(authUser.id, actor.sprites)
     }
+    setBusy(true)
+    setSyncError(null)
+    setRoomHydrated(false)
     const name = squadNameDraft.trim() || undefined
-    if (name) base = { ...base, name }
+    // Fresh room: only this device's seat + empty slots (no old teammates)
+    const base = freshSquadForCreate(actor, name)
     const result = await createRoom(base, {
       name,
       createdBy: authUser?.id ?? null,
@@ -1205,11 +1313,12 @@ export default function App() {
     skipPushRef.current = true
     setState(result.data.state)
     stateRef.current = result.data.state
-    setSelectedPlayerId(
+    const myId =
       result.data.state.players.find((p) => p.userId === authUser?.id)?.id ??
-        result.data.state.players[0]?.id ??
-        '',
-    )
+      result.data.state.players.find((p) => p.id === actor!.id)?.id ??
+      result.data.state.players[0]?.id ??
+      ''
+    setActorSeatId(myId)
     setRoomCode(result.data.code)
     saveRoomCode(result.data.code)
     writeRoomToUrl(result.data.code)
@@ -1243,12 +1352,21 @@ export default function App() {
   }
 
   function handleLeaveRoom() {
+    // Keep only this device's actor collection locally — drop other seats
+    const draft = localDraftFromActor(stateRef.current, actorSeatId)
+    skipPushRef.current = true
+    setState(draft)
+    stateRef.current = draft
+    if (draft.players[0]) {
+      setActorSeatId(draft.players[0].id)
+    }
     setRoomHydrated(false)
     setRoomCode(null)
     saveRoomCode(null)
     writeRoomToUrl(null)
     setSyncStatus('local')
     setSyncError(null)
+    setSquadNameDraft('')
   }
 
   async function copyShareLink() {
@@ -1410,15 +1528,35 @@ export default function App() {
                 type="button"
                 className={`player-chip ${p.id === selectedPlayer.id ? 'selected' : ''} ${
                   state.activePlayerIds.includes(p.id) ? 'active-play' : ''
-                }`}
+                } ${p.id === actorSeatId ? 'is-you' : 'is-other'}`}
                 style={{ ['--chip-color' as string]: p.color }}
                 onClick={() => setSelectedPlayerId(p.id)}
+                title={
+                  p.id === actorSeatId
+                    ? t('seat.youHint')
+                    : t('seat.viewOnlyHint', { name: p.name })
+                }
               >
                 <span className="dot" />
                 {p.name}
+                {p.id === actorSeatId && (
+                  <span className="chip-you">{t('squad.youBadge')}</span>
+                )}
               </button>
             ))}
+            <button
+              type="button"
+              className="btn btn-sm seat-switch-btn"
+              onClick={() => setModal({ kind: 'choose-seat', reason: 'needed' })}
+            >
+              {t('seat.switch')}
+            </button>
           </div>
+          {!isViewingOwnCollection && (
+            <p className="seat-readonly-banner" role="status">
+              {t('seat.viewingOther', { name: selectedPlayer.name })}
+            </p>
+          )}
 
           <div className="stats-bar" role="toolbar" aria-label={t('collection.statsFilterLabel')}>
             <button
@@ -1567,8 +1705,10 @@ export default function App() {
                     <div
                       key={sprite.id}
                       role="button"
-                      tabIndex={0}
-                      className={`sprite-card status-${st.status} ${st.mastered ? 'mastered' : ''}`}
+                      tabIndex={isViewingOwnCollection ? 0 : -1}
+                      className={`sprite-card status-${st.status} ${st.mastered ? 'mastered' : ''}${
+                        isViewingOwnCollection ? '' : ' sprite-card-readonly'
+                      }`}
                       onClick={() => onSpriteTap(sprite)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
@@ -1577,7 +1717,11 @@ export default function App() {
                         }
                       }}
                       title={
-                        variantBonus ? `${ability}\n+ ${variantBonus}` : ability
+                        isViewingOwnCollection
+                          ? variantBonus
+                            ? `${ability}\n+ ${variantBonus}`
+                            : ability
+                          : t('seat.viewOnlyHint', { name: selectedPlayer.name })
                       }
                     >
                       {st.mastered && (
@@ -1626,30 +1770,32 @@ export default function App() {
                               ? t('status.ready')
                               : t('status.lost')}
                         </span>
-                        <div className="card-actions">
-                          <button
-                            type="button"
-                            className={`card-action-btn missing-btn ${
-                              st.status === 'available' ? 'on' : ''
-                            }`}
-                            onClick={(e) => onMarkMissing(sprite, e)}
-                            title={t('collection.markMissing')}
-                            aria-label={t('collection.markMissing')}
-                            aria-pressed={st.status === 'none'}
-                          >
-                            <DeleteIcon />
-                          </button>
-                          <button
-                            type="button"
-                            className={`card-action-btn master-btn ${st.mastered ? 'on' : ''}`}
-                            onClick={(e) => onMasterToggle(sprite, e)}
-                            title={t('collection.toggleMastered')}
-                            aria-label={t('collection.toggleMastered')}
-                            aria-pressed={st.mastered}
-                          >
-                            <CrownIcon />
-                          </button>
-                        </div>
+                        {isViewingOwnCollection && (
+                          <div className="card-actions">
+                            <button
+                              type="button"
+                              className={`card-action-btn missing-btn ${
+                                st.status === 'available' ? 'on' : ''
+                              }`}
+                              onClick={(e) => onMarkMissing(sprite, e)}
+                              title={t('collection.markMissing')}
+                              aria-label={t('collection.markMissing')}
+                              aria-pressed={st.status === 'none'}
+                            >
+                              <DeleteIcon />
+                            </button>
+                            <button
+                              type="button"
+                              className={`card-action-btn master-btn ${st.mastered ? 'on' : ''}`}
+                              onClick={(e) => onMasterToggle(sprite, e)}
+                              title={t('collection.toggleMastered')}
+                              aria-label={t('collection.toggleMastered')}
+                              aria-pressed={st.mastered}
+                            >
+                              <CrownIcon />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )
@@ -2212,9 +2358,15 @@ export default function App() {
               <input
                 type="text"
                 value={p.name}
+                disabled={p.id !== actorSeatId}
                 onChange={(e) => renamePlayer(p.id, e.target.value)}
+                title={
+                  p.id === actorSeatId
+                    ? undefined
+                    : t('seat.viewOnlyHint', { name: p.name })
+                }
               />
-              {p.userId && authUser?.id === p.userId && (
+              {p.id === actorSeatId && (
                 <span className="you-badge">{t('squad.youBadge')}</span>
               )}
               <div className="player-row-actions">
@@ -2238,8 +2390,12 @@ export default function App() {
                   type="button"
                   className="btn btn-sm btn-danger"
                   onClick={() => requestRemovePlayer(p.id)}
-                  disabled={state.players.length <= 1}
-                  title={t('squad.removeTitle')}
+                  disabled={state.players.length <= 1 || p.id === actorSeatId}
+                  title={
+                    p.id === actorSeatId
+                      ? t('seat.cannotRemoveSelf')
+                      : t('squad.removeTitle')
+                  }
                 >
                   {t('squad.remove')}
                 </button>
@@ -2278,7 +2434,15 @@ export default function App() {
           className="modal-backdrop"
           role="presentation"
           onClick={(e) => {
-            if (e.target === e.currentTarget) setModal(null)
+            if (e.target !== e.currentTarget) return
+            // Must pick a seat if none is valid
+            if (
+              modal.kind === 'choose-seat' &&
+              !(actorSeatId && state.players.some((p) => p.id === actorSeatId))
+            ) {
+              return
+            }
+            setModal(null)
           }}
         >
           <div
@@ -2301,7 +2465,9 @@ export default function App() {
                     ? t('auth.forgotTitle')
                     : modal.kind === 'link-player'
                       ? t('auth.linkTitle')
-                      : modal.title}
+                      : modal.kind === 'choose-seat'
+                        ? t('seat.chooseTitle')
+                        : modal.title}
               </h2>
               <button
                 type="button"
@@ -2312,6 +2478,54 @@ export default function App() {
                 ×
               </button>
             </div>
+
+            {modal.kind === 'choose-seat' && (
+              <>
+                <p className="modal-subtitle">
+                  {modal.reason === 'join'
+                    ? t('seat.chooseJoinBody')
+                    : t('seat.chooseBody')}
+                </p>
+                <div className="link-player-list">
+                  {state.players.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      className="btn link-player-option"
+                      onClick={() => claimSeat(p.id)}
+                    >
+                      <span
+                        className="dot"
+                        style={{ background: p.color, width: 12, height: 12 }}
+                      />
+                      {p.name}
+                      {p.id === actorSeatId && (
+                        <span className="you-badge">{t('squad.youBadge')}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <div className="modal-footer" style={{ flexWrap: 'wrap', gap: 8 }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => claimNewSeat()}
+                  >
+                    {t('seat.createNew')}
+                  </button>
+                  {actorSeatId &&
+                    state.players.some((p) => p.id === actorSeatId) && (
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => setModal(null)}
+                      >
+                        {t('confirm.cancel')}
+                      </button>
+                    )}
+                </div>
+              </>
+            )}
 
             {modal.kind === 'link-player' && (
               <>
@@ -2325,6 +2539,7 @@ export default function App() {
                       onClick={() => {
                         const u = modal.user
                         setModal(null)
+                        setActorSeatId(p.id)
                         void applyAuthUser(u, { claimPlayerId: p.id })
                       }}
                     >

@@ -299,7 +299,8 @@ const en: MessageTree = {
     copyLink: 'Copy share link',
     leaveRoom: 'Leave session',
     status: 'Status:',
-    createHint: "Start a shared session from your current data, or join a teammate's code.",
+    createHint:
+      'Start a new shared session with only your seat (empty slots for friends), or join a teammate’s code.',
     createRoom: 'Start session',
     working: 'Working…',
     roomPlaceholder: 'Session code',
@@ -326,6 +327,22 @@ const en: MessageTree = {
     recentJoin: 'Open',
     unnamedSquad: 'Unnamed squad',
     youBadge: 'You',
+  },
+  seat: {
+    chooseTitle: 'Who are you?',
+    chooseBody:
+      'Pick your seat on this device. You can view others, but only your collection can be edited.',
+    chooseJoinBody:
+      'You joined a session. Choose your seat so we know who you are — collections for other seats stay read-only.',
+    createNew: 'I am a new player',
+    switch: 'Switch seat',
+    youHint: 'Your seat — you can edit this collection',
+    viewOnlyHint: 'Viewing {name} (read-only)',
+    viewingOther:
+      'Viewing {name} — read only. Switch to your seat (or use Switch seat) to edit.',
+    lockedTitle: 'Not your seat',
+    lockedImport: 'You can only import into your own seat.',
+    cannotRemoveSelf: 'Switch seat first if you need to remove this player.',
   },
   deletePlayer: {
     title: 'Remove player?',

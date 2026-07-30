@@ -2,6 +2,8 @@ import type { Player, PlayerSpriteState, SquadState } from '../types'
 
 const KEY = 'fortnite-sprite-squad-v1'
 const ROOM_KEY = 'fortnite-sprite-squad-room-v1'
+/** This device's chosen seat (guest or linked account). */
+const ACTOR_KEY = 'fortnite-sprite-squad-actor-v1'
 
 const COLORS = ['#5b8def', '#f0a030', '#3ecf8e', '#e85d75', '#b48ef0', '#4ecdc4']
 
@@ -65,6 +67,76 @@ export function saveRoomCode(code: string | null): void {
     else localStorage.removeItem(ROOM_KEY)
   } catch {
     /* ignore quota / private mode */
+  }
+}
+
+export function loadActorSeatId(): string | null {
+  try {
+    return localStorage.getItem(ACTOR_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function saveActorSeatId(id: string | null): void {
+  try {
+    if (id) localStorage.setItem(ACTOR_KEY, id)
+    else localStorage.removeItem(ACTOR_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Empty filler seats for a local draft or new room (not the actor). */
+export function makeEmptySeats(count: number, startIndex: number): Player[] {
+  const out: Player[] = []
+  for (let i = 0; i < count; i++) {
+    out.push(createPlayer(`Player ${startIndex + i + 1}`, startIndex + i))
+  }
+  return out
+}
+
+/**
+ * After leaving a session: keep only this device's actor collection locally.
+ * Drops other seats' data so the next "create session" does not re-upload them.
+ */
+export function localDraftFromActor(
+  state: SquadState,
+  actorId: string | null,
+): SquadState {
+  const actor =
+    (actorId && state.players.find((p) => p.id === actorId)) ||
+    state.players[0]
+  if (!actor) return emptySquad()
+  const me: Player = {
+    ...actor,
+    sprites: { ...(actor.sprites ?? {}) },
+  }
+  return {
+    players: [me, ...makeEmptySeats(3, 1)],
+    activePlayerIds: [],
+    // no shared plan / revision outside a room
+  }
+}
+
+/**
+ * New shared session seed: actor only + empty seats (no old teammates).
+ */
+export function freshSquadForCreate(
+  actor: Player,
+  squadName?: string,
+): SquadState {
+  const me: Player = {
+    id: actor.id,
+    name: actor.name,
+    color: actor.color,
+    sprites: { ...(actor.sprites ?? {}) },
+    ...(actor.userId ? { userId: actor.userId } : {}),
+  }
+  return {
+    players: [me, ...makeEmptySeats(3, 1)],
+    activePlayerIds: [],
+    ...(squadName?.trim() ? { name: squadName.trim() } : {}),
   }
 }
 

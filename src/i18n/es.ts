@@ -310,7 +310,7 @@ const es: MessageTree = {
     leaveRoom: 'Salir de la sesión',
     status: 'Estado:',
     createHint:
-      'Inicia una sesión compartida con tus datos actuales, o únete al código de un compañero.',
+      'Inicia una sesión nueva solo con tu asiento (huecos vacíos para amigos), o únete al código de un compañero.',
     createRoom: 'Crear escuadra',
     working: 'Trabajando…',
     roomPlaceholder: 'Código de sesión',
@@ -339,6 +339,22 @@ const es: MessageTree = {
     recentJoin: 'Abrir',
     unnamedSquad: 'Escuadra sin nombre',
     youBadge: 'Tú',
+  },
+  seat: {
+    chooseTitle: '¿Quién eres?',
+    chooseBody:
+      'Elige tu asiento en este dispositivo. Puedes ver a los demás, pero solo se edita tu colección.',
+    chooseJoinBody:
+      'Te uniste a una sesión. Elige tu asiento para saber quién eres: las colecciones de los demás son solo lectura.',
+    createNew: 'Soy un jugador nuevo',
+    switch: 'Cambiar asiento',
+    youHint: 'Tu asiento — puedes editar esta colección',
+    viewOnlyHint: 'Viendo a {name} (solo lectura)',
+    viewingOther:
+      'Viendo a {name} — solo lectura. Cambia a tu asiento (o usa Cambiar asiento) para editar.',
+    lockedTitle: 'No es tu asiento',
+    lockedImport: 'Solo puedes importar en tu propio asiento.',
+    cannotRemoveSelf: 'Cambia de asiento primero si necesitas eliminar a este jugador.',
   },
   deletePlayer: {
     title: '¿Eliminar jugador?',

@@ -75,13 +75,14 @@ Plan + outcomes live on `SquadState.suggestion` so **live rooms** sync greying f
 
 **Room revision rule:** only a client at the current `state.revision` may push the next one. Stale idle tabs must **adopt** a higher remote revision — never overwrite it with an old plan (see `pushRoom` stale + CAS filter).
 
-### Portable accounts (optional login)
+### Portable accounts + forced seat (local actor)
 
-- **Source of truth for sprites:** `user_collections` (per auth user).
-- **Squad seats** are denormalized copies with `Player.userId` linking a seat to an account.
-- On login/join: `resolveUserSeatInSquad` — if already linked by `userId`, load portable collection; if unlinked seats have progress, **prompt to link** (no auto-duplicate); else claim empty seat or create one.
-- Edits by a linked seat write **both** the room and `user_collections`. Other squads pick up changes on join/focus.
-- Guests without accounts keep working with local/room-only seats.
+- Every device must choose a **seat** (`actorSeatId` in localStorage). Only that seat’s **collection** is editable; others are view-only.
+- **Source of truth for sprites (logged in):** `user_collections`. Guests: local actor seat only.
+- **Create session:** seeds room with **actor only + empty seats** (not the previous full roster).
+- **Leave session:** stops sync; local draft keeps **only the actor** (+ empty fillers); other seats dropped locally.
+- **Join:** reclaim seat by id / account, else **Who are you?** picker.
+- On login: `resolveUserSeatInSquad` may **prompt to link** an unlinked seat (no auto-duplicate).
 
 ## Suggestion rules (current behavior)
 
