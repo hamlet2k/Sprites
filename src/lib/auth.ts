@@ -116,12 +116,35 @@ export async function recoverSessionFromUrl(): Promise<{
     return { user: null, error: decodeURIComponent(errDesc.replace(/\+/g, ' ')) }
   }
 
+  // Prefer an existing session first (stale ?code= must not fail logged-in users)
+  const { data: sessionData } = await sb.auth.getSession()
+  if (sessionData.session?.user) {
+    if (url.searchParams.has('code') || url.searchParams.has('error')) {
+      stripAuthParamsFromUrl()
+    }
+    const u = sessionData.session.user
+    const { data: profile } = await sb
+      .from('profiles')
+      .select('display_name')
+      .eq('id', u.id)
+      .maybeSingle()
+    return { user: mapUser(u, profile?.display_name), event: 'session' }
+  }
+
   const code = url.searchParams.get('code')
   if (code) {
     const { data, error } = await sb.auth.exchangeCodeForSession(code)
     stripAuthParamsFromUrl()
     if (error) {
-      return { user: null, error: error.message, event: 'exchange_failed' }
+      const msg = error.message || 'Sign-in failed'
+      // Stale OAuth return (tab restore / shared link) — don't spam the Squad page
+      if (
+        /pkce|code verifier|verifier not found/i.test(msg) ||
+        /invalid request|flow state/i.test(msg)
+      ) {
+        return { user: null, event: 'stale_oauth' }
+      }
+      return { user: null, error: msg, event: 'exchange_failed' }
     }
     if (data.user) {
       const { data: profile } = await sb
@@ -129,7 +152,6 @@ export async function recoverSessionFromUrl(): Promise<{
         .select('display_name')
         .eq('id', data.user.id)
         .maybeSingle()
-      // Ensure profile row exists (trigger may lag)
       if (!profile) {
         await sb.from('profiles').upsert({
           id: data.user.id,
@@ -141,19 +163,6 @@ export async function recoverSessionFromUrl(): Promise<{
         event: 'signed_in',
       }
     }
-  }
-
-  // Implicit / hash tokens or already-persisted session
-  const { data: sessionData } = await sb.auth.getSession()
-  if (sessionData.session?.user) {
-    stripAuthParamsFromUrl()
-    const u = sessionData.session.user
-    const { data: profile } = await sb
-      .from('profiles')
-      .select('display_name')
-      .eq('id', u.id)
-      .maybeSingle()
-    return { user: mapUser(u, profile?.display_name), event: 'session' }
   }
 
   return { user: null }
@@ -332,6 +341,23 @@ export async function rememberJoinedSquad(
     room_name: roomName ?? null,
     last_joined_at: new Date().toISOString(),
   })
+}
+
+/** Update the display name on recent-squad list without changing last_joined_at. */
+export async function updateRecentSquadName(
+  userId: string,
+  roomCode: string,
+  roomName: string | null,
+): Promise<CloudResult<true>> {
+  const sb = getSupabase()
+  if (!sb) return { ok: false, error: 'Cloud is not configured.' }
+  const { error } = await sb
+    .from('user_squads')
+    .update({ room_name: roomName })
+    .eq('user_id', userId)
+    .eq('room_code', roomCode)
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, data: true }
 }
 
 export async function listRecentSquads(

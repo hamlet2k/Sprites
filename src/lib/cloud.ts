@@ -34,7 +34,9 @@ export function getSupabase(): SupabaseClient | null {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: true,
+        // We handle ?code= ourselves in recoverSessionFromUrl to avoid double exchange
+        // (which causes "PKCE code verifier not found").
+        detectSessionInUrl: false,
         flowType: 'pkce',
         storage: typeof window !== 'undefined' ? window.localStorage : undefined,
       },

@@ -18,6 +18,7 @@ import {
   saveUserCollection,
   signOut,
   updatePassword,
+  updateRecentSquadName,
   type AuthUser,
   type RecentSquad,
 } from './lib/auth'
@@ -301,7 +302,7 @@ export default function App() {
     void (async () => {
       const recovered = await recoverSessionFromUrl()
       if (cancelled) return
-      if (recovered.error) {
+      if (recovered.error && recovered.event !== 'stale_oauth') {
         setSyncError(recovered.error)
       }
       if (recovered.user) {
@@ -1351,6 +1352,21 @@ export default function App() {
     await enterRoomState(code, result.data)
   }
 
+  async function saveSquadName() {
+    if (!roomCode) return
+    const name = squadNameDraft.trim() || undefined
+    bumpEdit()
+    setState((s) => {
+      const next = { ...s, name }
+      stateRef.current = next
+      return next
+    })
+    if (authUser) {
+      await updateRecentSquadName(authUser.id, roomCode, name ?? null)
+      await refreshRecentSquads(authUser.id)
+    }
+  }
+
   function handleLeaveRoom() {
     // Keep only this device's actor collection locally — drop other seats
     const draft = localDraftFromActor(stateRef.current, actorSeatId)
@@ -2224,25 +2240,29 @@ export default function App() {
                   {t('squad.roomCode')} <strong className="room-code">{roomCode}</strong>
                 </p>
                 <p className="muted">{t('squad.roomHint')}</p>
-                <label className="squad-name-field">
-                  <span>{t('squad.squadName')}</span>
-                  <input
-                    type="text"
-                    className="squad-name-input"
-                    value={squadNameDraft}
-                    onChange={(e) => {
-                      const name = e.target.value
-                      setSquadNameDraft(name)
-                      bumpEdit()
-                      setState((s) => ({
-                        ...s,
-                        name: name.trim() || undefined,
-                      }))
-                    }}
-                    placeholder={t('squad.squadNamePlaceholder')}
-                    maxLength={48}
-                  />
-                </label>
+                <div className="squad-name-row">
+                  <label className="squad-name-field">
+                    <span>{t('squad.squadName')}</span>
+                    <input
+                      type="text"
+                      className="squad-name-input"
+                      value={squadNameDraft}
+                      onChange={(e) => setSquadNameDraft(e.target.value)}
+                      placeholder={t('squad.squadNamePlaceholder')}
+                      maxLength={48}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    disabled={
+                      (squadNameDraft.trim() || '') === (state.name?.trim() || '')
+                    }
+                    onClick={() => void saveSquadName()}
+                  >
+                    {t('squad.updateName')}
+                  </button>
+                </div>
                 <div className="header-actions" style={{ marginTop: 10 }}>
                   <button type="button" className="btn btn-primary" onClick={() => void copyShareLink()}>
                     {t('squad.copyLink')}
@@ -2759,6 +2779,25 @@ export default function App() {
               <li>{t('help.start4')}</li>
               <li>{t('help.start5')}</li>
             </ol>
+          </section>
+
+          <section className="help-section">
+            <h3>{t('help.seatsTitle')}</h3>
+            <ul>
+              <li>{t('help.seats1')}</li>
+              <li>{t('help.seats2')}</li>
+              <li>{t('help.seats3')}</li>
+            </ul>
+          </section>
+
+          <section className="help-section">
+            <h3>{t('help.accountTitle')}</h3>
+            <ul>
+              <li>{t('help.account1')}</li>
+              <li>{t('help.account2')}</li>
+              <li>{t('help.account3')}</li>
+              <li>{t('help.account4')}</li>
+            </ul>
           </section>
 
           <section className="help-section">

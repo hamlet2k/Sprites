@@ -1795,6 +1795,34 @@ button {
   outline-offset: 1px;
 }
 
+.squad-name-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.squad-name-row .squad-name-field {
+  margin-top: 10px;
+  flex: 1 1 160px;
+}
+
+.active-select {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.active-select label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .error-text {
   color: var(--danger);
   font-size: 0.85rem;

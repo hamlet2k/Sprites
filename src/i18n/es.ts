@@ -333,6 +333,7 @@ const es: MessageTree = {
       'Las sesiones compartidas no están disponibles en esta versión.',
     squadName: 'Nombre de escuadra',
     squadNamePlaceholder: 'Alias opcional (p. ej. Viernes noche)',
+    updateName: 'Actualizar nombre',
     recentTitle: 'Escuadras recientes',
     recentEmpty:
       'Aún no hay escuadras recientes. Únete o crea una sesión con la cuenta iniciada.',
@@ -401,15 +402,33 @@ const es: MessageTree = {
 
     startTitle: 'Empezar (primera vez)',
     start1:
-      'Abre la pestaña Escuadra. Pon el nombre de cada jugador (añade o quita gente si hace falta).',
+      'Elige tu asiento cuando te lo pida (“¿Quién eres?”). Solo se puede editar la colección de ese asiento.',
     start2:
-      'Opcional: crea una sala y comparte el enlace o el código para que todos vean la misma lista en el móvil.',
+      'Abre Colección. Con tu asiento seleccionado, toca los espíritus para marcar Listo / Perdido / Falta / Maestría.',
     start3:
-      'Abre Colección. Elige un jugador y toca los espíritus para marcar lo que tiene.',
+      'Opcional: inicia sesión (email, Google o Discord) para que tu colección te acompañe entre escuadras.',
     start4:
-      'Cuando hagáis cola, abre Intercambios, marca quién entra en esa partida y genera un plan.',
+      'Pestaña Escuadra: inicia una sesión (solo se sube tu asiento) o únete a un código. Comparte el enlace con amigos.',
     start5:
-      'Después de la partida, confirma solo los trueques que de verdad ocurrieron.',
+      'Cuando hagáis cola, abre Intercambios, marca a todos los de esa partida (sin límite de jugadores) y genera un plan. Confirma los trueques al terminar.',
+
+    seatsTitle: 'Tu asiento (importante)',
+    seats1:
+      'Cada dispositivo elige un asiento. Puedes ver las colecciones de los demás, pero solo editas la tuya — así se evitan cambios accidentales.',
+    seats2:
+      'Usa Cambiar asiento si necesitas ser otro jugador en este dispositivo (poco frecuente).',
+    seats3:
+      'Salir de una sesión deja solo tu asiento en local. Crear una sesión nueva empieza contigo + huecos vacíos, no con la escuadra anterior completa.',
+
+    accountTitle: 'Cuenta opcional',
+    account1:
+      'Entra desde la cabecera (email / Google / Discord). Los invitados pueden usar la app sin cuenta.',
+    account2:
+      'Con sesión iniciada, tu colección se guarda en la cuenta. Al unirte a otra escuadra se reutiliza en tu asiento vinculado.',
+    account3:
+      'Si la escuadra ya tiene jugadores sin vincular con progreso, te preguntará cuál eres para no crear un duplicado.',
+    account4:
+      'Las escuadras recientes aparecen en Escuadra para reabrirlas rápido.',
 
     statusesTitle: 'Estados de un espíritu (lo importante)',
     statusMissingTitle: 'Falta',
@@ -426,18 +445,19 @@ const es: MessageTree = {
 
     collectionTitle: 'Actualizar la colección',
     collectionP1:
-      'En Colección, elige un jugador arriba. Toca una carta para alternar Listo ↔ Perdido. Si estaba en Falta, el primer toque lo pone Listo.',
+      'En Colección, quédate en tu asiento (marca Tú). Toca una carta para alternar Listo ↔ Perdido. Si estaba en Falta, el primer toque lo pone Listo.',
     collectionP2:
       'Usa el botón de círculo tachado si necesitas marcarlo otra vez como Falta (error, o en realidad no lo tenía).',
     collectionP3:
-      'Usa la búsqueda y los filtros si la lista es larga. Reordena jugadores en Escuadra si quieres otra orden en las fichas.',
+      'Puedes tocar la ficha de otro jugador para ver su colección (solo lectura). Usa búsqueda y filtros si la lista es larga.',
 
     matchTitle: 'Antes y después de una partida',
     matchBeforeTitle: 'Antes de entrar',
-    matchBefore1: 'Ve a Intercambios y marca quién juega esta partida.',
+    matchBefore1:
+      'Ve a Intercambios y marca a todos los de esa partida (sin límite de cantidad).',
     matchBefore2: 'Pulsa Generar plan de intercambios.',
     matchBefore3:
-      'Lee cada partida: quién trae qué espíritu → quién lo recibe. Hasta 4 huecos por jugador.',
+      'Lee cada hueco: quién trae qué espíritu → quién lo recibe. Hasta 4 huecos por jugador.',
     matchAfterTitle: 'Después de la partida',
     matchAfter1:
       'Marca cada trueque que salió bien (uno a uno, o los restantes de una partida).',
@@ -458,11 +478,11 @@ const es: MessageTree = {
 
     shareTitle: 'Jugar con amigos en la misma lista',
     share1:
-      'Pestaña Escuadra → Iniciar sesión. Copia el enlace (o diles el código de sesión).',
+      'Pestaña Escuadra → Crear escuadra (nombre opcional; luego Actualizar nombre). Copia el enlace o el código.',
     share2:
-      'Los amigos abren el enlace, o escriben el código y pulsan Unirse. Todos editan las mismas colecciones en vivo.',
+      'Los amigos abren el enlace, eligen su asiento y comparten la misma lista en vivo. Cada uno solo edita su asiento.',
     share3:
-      'Salir de la sesión deja de sincronizar en tu dispositivo; la copia local se queda. Luego puedes unirte a otro código.',
+      'Salir de la sesión deja de sincronizar; solo tu asiento se queda en el dispositivo. Puedes unirte a otro código (con cuenta verás Escuadras recientes).',
     shareNote:
       'Si en esta versión no hay sesiones compartidas, usa Exportar / Importar archivos para compartir los datos.',
 

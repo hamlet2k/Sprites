@@ -322,6 +322,7 @@ const en: MessageTree = {
     cloudNotAvailable: 'Shared sessions are not available on this build.',
     squadName: 'Squad name',
     squadNamePlaceholder: 'Optional alias (e.g. Friday Night)',
+    updateName: 'Update name',
     recentTitle: 'Recent squads',
     recentEmpty: 'No recent squads yet. Join or start a session while signed in.',
     recentJoin: 'Open',
@@ -389,15 +390,33 @@ const en: MessageTree = {
 
     startTitle: 'Quick start (first time)',
     start1:
-      'Open the Squad tab. Rename the players to your squad (and add or remove people if needed).',
+      'Choose your seat when asked (“Who are you?”). That seat is the only collection you can edit.',
     start2:
-      'Optional: create a room and share the link or code so everyone sees the same list on their phone.',
+      'Open Collection. With your seat selected, tap sprites to mark Ready / Lost / Missing / Mastered.',
     start3:
-      'Open Collection. Pick a player, then tap sprites to mark what they have.',
+      'Optional: sign in (email, Google, or Discord) so your collection follows you across squads.',
     start4:
-      'When you queue up, open Suggest, check who is in this match, and generate a plan.',
+      'Squad tab: start a session (only your seat is uploaded) or join a code. Share the link with friends.',
     start5:
-      'After the match, confirm only the trades that actually happened.',
+      'When you queue up, open Exchanges, tick everyone in this match (any number of players), and generate a plan. Confirm trades after the match.',
+
+    seatsTitle: 'Your seat (important)',
+    seats1:
+      'Every device picks one seat. You can view teammates’ collections, but only your seat is editable — this avoids accidental changes.',
+    seats2:
+      'Use Switch seat if you need to become a different player on this device (rare).',
+    seats3:
+      'Leaving a session keeps only your seat locally. Starting a new session seeds the room with you + empty slots, not the last full roster.',
+
+    accountTitle: 'Optional account',
+    account1:
+      'Sign in from the header (email / Google / Discord). Guests still work fine without an account.',
+    account2:
+      'When signed in, your collection is saved to your account. Joining another squad reuses it on your linked seat.',
+    account3:
+      'If the squad already has unlinked players with progress, you will be asked which seat is you so we do not create a duplicate.',
+    account4:
+      'Recent squads appear on the Squad tab so you can reopen them quickly.',
 
     statusesTitle: 'Sprite statuses (the important bit)',
     statusMissingTitle: 'Missing',
@@ -414,18 +433,19 @@ const en: MessageTree = {
 
     collectionTitle: 'Updating the collection',
     collectionP1:
-      'In Collection, choose a player at the top. Tap a sprite card to switch Ready ↔ Lost. If it was Missing, the first tap sets it to Ready.',
+      'In Collection, stay on your seat (marked You). Tap a sprite card to switch Ready ↔ Lost. If it was Missing, the first tap sets it to Ready.',
     collectionP2:
       'Use the crossed-circle button on a card if you need to mark it Missing again (mistake, or never really owned).',
     collectionP3:
-      'Use search and filters if the grid feels long. Reorder players in Squad if you want the chips in a different order.',
+      'You can tap another player’s chip to view their collection (read-only). Use search and filters if the grid feels long.',
 
     matchTitle: 'Before and after a match',
     matchBeforeTitle: 'Before you drop',
-    matchBefore1: 'Go to Suggest and tick who is playing this game.',
-    matchBefore2: 'Tap Generate (or Suggest in the header).',
+    matchBefore1:
+      'Go to Exchanges and tick everyone playing this game (no limit on how many).',
+    matchBefore2: 'Tap Generate Exchange Plan.',
     matchBefore3:
-      'Read each round: who brings which sprite → who receives it. Up to 4 bring slots per player.',
+      'Read each match slot: who brings which sprite → who receives it. Up to 4 bring slots per player.',
     matchAfterTitle: 'After the match',
     matchAfter1:
       'Confirm each trade that worked (one by one, or confirm remaining in a round).',
@@ -446,11 +466,11 @@ const en: MessageTree = {
 
     shareTitle: 'Playing with friends on the same list',
     share1:
-      'Squad tab → Create room. Copy the share link (or tell them the room code).',
+      'Squad tab → Start session (optional squad name + Update name later). Copy the share link or code.',
     share2:
-      'Friends open the link, or type the code and Join. Everyone edits the same collections live.',
+      'Friends open the link, choose their seat, and everyone shares the same list live. Each person only edits their own seat.',
     share3:
-      'Leave room stops syncing on your device; your local copy stays. You can join another code later.',
+      'Leave session stops syncing; only your seat stays on this device. Join another code anytime (signed-in users see Recent squads).',
     shareNote:
       'If live rooms are not available on this build, use Export / Import files instead to share data.',
 

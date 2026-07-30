@@ -25,14 +25,14 @@ export function createPlayer(
   }
 }
 
+/** Default roster size (who can be ticked for Exchanges). Add more anytime via Squad. */
+export const DEFAULT_SQUAD_SEATS = 8
+
 export function emptySquad(): SquadState {
   return {
-    players: [
-      createPlayer('Player 1', 0),
-      createPlayer('Player 2', 1),
-      createPlayer('Player 3', 2),
-      createPlayer('Player 4', 3),
-    ],
+    players: Array.from({ length: DEFAULT_SQUAD_SEATS }, (_, i) =>
+      createPlayer(`Player ${i + 1}`, i),
+    ),
     activePlayerIds: [],
   }
 }
@@ -113,7 +113,7 @@ export function localDraftFromActor(
     sprites: { ...(actor.sprites ?? {}) },
   }
   return {
-    players: [me, ...makeEmptySeats(3, 1)],
+    players: [me, ...makeEmptySeats(DEFAULT_SQUAD_SEATS - 1, 1)],
     activePlayerIds: [],
     // no shared plan / revision outside a room
   }
@@ -134,7 +134,7 @@ export function freshSquadForCreate(
     ...(actor.userId ? { userId: actor.userId } : {}),
   }
   return {
-    players: [me, ...makeEmptySeats(3, 1)],
+    players: [me, ...makeEmptySeats(DEFAULT_SQUAD_SEATS - 1, 1)],
     activePlayerIds: [],
     ...(squadName?.trim() ? { name: squadName.trim() } : {}),
   }
