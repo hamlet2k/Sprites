@@ -95,16 +95,72 @@ They can also type the **room code** under Squad → Join.
 
 ---
 
+## 4. Optional login (email, Google, Discord)
+
+Login is **optional**. Guests can still use rooms by code. Signed-in users keep a **portable collection** across squads and see **recent squads**.
+
+### 4a. Re-run schema
+
+In Supabase **SQL Editor**, run the full updated [`supabase/schema.sql`](./supabase/schema.sql) again (safe to re-run). This adds `profiles`, `user_collections`, `user_squads`, and optional `squad_rooms.name`.
+
+### 4b. Auth URLs
+
+Supabase → **Authentication → URL configuration**:
+
+- **Site URL:** your production site, e.g. `https://sprites-amber.vercel.app`
+- **Redirect URLs:** add:
+  - `https://sprites-amber.vercel.app/**`
+  - `http://localhost:5173/**`
+  - Supabase callback (already default): `https://YOUR_PROJECT_REF.supabase.co/auth/v1/callback`
+
+### 4c. Email / password
+
+Supabase → **Authentication → Providers → Email**: enable.  
+Optional: turn off “Confirm email” for easier private-squad signup, or leave it on for production.
+
+### 4d. Google
+
+1. Google Cloud Console → OAuth client (Web).
+2. Authorized redirect URI must be exactly:
+   `https://YOUR_PROJECT_REF.supabase.co/auth/v1/callback`
+3. Supabase → **Authentication → Providers → Google** → enable.
+4. Paste **Client ID** and **Client Secret** into Supabase only.
+
+**Never put the Google Client Secret in the Vite app, `.env` frontend files, or git.**  
+If a secret was pasted into chat or a commit, rotate it in Google Cloud.
+
+### 4e. Discord
+
+1. Discord Developer Portal → OAuth2.
+2. Redirects: `https://YOUR_PROJECT_REF.supabase.co/auth/v1/callback`
+3. Supabase → **Authentication → Providers → Discord** → enable with **Client ID** + **Client Secret**.
+
+Note: Discord’s “Public Key” is for bot interactions, **not** OAuth. Use the OAuth2 **Client Secret** from Discord.
+
+### 4f. App behavior when signed in
+
+- Collection updates for **your** player slot also save to `user_collections`.
+- Joining another room re-applies that collection to your slot.
+- Creating a room can set an optional **squad name**.
+- Recent rooms appear under Squad when signed in.
+
+---
+
 ## Security note
 
-Room codes are the access control (anyone with the link/code can edit).  
+Room codes are the access control for squad rooms (anyone with the link/code can edit).  
 That is fine for a private Fortnite squad. Do not put passwords or personal data in the app.
+
+**OAuth client secrets** belong only in the Supabase dashboard (server-side). They must not appear in the frontend bundle.
 
 ---
 
 ## Checklist
 
 - [ ] Supabase project created  
-- [ ] `schema.sql` executed  
+- [ ] `schema.sql` executed (including auth tables)  
 - [ ] Site deployed with both env vars  
 - [ ] Create room + share link works on a second phone  
+- [ ] (Optional) Email / Google / Discord providers configured in Supabase  
+- [ ] Redirect URLs include production + localhost  
+

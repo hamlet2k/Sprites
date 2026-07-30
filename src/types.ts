@@ -15,6 +15,11 @@ export interface Player {
   color: string
   /** spriteId -> state */
   sprites: Record<string, PlayerSpriteState>
+  /**
+   * When set, this slot is linked to a logged-in Supabase user.
+   * Their portable collection is the source of truth across squads.
+   */
+  userId?: string
 }
 
 /** How a planned exchange was resolved after a match. */
@@ -47,6 +52,8 @@ export interface SquadState {
   revision?: number
   /** Current shared bring/gift plan and resolved exchanges (room-synced). */
   suggestion?: SharedSuggestion
+  /** Optional squad display name / alias (synced with the room). */
+  name?: string
 }
 
 export type SuggestionKind = 'gift' | 'repurchase' | 'mastery'

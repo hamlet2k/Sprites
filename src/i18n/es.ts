@@ -6,6 +6,37 @@ const es: MessageTree = {
     suggest: 'Intercambios',
     support: 'Apoyar',
     supportTitle: 'Propina opcional en Ko-fi — se abre en una pestaña nueva',
+    account: 'Cuenta',
+    signIn: 'Entrar',
+    signOut: 'Salir',
+  },
+  auth: {
+    loginTitle: 'Iniciar sesión',
+    signupTitle: 'Crear cuenta',
+    forgotTitle: 'Restablecer contraseña',
+    optionalNote:
+      'Opcional. Inicia sesión para conservar tu colección al cambiar de escuadra y reabrir escuadras recientes.',
+    google: 'Continuar con Google',
+    discord: 'Continuar con Discord',
+    orEmail: 'o con email',
+    email: 'Email',
+    password: 'Contraseña',
+    displayName: 'Nombre visible',
+    displayNamePlaceholder: 'Cómo te ven los compañeros',
+    login: 'Entrar',
+    signup: 'Crear cuenta',
+    sendReset: 'Enviar enlace',
+    working: 'Espera…',
+    forgotLink: '¿Olvidaste la contraseña?',
+    needAccount: 'Crear una cuenta',
+    haveAccount: '¿Ya tienes cuenta? Entrar',
+    backToLogin: 'Volver a iniciar sesión',
+    checkEmail: 'Revisa tu email para confirmar la cuenta y luego entra.',
+    resetSent: 'Si ese email está registrado, te enviamos un enlace de restablecimiento.',
+    signedInAs: 'Sesión de {name}',
+    newPassword: 'Elige una contraseña nueva',
+    savePassword: 'Guardar contraseña',
+    passwordUpdated: 'Contraseña actualizada. Puedes seguir usando la app.',
   },
   lang: {
     label: 'Idioma',
@@ -46,6 +77,8 @@ const es: MessageTree = {
   },
   effects: {
     family: {
+      'john-wick':
+        'Derribar jugadores revela a otros cercanos. La duración de la marca sube con el nivel (3s → 5s)',
       batman: 'Capa de murciélago — planeo aéreo potenciado',
       water:
         'Regenera escudo para ti y tus compañeros de escuadra mientras estás en el agua',
@@ -74,8 +107,14 @@ const es: MessageTree = {
       grim: 'Los jugadores que te dañan quedan marcados un breve tiempo',
       air: 'Mayor salto y velocidad de esprint; elimina el daño por caída',
       seven: 'Revela las huellas de los oponentes durante unos segundos',
+      ironmouse:
+        'Regenera salud con el tiempo si estás bajo. Mientras regeneras, ganas camuflaje y poca gravedad',
       pollo:
         'Regenera lentamente escudo para ti y tus compañeros tras una eliminación',
+      llama:
+        'Abrir cajas de munición puede mejorar un arma (5% → 20% según nivel)',
+      peely:
+        'Emite un ping de jugadores con espíritus raros cercanos, pero te marca en el mapa',
     },
     variant: {
       gold: '3× XP de bonificación por eliminaciones',
@@ -267,7 +306,7 @@ const es: MessageTree = {
     status: 'Estado:',
     createHint:
       'Inicia una sesión compartida con tus datos actuales, o únete al código de un compañero.',
-    createRoom: 'Iniciar sesión',
+    createRoom: 'Crear escuadra',
     working: 'Trabajando…',
     roomPlaceholder: 'Código de sesión',
     join: 'Unirse a sesión',
@@ -283,10 +322,18 @@ const es: MessageTree = {
     exportFull: 'Exportar escuadra',
     importFull: 'Importar escuadra',
     footer:
-      'El progreso se guarda en este navegador. En una sesión compartida, los cambios se sincronizan para todos. Exportar / Importar por jugador solo toca esa colección.',
+      'El progreso se guarda en este navegador. En una sesión compartida, los cambios se sincronizan para todos. Exportar / Importar por jugador solo toca esa colección. Inicia sesión para llevar tu colección entre escuadras.',
     playerN: 'Jugador {n}',
     cloudNotAvailable:
       'Las sesiones compartidas no están disponibles en esta versión.',
+    squadName: 'Nombre de escuadra',
+    squadNamePlaceholder: 'Alias opcional (p. ej. Viernes noche)',
+    recentTitle: 'Escuadras recientes',
+    recentEmpty:
+      'Aún no hay escuadras recientes. Únete o crea una sesión con la cuenta iniciada.',
+    recentJoin: 'Abrir',
+    unnamedSquad: 'Escuadra sin nombre',
+    youBadge: 'Tú',
   },
   deletePlayer: {
     title: '¿Eliminar jugador?',

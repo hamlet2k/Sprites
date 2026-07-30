@@ -2,6 +2,8 @@
 
 Local-first Fortnite **Chapter 7 Season 3** squad tool for tracking Sprite collections and planning who brings what for trades / extractions.
 
+Optional **accounts** (email, Google, Discord via Supabase Auth) keep your personal collection across squads. Login is never required to use the app.
+
 **Unofficial fan tool.** Not affiliated with, endorsed by, or connected to Epic Games in any way. Fortnite names, assets, and game data belong to Epic Games / their respective owners. This project is free and open source ([MIT](./LICENSE)).
 
 ## Support / donations
@@ -16,7 +18,7 @@ Donations never unlock anything in the app.
 
 ## Features
 
-- **Per-player collection** for all **91** known sprite combinations (21 families × live variants)
+- **Per-player collection** for all live sprite combinations (families × variants; catalog in `src/data/sprites.ts`)
 - Quick in-game updates: tap to toggle **Ready ↔ Lost** (Missing first becomes Ready); **✕** marks Missing
 - Reorder squad members on the Squad tab (Collection chips follow that order)
 - **Mastered** crown toggle (extracted at Level 5)

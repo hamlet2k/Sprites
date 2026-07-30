@@ -6,6 +6,37 @@ const en: MessageTree = {
     suggest: 'Exchanges',
     support: 'Support',
     supportTitle: 'Optional tip on Ko-fi — opens in a new tab',
+    account: 'Account',
+    signIn: 'Sign in',
+    signOut: 'Sign out',
+  },
+  auth: {
+    loginTitle: 'Sign in',
+    signupTitle: 'Create account',
+    forgotTitle: 'Reset password',
+    optionalNote:
+      'Optional. Sign in to keep your collection when you switch squads, and to reopen recent squads.',
+    google: 'Continue with Google',
+    discord: 'Continue with Discord',
+    orEmail: 'or email',
+    email: 'Email',
+    password: 'Password',
+    displayName: 'Display name',
+    displayNamePlaceholder: 'How squad mates see you',
+    login: 'Sign in',
+    signup: 'Create account',
+    sendReset: 'Send reset link',
+    working: 'Please wait…',
+    forgotLink: 'Forgot password?',
+    needAccount: 'Create an account',
+    haveAccount: 'Already have an account? Sign in',
+    backToLogin: 'Back to sign in',
+    checkEmail: 'Check your email to confirm the account, then sign in.',
+    resetSent: 'If that email is registered, a reset link is on the way.',
+    signedInAs: 'Signed in as {name}',
+    newPassword: 'Choose a new password',
+    savePassword: 'Save new password',
+    passwordUpdated: 'Password updated. You can keep using the app.',
   },
   lang: {
     label: 'Language',
@@ -46,6 +77,8 @@ const en: MessageTree = {
   },
   effects: {
     family: {
+      'john-wick':
+        'Knocking players reveals others nearby. Mark duration increases at each Level Up (3s → 5s)',
       batman: 'Bat Cape — boosted midair glide',
       water: 'Replenishes Shield for you and squadmates while in water',
       earth: 'Increased chance to find additional rare items in chests',
@@ -69,8 +102,14 @@ const en: MessageTree = {
       grim: 'Players who damage you become marked for a short duration',
       air: 'Increased jump height and sprint speed; removes fall damage',
       seven: "Reveals opponents' foot trails for a few seconds",
+      ironmouse:
+        'Regenerate health over time when low. While regenerating, gain Cloak and low gravity',
       pollo:
         'Slowly replenishes Shield for you and teammates after an elimination',
+      llama:
+        'Opening ammo boxes has a chance to grant a weapon upgrade (5% → 20% by level)',
+      peely:
+        'Emits a ping for players with rare sprites nearby, but marks you on the map',
     },
     variant: {
       gold: '3× bonus XP from eliminations',
@@ -272,9 +311,16 @@ const en: MessageTree = {
     exportFull: 'Export squad',
     importFull: 'Import squad',
     footer:
-      'Progress is saved in this browser. In a shared session, changes sync for everyone. Per-player Export / Import only touches that one collection.',
+      'Progress is saved in this browser. In a shared session, changes sync for everyone. Per-player Export / Import only touches that one collection. Sign in to keep your personal collection across squads.',
     playerN: 'Player {n}',
     cloudNotAvailable: 'Shared sessions are not available on this build.',
+    squadName: 'Squad name',
+    squadNamePlaceholder: 'Optional alias (e.g. Friday Night)',
+    recentTitle: 'Recent squads',
+    recentEmpty: 'No recent squads yet. Join or start a session while signed in.',
+    recentJoin: 'Open',
+    unnamedSquad: 'Unnamed squad',
+    youBadge: 'You',
   },
   deletePlayer: {
     title: 'Remove player?',

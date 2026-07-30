@@ -9,12 +9,17 @@ export function defaultSpriteState(): PlayerSpriteState {
   return { status: 'none', mastered: false }
 }
 
-export function createPlayer(name: string, index: number): Player {
+export function createPlayer(
+  name: string,
+  index: number,
+  userId?: string,
+): Player {
   return {
     id: crypto.randomUUID(),
     name,
     color: COLORS[index % COLORS.length],
     sprites: {},
+    ...(userId ? { userId } : {}),
   }
 }
 

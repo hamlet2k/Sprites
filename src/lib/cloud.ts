@@ -65,18 +65,26 @@ export type CloudResult<T> =
 
 export async function createRoom(
   state: SquadState,
+  options?: { name?: string; createdBy?: string | null },
 ): Promise<CloudResult<{ code: string; state: SquadState }>> {
   const sb = getSupabase()
   if (!sb) return { ok: false, error: 'Cloud is not configured on this deployment.' }
 
+  const squadName = options?.name?.trim() || state.name?.trim() || undefined
+  const baseState: SquadState = squadName ? { ...state, name: squadName } : { ...state }
+
   for (let i = 0; i < 5; i++) {
     const code = generateRoomCode()
-    const payload = withRevision(state, (state.revision ?? 0) + 1)
-    const { error } = await sb.from('squad_rooms').insert({
+    const payload = withRevision(baseState, (baseState.revision ?? 0) + 1)
+    const row: Record<string, unknown> = {
       code,
       state: payload,
       updated_at: new Date().toISOString(),
-    })
+      name: squadName ?? null,
+    }
+    if (options?.createdBy) row.created_by = options.createdBy
+
+    const { error } = await sb.from('squad_rooms').insert(row)
     if (!error) return { ok: true, data: { code, state: payload } }
     if (error.code !== '23505') {
       return { ok: false, error: error.message }
@@ -96,7 +104,7 @@ export async function fetchRoom(code: string): Promise<CloudResult<SquadState>> 
 
   const { data, error } = await sb
     .from('squad_rooms')
-    .select('state')
+    .select('state, name')
     .eq('code', normalized)
     .maybeSingle()
 
@@ -107,7 +115,13 @@ export async function fetchRoom(code: string): Promise<CloudResult<SquadState>> 
   if (!state?.players?.length) {
     return { ok: false, error: 'Room data is empty or invalid.' }
   }
-  return { ok: true, data: state }
+  // Prefer column name when present; fall back to state.name
+  const roomName =
+    (typeof data.name === 'string' && data.name.trim()) || state.name
+  return {
+    ok: true,
+    data: roomName ? { ...state, name: roomName } : state,
+  }
 }
 
 /**
@@ -169,6 +183,7 @@ export async function pushRoom(
     .update({
       state: payload,
       updated_at: new Date().toISOString(),
+      name: state.name?.trim() || null,
     })
     .eq('code', normalized)
 
@@ -285,10 +300,74 @@ function normalizeSquad(raw: unknown): SquadState | null {
   const s = raw as SquadState
   if (!Array.isArray(s.players) || s.players.length === 0) return null
   return {
-    players: s.players,
+    players: s.players.map((p) => ({
+      ...p,
+      sprites: p.sprites ?? {},
+    })),
     activePlayerIds: Array.isArray(s.activePlayerIds) ? s.activePlayerIds : [],
     revision: typeof s.revision === 'number' ? s.revision : 0,
     // Preserve shared plan + Confirm/Failed/Ignore outcomes for all room clients
     suggestion: s.suggestion,
+    name: typeof s.name === 'string' && s.name.trim() ? s.name.trim() : undefined,
+  }
+}
+
+/**
+ * Ensure a logged-in user has a player slot in the squad, carrying their portable collection.
+ * Returns updated squad + the player id for this user.
+ */
+export function ensureUserPlayerInSquad(
+  state: SquadState,
+  user: { id: string; displayName: string },
+  portableSprites: Record<string, import('../types').PlayerSpriteState>,
+): { state: SquadState; playerId: string } {
+  const existing = state.players.find((p) => p.userId === user.id)
+  if (existing) {
+    const players = state.players.map((p) =>
+      p.userId === user.id
+        ? {
+            ...p,
+            name: p.name || user.displayName,
+            sprites: { ...portableSprites },
+          }
+        : p,
+    )
+    return { state: { ...state, players }, playerId: existing.id }
+  }
+
+  // Reuse an empty default slot if possible
+  const emptySlot = state.players.find(
+    (p) =>
+      !p.userId &&
+      Object.keys(p.sprites ?? {}).length === 0 &&
+      /^Player \d+$/i.test(p.name),
+  )
+  if (emptySlot) {
+    const players = state.players.map((p) =>
+      p.id === emptySlot.id
+        ? {
+            ...p,
+            name: user.displayName,
+            userId: user.id,
+            sprites: { ...portableSprites },
+          }
+        : p,
+    )
+    return { state: { ...state, players }, playerId: emptySlot.id }
+  }
+
+  const index = state.players.length
+  const player = {
+    id: crypto.randomUUID(),
+    name: user.displayName,
+    color: ['#5b8def', '#f0a030', '#3ecf8e', '#e85d75', '#b48ef0', '#4ecdc4'][
+      index % 6
+    ],
+    sprites: { ...portableSprites },
+    userId: user.id,
+  }
+  return {
+    state: { ...state, players: [...state.players, player] },
+    playerId: player.id,
   }
 }

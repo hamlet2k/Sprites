@@ -72,12 +72,22 @@ const SPECIAL_SUMMON: Record<Exclude<Rarity, 'special'>, number> = {
  */
 const FAMILIES: SpriteFamily[] = [
   {
+    id: 'john-wick',
+    name: 'John Wick',
+    rarity: 'mythic',
+    ability:
+      'Knocking players reveals others nearby. Mark duration increases at each Level Up (3s → 5s)',
+    summonCost: 6750,
+    sortOrder: 0,
+    location: 'Found rarely in Sprite Chests',
+  },
+  {
     id: 'batman',
     name: 'Batman',
     rarity: 'mythic',
     ability: 'Bat Cape — boosted midair glide',
     summonCost: 7500,
-    sortOrder: 0,
+    sortOrder: 1,
     location: 'Sprite chests or DC boss duels',
   },
   {
@@ -86,7 +96,7 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'rare',
     ability: 'Replenishes Shield for you and squadmates while in water',
     summonCost: 100,
-    sortOrder: 1,
+    sortOrder: 2,
     location: 'Rivers, beaches, water POIs',
   },
   {
@@ -95,7 +105,7 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'rare',
     ability: 'Increased chance to find additional rare items in chests',
     summonCost: 100,
-    sortOrder: 2,
+    sortOrder: 3,
     location: 'Forests, wooded regions',
   },
   {
@@ -104,7 +114,7 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'rare',
     ability: 'Creates a fire burst after dealing enough damage to an enemy',
     summonCost: 100,
-    sortOrder: 3,
+    sortOrder: 4,
     location: 'Urban areas',
   },
   {
@@ -113,7 +123,7 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'epic',
     ability: 'Emoting or jamming replenishes Shield',
     summonCost: 3000,
-    sortOrder: 4,
+    sortOrder: 5,
     location: 'Cluster Coast / mogul vault',
   },
   {
@@ -122,7 +132,7 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'epic',
     ability: 'Grants cloak for a short duration upon reloading',
     summonCost: 3000,
-    sortOrder: 5,
+    sortOrder: 6,
     location: 'World at nighttime',
   },
   {
@@ -132,7 +142,7 @@ const FAMILIES: SpriteFamily[] = [
     ability:
       'Random item each level-up; at Level 5 explodes with Legendary loot, auto-extracts, resets to 1',
     summonCost: 5000,
-    sortOrder: 6,
+    sortOrder: 7,
     location: 'Storage crates',
   },
   {
@@ -141,7 +151,7 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'epic',
     ability: 'Siphon Health and Shield on elimination',
     summonCost: 3000,
-    sortOrder: 7,
+    sortOrder: 8,
   },
   {
     id: 'punk',
@@ -149,7 +159,7 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'legendary',
     ability: 'At Level 5, can grant infinite ammo buff',
     summonCost: 5000,
-    sortOrder: 8,
+    sortOrder: 9,
   },
   {
     id: 'king',
@@ -157,7 +167,7 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'epic',
     ability: 'Increases Pickaxe damage',
     summonCost: 3000,
-    sortOrder: 9,
+    sortOrder: 10,
   },
   {
     id: 'burnt-peanut',
@@ -165,7 +175,7 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'mythic',
     ability: 'Chance of extra rare loot (sometimes Mythic) on eliminations',
     summonCost: 7500,
-    sortOrder: 10,
+    sortOrder: 11,
     location: 'Relic Chests',
   },
   {
@@ -175,7 +185,7 @@ const FAMILIES: SpriteFamily[] = [
     ability:
       'Sprinting enables damaging slide; slide into enemies boosts reload and fire rate',
     summonCost: 7500,
-    sortOrder: 11,
+    sortOrder: 12,
     location: 'Relic Chests',
   },
   {
@@ -184,7 +194,7 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'mythic',
     ability: 'Shield Bubble Jr. when you use a healing item on yourself',
     summonCost: 7500,
-    sortOrder: 12,
+    sortOrder: 13,
   },
   {
     id: 'fishy',
@@ -192,7 +202,7 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'rare',
     ability: 'Increased swim speed; speed boost after taking damage',
     summonCost: 100,
-    sortOrder: 13,
+    sortOrder: 14,
     location: 'Water and mountainous areas',
   },
   {
@@ -201,7 +211,7 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'epic',
     ability: 'Brief Overdrive when you mantle, hurdle, or wall scramble',
     summonCost: 3000,
-    sortOrder: 14,
+    sortOrder: 15,
     location: 'Soccer pitch POI',
   },
   {
@@ -210,7 +220,7 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'epic',
     ability: 'Shock Rock charge after dealing enough damage (shockwave effect)',
     summonCost: 3000,
-    sortOrder: 15,
+    sortOrder: 16,
     location: 'High / mountainous areas',
   },
   {
@@ -219,7 +229,7 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'legendary',
     ability: 'Increases max Health and Shield',
     summonCost: 5000,
-    sortOrder: 16,
+    sortOrder: 17,
     location: 'After defeating a powerful adversary',
   },
   {
@@ -228,7 +238,7 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'mythic',
     ability: 'Players who damage you become marked for a short duration',
     summonCost: 7500,
-    sortOrder: 17,
+    sortOrder: 18,
   },
   {
     id: 'air',
@@ -236,7 +246,7 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'rare',
     ability: 'Increased jump height and sprint speed; removes fall damage',
     summonCost: 100,
-    sortOrder: 18,
+    sortOrder: 19,
     location: 'High / mountainous areas',
   },
   {
@@ -245,8 +255,18 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'legendary',
     ability: "Reveals opponents' foot trails for a few seconds",
     summonCost: 5000,
-    sortOrder: 19,
+    sortOrder: 20,
     location: 'High / mountainous areas',
+  },
+  {
+    id: 'ironmouse',
+    name: 'Ironmouse',
+    rarity: 'mythic',
+    ability:
+      'Regenerate health over time when low. While regenerating, gain Cloak and low gravity',
+    summonCost: 7500,
+    sortOrder: 21,
+    location: 'Found in Relic Chests',
   },
   {
     id: 'pollo',
@@ -254,8 +274,28 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'mythic',
     ability: "Slowly replenishes Shield for you and teammates after an elimination",
     summonCost: 7500,
-    sortOrder: 20,
+    sortOrder: 22,
     location: 'Primarily trade / player drops',
+  },
+  {
+    id: 'llama',
+    name: 'Llama',
+    rarity: 'legendary',
+    ability:
+      'Opening ammo boxes has a chance to grant a weapon upgrade (5% → 20% by level)',
+    summonCost: 4500,
+    sortOrder: 23,
+    location: 'Found in Relic Chests',
+  },
+  {
+    id: 'peely',
+    name: 'Peely',
+    rarity: 'legendary',
+    ability:
+      'Emits a ping for players with rare sprites nearby, but marks you on the map',
+    summonCost: 4500,
+    sortOrder: 24,
+    location: 'Spotted near high and mountainous areas',
   },
 ]
 
@@ -292,6 +332,9 @@ const FAMILY_VARIANTS: Record<string, Partial<Record<Variant, number>>> = {
     gold: 0.000041,
     gummy: 0.000031,
     galaxy: 0.000016,
+    cube: 0.000005,
+    holofoil: 0.000008,
+    quack: 0.00001,
   },
   fishy: { base: 13.79, gold: 0.75, gummy: 0.62, galaxy: 0.5, cube: 0.01 },
   striker: { base: 6.98, gold: 0.31, gummy: 0.23, galaxy: 0.12, holofoil: 0.05 },
@@ -303,14 +346,35 @@ const FAMILY_VARIANTS: Record<string, Partial<Record<Variant, number>>> = {
     gummy: 0.008,
     galaxy: 0.005,
     cube: 0.001,
+    holofoil: 0.0005,
+    gem: 0.0004,
   },
   air: { base: 10, gold: 0.75, gummy: 0.62, galaxy: 0.5, holofoil: 0.25 },
   seven: { base: 6.98, gold: 0.31, gummy: 0.23, galaxy: 0.12, holofoil: 0.05 },
+  ironmouse: { base: 0.08 },
   pollo: { base: 0.05 },
+  llama: {
+    base: 0.4,
+    gold: 0.02,
+    gummy: 0.015,
+    galaxy: 0.008,
+    gem: 0.005,
+  },
+  peely: {
+    base: 0.4,
+    gold: 0.02,
+    gummy: 0.015,
+    galaxy: 0.008,
+    holofoil: 0.004,
+  },
+  'john-wick': { base: 0.12 },
 }
 
 /** Icon file names on fortnite.gg (released variants only). */
 const ICONS: Record<string, Partial<Record<Variant, string>>> = {
+  'john-wick': {
+    base: 'T_Icon_Reload_FillerGrunt_icon_L.webp',
+  },
   batman: {
     base: 'T_Icon_BR_FossilMeal_Default_L.webp',
     gold: 'T_Icon_BR_FossilMeal_Gold_L.webp',
@@ -392,6 +456,9 @@ const ICONS: Record<string, Partial<Record<Variant, string>>> = {
     gold: 'T_Icon_BR_Creature_Sprite_ZeroPoint_Gold_ui_L.webp',
     gummy: 'T_Icon_BR_Creature_Sprite_ZeroPoint_Candy_ui_L.webp',
     galaxy: 'T_Icon_BR_Creature_Sprite_ZeroPoint_Galaxy_ui_L.webp',
+    cube: 'T_Icon_BR_Creature_Sprite_ZeroPoint_Cube_ui_L.webp',
+    holofoil: 'T_Icon_BR_Creature_Sprite_ZeroPoint_Holofoil_ui_L.webp',
+    quack: 'T_Icon_BR_Creature_Sprite_ZeroPoint_Quack_ui_L.webp',
   },
   fishy: {
     base: 'T_Icon_BR_Creature_Sprite_Fishy_ui_L.webp',
@@ -426,6 +493,8 @@ const ICONS: Record<string, Partial<Record<Variant, string>>> = {
     gummy: 'T_Icon_BR_GrimReaper_Candy_L.webp',
     galaxy: 'T_Icon_BR_GrimReaper_Galaxy_L.webp',
     cube: 'T_Icon_BR_GrimReaper_Cube_L.webp',
+    holofoil: 'T_Icon_BR_GrimReaper_Holofoil_L.webp',
+    gem: 'T_Icon_BR_GrimReaper_Gem_L.webp',
   },
   air: {
     base: 'T_Icon_BR_Air_Default_L.webp',
@@ -441,8 +510,25 @@ const ICONS: Record<string, Partial<Record<Variant, string>>> = {
     galaxy: 'T_Icon_BR_Creature_Sprite_Seven_Galaxy_ui_L.webp',
     holofoil: 'T_Icon_BR_Creature_Sprite_Seven_Holofoil_ui_L.webp',
   },
+  ironmouse: {
+    base: 'T_Icon_BR_PedicureAntacid_L.webp',
+  },
   pollo: {
     base: 'T_Icon_BR_CompanyStargazer_Default_L.webp',
+  },
+  llama: {
+    base: 'T_Icon_BR_Creature_Sprite_Llama_ui_L.webp',
+    gold: 'T_Icon_BR_Creature_Sprite_Llama_Gold_ui_L.webp',
+    gummy: 'T_Icon_BR_Creature_Sprite_Llama_Candy_ui_L.webp',
+    galaxy: 'T_Icon_BR_Creature_Sprite_Llama_Galaxy_ui_L.webp',
+    gem: 'T_Icon_BR_Creature_Sprite_Llama_Gem_ui_L.webp',
+  },
+  peely: {
+    base: 'T_Icon_BR_Creature_Sprite_Peely_ui_L.webp',
+    gold: 'T_Icon_BR_Creature_Sprite_Peely_Gold_ui_L.webp',
+    gummy: 'T_Icon_BR_Creature_Sprite_Peely_Candy_ui_L.webp',
+    galaxy: 'T_Icon_BR_Creature_Sprite_Peely_Galaxy_ui_L.webp',
+    holofoil: 'T_Icon_BR_Creature_Sprite_Peely_Holofoil_ui_L.webp',
   },
 }
 

@@ -9,6 +9,7 @@ Read this file when starting or resuming work on this repo. It keeps sessions on
 - Track **Sprite** ownership per player (Missing / Ready / Lost + Mastered).
 - Generate a **bring / gift plan** for the next match (who brings what → who receives).
 - Optional **live room** sync via Supabase so teammates share one collection.
+- Optional **login** (Supabase Auth: email, Google, Discord) for portable personal collections + recent squads.
 - **Not** a game mod — lobby / between-match utility only.
 
 Repo: `https://github.com/hamlet2k/Sprites`  
@@ -46,6 +47,8 @@ Env (optional cloud): see `.env.example` — `VITE_SUPABASE_URL`, `VITE_SUPABASE
 | `src/lib/cycle.ts` | Card status cycle + mark missing / mastered |
 | `src/lib/storage.ts` | localStorage squad + player export/import |
 | `src/lib/cloud.ts` | Supabase rooms, hydrate/push, wipe protection, stale-revision guards |
+| `src/lib/auth.ts` | Optional Supabase Auth + portable collections + recent squads |
+| `src/components/AuthModal.tsx` | Sign in / sign up / forgot password / OAuth |
 | `src/lib/squadScore.ts` | Sparse overwrite / room wipe guards |
 | `src/data/sprites.ts` | C7S3 catalog (names/abilities stay EN as game data) |
 | `src/i18n/` | `en.ts`, `es.ts`, `catalog.ts`, `I18nProvider` |
@@ -126,6 +129,7 @@ Latest on main when this file was written: see `git log -1`. Prefer **code + thi
 1. `git pull` / confirm clean `main` before large work if the machine might be stale.
 2. Run `npm run build` after non-trivial TS/UI changes.
 3. Touch both `src/i18n/en.ts` and `src/i18n/es.ts` when adding user-visible strings.
+7. **Never commit OAuth client secrets.** Configure Google/Discord only in Supabase Auth providers. Frontend only needs `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`.
 4. Suggestion copy for plans uses `buildSuggestionPlan(state, locale)` — regenerate plan after locale change to refresh reason text.
 5. Do not invent exploits or attack remote systems; local defensive fixes only.
 6. Catalog updates: `src/data/sprites.ts` when Epic ships new sprites/variants.

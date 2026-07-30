@@ -7,8 +7,22 @@ import {
   type SortMode,
   type SpriteEntry,
 } from './data/sprites'
+import { AuthModal } from './components/AuthModal'
+import {
+  getCurrentAuthUser,
+  listRecentSquads,
+  loadUserCollection,
+  onAuthStateChange,
+  rememberJoinedSquad,
+  saveUserCollection,
+  signOut,
+  updatePassword,
+  type AuthUser,
+  type RecentSquad,
+} from './lib/auth'
 import {
   createRoom,
+  ensureUserPlayerInSquad,
   fetchRoom,
   isCloudConfigured,
   normalizeRoomCode,
@@ -76,6 +90,9 @@ type AppModal =
       items?: BringAssignment[]
       skipped?: string[]
     }
+  | {
+      kind: 'password-recovery'
+    }
 
 const cloudReady = isCloudConfigured()
 
@@ -92,6 +109,11 @@ export default function App() {
     loadSuggestMode(),
   )
   const [modal, setModal] = useState<AppModal | null>(null)
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null)
+  const [authOpen, setAuthOpen] = useState(false)
+  const [squadNameDraft, setSquadNameDraft] = useState('')
+  const [recentSquads, setRecentSquads] = useState<RecentSquad[]>([])
+  const [newPassword, setNewPassword] = useState('')
 
   /** Shared plan + outcomes live on SquadState so the room syncs them. */
   const plan = state.suggestion?.plan ?? null
@@ -134,9 +156,76 @@ export default function App() {
     skipPushRef.current = true
     setState(remote)
     stateRef.current = remote
+    if (remote.name) setSquadNameDraft(remote.name)
     setSyncStatus('synced')
     setSyncError(null)
     autoRecoverAttemptedRef.current = false
+  }, [])
+
+  const refreshRecentSquads = useCallback(async (userId: string) => {
+    const res = await listRecentSquads(userId)
+    if (res.ok) setRecentSquads(res.data)
+  }, [])
+
+  const applyAuthUser = useCallback(
+    async (user: AuthUser | null) => {
+      setAuthUser(user)
+      if (!user) {
+        setRecentSquads([])
+        return
+      }
+
+      const col = await loadUserCollection(user.id)
+      let portable = col.ok ? col.data : {}
+      if (Object.keys(portable).length === 0) {
+        const cur = stateRef.current
+        const seed =
+          cur.players.find((p) => p.userId === user.id) ??
+          cur.players.find((p) => p.id === selectedPlayerId) ??
+          cur.players[0]
+        if (seed && Object.keys(seed.sprites ?? {}).length > 0) {
+          portable = seed.sprites
+          void saveUserCollection(user.id, portable)
+        }
+      }
+
+      const { state: next, playerId } = ensureUserPlayerInSquad(
+        stateRef.current,
+        user,
+        portable,
+      )
+      // Only mark skip when in a room so we don't block first local push incorrectly
+      if (roomCode && roomHydrated) skipPushRef.current = true
+      setState(next)
+      stateRef.current = next
+      setSelectedPlayerId(playerId)
+      await refreshRecentSquads(user.id)
+      if (roomCode) {
+        void rememberJoinedSquad(user.id, roomCode, next.name)
+      }
+    },
+    [refreshRecentSquads, roomCode, roomHydrated, selectedPlayerId],
+  )
+
+  // Optional account session
+  useEffect(() => {
+    if (!cloudReady) return
+    let cancelled = false
+    void getCurrentAuthUser().then((u) => {
+      if (!cancelled) void applyAuthUser(u)
+    })
+    const unsub = onAuthStateChange((u) => {
+      void applyAuthUser(u)
+      // Password recovery deep link
+      if (u && window.location.hash.includes('type=recovery')) {
+        setModal({ kind: 'password-recovery' })
+      }
+    })
+    return () => {
+      cancelled = true
+      unsub()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once on mount
   }, [])
 
   const roomLive = Boolean(roomCode && cloudReady && roomHydrated)
@@ -202,12 +291,40 @@ export default function App() {
         setRoomHydrated(false)
         return
       }
+      const normalized = normalizeRoomCode(code)
+      // Wait briefly for auth session so portable collection can attach
+      const user = await getCurrentAuthUser()
+      if (cancelled) return
+      if (user) {
+        setAuthUser(user)
+        const col = await loadUserCollection(user.id)
+        const portable = col.ok ? col.data : {}
+        const linked = ensureUserPlayerInSquad(result.data, user, portable)
+        skipPushRef.current = false
+        setState(linked.state)
+        stateRef.current = linked.state
+        setSelectedPlayerId(linked.playerId)
+        if (linked.state.name) setSquadNameDraft(linked.state.name)
+        void rememberJoinedSquad(user.id, normalized, linked.state.name)
+        void listRecentSquads(user.id).then((r) => {
+          if (r.ok) setRecentSquads(r.data)
+        })
+        setRoomCode(normalized)
+        saveRoomCode(normalized)
+        writeRoomToUrl(normalized)
+        setRoomHydrated(true)
+        setSyncStatus('saving')
+        setSyncError(null)
+        return
+      }
       skipPushRef.current = true
       setState(result.data)
+      stateRef.current = result.data
       setSelectedPlayerId(result.data.players[0]?.id ?? '')
-      setRoomCode(normalizeRoomCode(code))
-      saveRoomCode(normalizeRoomCode(code))
-      writeRoomToUrl(normalizeRoomCode(code))
+      if (result.data.name) setSquadNameDraft(result.data.name)
+      setRoomCode(normalized)
+      saveRoomCode(normalized)
+      writeRoomToUrl(normalized)
       setRoomHydrated(true)
       setSyncStatus('synced')
       setSyncError(null)
@@ -392,16 +509,26 @@ export default function App() {
     [state.players, selectedPlayerId],
   )
 
+  const persistPortableCollection = useCallback(
+    (player: Player) => {
+      if (!authUser || player.userId !== authUser.id) return
+      void saveUserCollection(authUser.id, player.sprites)
+    },
+    [authUser],
+  )
+
   const updatePlayer = useCallback(
     (playerId: string, fn: (p: Player) => Player) => {
       if (interactionLocked) return
       bumpEdit()
-      setState((s) => ({
-        ...s,
-        players: s.players.map((p) => (p.id === playerId ? fn(p) : p)),
-      }))
+      setState((s) => {
+        const players = s.players.map((p) => (p.id === playerId ? fn(p) : p))
+        const updated = players.find((p) => p.id === playerId)
+        if (updated) persistPortableCollection(updated)
+        return { ...s, players }
+      })
     },
-    [interactionLocked, bumpEdit],
+    [interactionLocked, bumpEdit, persistPortableCollection],
   )
 
   function setStatusFilterSmart(next: string) {
@@ -868,6 +995,33 @@ export default function App() {
     input.click()
   }
 
+  async function enterRoomState(code: string, remote: SquadState) {
+    let next = remote
+    let playerId = remote.players[0]?.id ?? ''
+    let shouldPush = false
+    if (authUser) {
+      const col = await loadUserCollection(authUser.id)
+      const portable = col.ok ? col.data : {}
+      const linked = ensureUserPlayerInSquad(remote, authUser, portable)
+      next = linked.state
+      playerId = linked.playerId
+      shouldPush = true
+      void rememberJoinedSquad(authUser.id, code, next.name)
+      void refreshRecentSquads(authUser.id)
+    }
+    // Skip push only when we adopted remote as-is (no local user injection).
+    skipPushRef.current = !shouldPush
+    setState(next)
+    stateRef.current = next
+    setSelectedPlayerId(playerId)
+    if (next.name) setSquadNameDraft(next.name)
+    setRoomCode(code)
+    saveRoomCode(code)
+    writeRoomToUrl(code)
+    setRoomHydrated(true)
+    setSyncStatus(shouldPush ? 'saving' : 'synced')
+  }
+
   async function handleCreateRoom() {
     if (!cloudReady) {
       setSyncError(t('squad.cloudNotAvailable'))
@@ -876,17 +1030,36 @@ export default function App() {
     setBusy(true)
     setSyncError(null)
     setRoomHydrated(false)
-    const result = await createRoom(state)
+    let base = state
+    if (authUser) {
+      const col = await loadUserCollection(authUser.id)
+      const portable = col.ok ? col.data : {}
+      base = ensureUserPlayerInSquad(state, authUser, portable).state
+    }
+    const name = squadNameDraft.trim() || undefined
+    if (name) base = { ...base, name }
+    const result = await createRoom(base, {
+      name,
+      createdBy: authUser?.id ?? null,
+    })
     setBusy(false)
     if (!result.ok) {
       setSyncError(result.error)
       setSyncStatus('error')
       return
     }
-    // Create already wrote current state — adopt revision so later pushes are not "stale"
+    if (authUser) {
+      void rememberJoinedSquad(authUser.id, result.data.code, result.data.state.name)
+      void refreshRecentSquads(authUser.id)
+    }
     skipPushRef.current = true
     setState(result.data.state)
     stateRef.current = result.data.state
+    setSelectedPlayerId(
+      result.data.state.players.find((p) => p.userId === authUser?.id)?.id ??
+        result.data.state.players[0]?.id ??
+        '',
+    )
     setRoomCode(result.data.code)
     saveRoomCode(result.data.code)
     writeRoomToUrl(result.data.code)
@@ -894,12 +1067,12 @@ export default function App() {
     setSyncStatus('synced')
   }
 
-  async function handleJoinRoom() {
+  async function handleJoinRoom(codeRaw?: string) {
     if (!cloudReady) {
       setSyncError('Cloud is not configured. See DEPLOY.md / Help tab.')
       return
     }
-    const code = normalizeRoomCode(joinInput)
+    const code = normalizeRoomCode(codeRaw ?? joinInput)
     if (code.length < 4) {
       setSyncError('Enter the room code from your squad mate.')
       return
@@ -915,15 +1088,8 @@ export default function App() {
       setSyncStatus('error')
       return
     }
-    skipPushRef.current = true
-    setState(result.data)
-    setSelectedPlayerId(result.data.players[0]?.id ?? '')
-    setRoomCode(code)
-    saveRoomCode(code)
-    writeRoomToUrl(code)
     setJoinInput('')
-    setRoomHydrated(true)
-    setSyncStatus('synced')
+    await enterRoomState(code, result.data)
   }
 
   function handleLeaveRoom() {
@@ -995,6 +1161,27 @@ export default function App() {
       <header className="header">
         <h1>{t('app.title')}</h1>
         <div className="header-actions">
+          {cloudReady && (
+            authUser ? (
+              <button
+                type="button"
+                className="btn btn-sm header-account"
+                title={t('auth.signedInAs', { name: authUser.displayName })}
+                onClick={() => void signOut().then(() => setAuthUser(null))}
+              >
+                {authUser.displayName}
+                <span className="header-account-action">{t('app.signOut')}</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-sm header-account"
+                onClick={() => setAuthOpen(true)}
+              >
+                {t('app.signIn')}
+              </button>
+            )
+          )}
           <a
             className="btn btn-sm header-support"
             href={KOFI_URL}
@@ -1757,6 +1944,17 @@ export default function App() {
             ) : (
               <>
                 <p className="muted">{t('squad.createHint')}</p>
+                <label className="auth-field" style={{ marginTop: 10 }}>
+                  <span>{t('squad.squadName')}</span>
+                  <input
+                    type="text"
+                    className="search"
+                    value={squadNameDraft}
+                    onChange={(e) => setSquadNameDraft(e.target.value)}
+                    placeholder={t('squad.squadNamePlaceholder')}
+                    maxLength={48}
+                  />
+                </label>
                 <div className="header-actions" style={{ marginTop: 10 }}>
                   <button
                     type="button"
@@ -1789,6 +1987,58 @@ export default function App() {
             )}
           </div>
 
+          {authUser && (
+            <div className="help-box recent-squads-box">
+              <h3>{t('squad.recentTitle')}</h3>
+              {recentSquads.length === 0 ? (
+                <p className="muted">{t('squad.recentEmpty')}</p>
+              ) : (
+                <ul className="recent-squads-list">
+                  {recentSquads.map((s) => (
+                    <li key={s.roomCode}>
+                      <div>
+                        <strong>{s.roomName || t('squad.unnamedSquad')}</strong>
+                        <span className="muted room-code-inline">{s.roomCode}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        disabled={busy || roomCode === s.roomCode}
+                        onClick={() => void handleJoinRoom(s.roomCode)}
+                      >
+                        {t('squad.recentJoin')}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {roomCode && (
+            <div className="help-box">
+              <label className="auth-field">
+                <span>{t('squad.squadName')}</span>
+                <input
+                  type="text"
+                  className="search"
+                  value={squadNameDraft}
+                  onChange={(e) => {
+                    const name = e.target.value
+                    setSquadNameDraft(name)
+                    bumpEdit()
+                    setState((s) => ({
+                      ...s,
+                      name: name.trim() || undefined,
+                    }))
+                  }}
+                  placeholder={t('squad.squadNamePlaceholder')}
+                  maxLength={48}
+                />
+              </label>
+            </div>
+          )}
+
           {state.players.map((p, index) => (
             <div key={p.id} className="player-row">
               <div className="reorder-btns">
@@ -1819,6 +2069,9 @@ export default function App() {
                 value={p.name}
                 onChange={(e) => renamePlayer(p.id, e.target.value)}
               />
+              {p.userId && authUser?.id === p.userId && (
+                <span className="you-badge">{t('squad.youBadge')}</span>
+              )}
               <div className="player-row-actions">
                 <button
                   type="button"
@@ -1865,6 +2118,16 @@ export default function App() {
         </div>
       )}
 
+      {authOpen && (
+        <AuthModal
+          t={t}
+          onClose={() => setAuthOpen(false)}
+          onAuthed={(user) => {
+            void applyAuthUser(user)
+          }}
+        />
+      )}
+
       {modal && (
         <div
           className="modal-backdrop"
@@ -1889,7 +2152,9 @@ export default function App() {
               <h2 id="app-modal-title">
                 {modal.kind === 'confirm-delete-player'
                   ? t('deletePlayer.title')
-                  : modal.title}
+                  : modal.kind === 'password-recovery'
+                    ? t('auth.forgotTitle')
+                    : modal.title}
               </h2>
               <button
                 type="button"
@@ -1900,6 +2165,45 @@ export default function App() {
                 ×
               </button>
             </div>
+
+            {modal.kind === 'password-recovery' && (
+              <>
+                <p className="modal-subtitle">{t('auth.newPassword')}</p>
+                <label className="auth-field">
+                  <span>{t('auth.password')}</span>
+                  <input
+                    type="password"
+                    minLength={6}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    autoComplete="new-password"
+                  />
+                </label>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      void updatePassword(newPassword).then((res) => {
+                        if (res.ok) {
+                          setNewPassword('')
+                          setModal(null)
+                          showInfoModal(
+                            t('auth.loginTitle'),
+                            t('auth.passwordUpdated'),
+                            'success',
+                          )
+                        } else {
+                          showInfoModal(t('auth.forgotTitle'), res.error, 'error')
+                        }
+                      })
+                    }}
+                  >
+                    {t('auth.savePassword')}
+                  </button>
+                </div>
+              </>
+            )}
 
             {modal.kind === 'confirm-exchanges' && (
               <>
