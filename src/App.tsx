@@ -2522,9 +2522,17 @@ export default function App() {
                       key={p.id}
                       type="button"
                       className={`btn link-player-option${taken ? ' seat-option-taken' : ''}`}
-                      onClick={() => claimSeat(p.id)}
+                      disabled={taken && !isYou}
+                      onClick={() => {
+                        if (taken && !isYou) return
+                        claimSeat(p.id)
+                      }}
                       title={
-                        taken ? t('seat.takenHint', { name: p.name }) : undefined
+                        taken && !isYou
+                          ? t('seat.takenHint', { name: p.name })
+                          : isYou
+                            ? t('seat.youHint')
+                            : undefined
                       }
                     >
                       <span

@@ -40,8 +40,9 @@ export function playerHasProgress(p: Player): boolean {
 }
 
 /**
- * True if this seat is claimed by someone else (not this device's actor).
- * Linked accounts (userId) or non-empty guest collections count as taken.
+ * True if this seat is linked to another account (not you).
+ * Unlinked seats are free to claim when switching — even if they have sprite progress.
+ * Only `userId` means “taken” by a logged-in player.
  */
 export function isSeatTakenByOther(
   p: Player,
@@ -49,9 +50,9 @@ export function isSeatTakenByOther(
   myUserId?: string | null,
 ): boolean {
   if (actorSeatId && p.id === actorSeatId) return false
+  if (!p.userId) return false
   if (myUserId && p.userId === myUserId) return false
-  if (p.userId) return true
-  return playerHasProgress(p)
+  return true
 }
 
 export function loadSquad(): SquadState {
