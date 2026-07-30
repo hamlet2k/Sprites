@@ -332,9 +332,9 @@ const en: MessageTree = {
   seat: {
     chooseTitle: 'Who are you?',
     chooseBody:
-      'Pick your seat on this device. You can view others, but only your collection can be edited. Seats marked Taken already belong to someone else.',
+      'Pick your seat on this device. You can view others, but only your collection can be edited.',
     chooseJoinBody:
-      'You joined a session. Choose your seat so we know who you are — Taken seats are other people (read-only for you).',
+      'You joined a session. Choose your seat so we know who you are — seats marked Taken already belong to someone else.',
     createNew: 'I am a new player',
     switch: 'Switch seat',
     youHint: 'Your seat — you can edit this collection',

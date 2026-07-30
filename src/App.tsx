@@ -1541,31 +1541,25 @@ export default function App() {
           <div className="squad-strip">
             {state.players.map((p) => {
               const isYou = p.id === actorSeatId
-              const taken = isSeatTakenByOther(p, actorSeatId, authUser?.id)
               return (
               <button
                 key={p.id}
                 type="button"
                 className={`player-chip ${p.id === selectedPlayer.id ? 'selected' : ''} ${
                   state.activePlayerIds.includes(p.id) ? 'active-play' : ''
-                } ${isYou ? 'is-you' : taken ? 'is-taken' : 'is-other'}`}
+                } ${isYou ? 'is-you' : ''}`}
                 style={{ ['--chip-color' as string]: p.color }}
                 onClick={() => setSelectedPlayerId(p.id)}
                 title={
                   isYou
                     ? t('seat.youHint')
-                    : taken
-                      ? t('seat.takenHint', { name: p.name })
-                      : t('seat.viewOnlyHint', { name: p.name })
+                    : t('seat.viewOnlyHint', { name: p.name })
                 }
               >
                 <span className="dot" />
                 {p.name}
                 {isYou && (
                   <span className="chip-you">{t('squad.youBadge')}</span>
-                )}
-                {!isYou && taken && (
-                  <span className="chip-taken">{t('seat.takenBadge')}</span>
                 )}
               </button>
               )

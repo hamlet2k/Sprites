@@ -344,9 +344,9 @@ const es: MessageTree = {
   seat: {
     chooseTitle: '¿Quién eres?',
     chooseBody:
-      'Elige tu asiento en este dispositivo. Puedes ver a los demás, pero solo se edita tu colección. Los asientos Ocupado ya son de otra persona.',
+      'Elige tu asiento en este dispositivo. Puedes ver a los demás, pero solo se edita tu colección.',
     chooseJoinBody:
-      'Te uniste a una sesión. Elige tu asiento: los marcados Ocupado son de otros (solo lectura para ti).',
+      'Te uniste a una sesión. Elige tu asiento — los marcados Ocupado ya son de otra persona.',
     createNew: 'Soy un jugador nuevo',
     switch: 'Cambiar asiento',
     youHint: 'Tu asiento — puedes editar esta colección',
