@@ -286,12 +286,39 @@ button {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
-.player-chip .chip-you {
+.player-chip.is-taken {
+  opacity: 0.92;
+}
+
+.player-chip .chip-you,
+.player-chip .chip-taken {
   margin-left: 4px;
   font-size: 0.65rem;
   font-weight: 800;
   text-transform: uppercase;
   opacity: 0.9;
+}
+
+.player-chip .chip-taken,
+.taken-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-muted) 22%, var(--bg-elevated));
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.taken-badge {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+}
+
+.seat-option-taken {
+  border-color: color-mix(in srgb, var(--text-muted) 40%, var(--border));
 }
 
 .seat-switch-btn {

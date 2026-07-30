@@ -43,6 +43,7 @@ import {
   freshSquadForCreate,
   getPlayerSprite,
   importSquad,
+  isSeatTakenByOther,
   loadActorSeatId,
   loadRoomCode,
   loadSquad,
@@ -1538,28 +1539,37 @@ export default function App() {
       {tab === 'collection' && selectedPlayer && (
         <>
           <div className="squad-strip">
-            {state.players.map((p) => (
+            {state.players.map((p) => {
+              const isYou = p.id === actorSeatId
+              const taken = isSeatTakenByOther(p, actorSeatId, authUser?.id)
+              return (
               <button
                 key={p.id}
                 type="button"
                 className={`player-chip ${p.id === selectedPlayer.id ? 'selected' : ''} ${
                   state.activePlayerIds.includes(p.id) ? 'active-play' : ''
-                } ${p.id === actorSeatId ? 'is-you' : 'is-other'}`}
+                } ${isYou ? 'is-you' : taken ? 'is-taken' : 'is-other'}`}
                 style={{ ['--chip-color' as string]: p.color }}
                 onClick={() => setSelectedPlayerId(p.id)}
                 title={
-                  p.id === actorSeatId
+                  isYou
                     ? t('seat.youHint')
-                    : t('seat.viewOnlyHint', { name: p.name })
+                    : taken
+                      ? t('seat.takenHint', { name: p.name })
+                      : t('seat.viewOnlyHint', { name: p.name })
                 }
               >
                 <span className="dot" />
                 {p.name}
-                {p.id === actorSeatId && (
+                {isYou && (
                   <span className="chip-you">{t('squad.youBadge')}</span>
                 )}
+                {!isYou && taken && (
+                  <span className="chip-taken">{t('seat.takenBadge')}</span>
+                )}
               </button>
-            ))}
+              )
+            })}
             <button
               type="button"
               className="btn btn-sm seat-switch-btn"
@@ -2389,6 +2399,9 @@ export default function App() {
               {p.id === actorSeatId && (
                 <span className="you-badge">{t('squad.youBadge')}</span>
               )}
+              {isSeatTakenByOther(p, actorSeatId, authUser?.id) && (
+                <span className="taken-badge">{t('seat.takenBadge')}</span>
+              )}
               <div className="player-row-actions">
                 <button
                   type="button"
@@ -2507,23 +2520,33 @@ export default function App() {
                     : t('seat.chooseBody')}
                 </p>
                 <div className="link-player-list">
-                  {state.players.map((p) => (
+                  {state.players.map((p) => {
+                    const isYou = p.id === actorSeatId
+                    const taken = isSeatTakenByOther(p, actorSeatId, authUser?.id)
+                    return (
                     <button
                       key={p.id}
                       type="button"
-                      className="btn link-player-option"
+                      className={`btn link-player-option${taken ? ' seat-option-taken' : ''}`}
                       onClick={() => claimSeat(p.id)}
+                      title={
+                        taken ? t('seat.takenHint', { name: p.name }) : undefined
+                      }
                     >
                       <span
                         className="dot"
                         style={{ background: p.color, width: 12, height: 12 }}
                       />
                       {p.name}
-                      {p.id === actorSeatId && (
+                      {isYou && (
                         <span className="you-badge">{t('squad.youBadge')}</span>
                       )}
+                      {!isYou && taken && (
+                        <span className="taken-badge">{t('seat.takenBadge')}</span>
+                      )}
                     </button>
-                  ))}
+                    )
+                  })}
                 </div>
                 <div className="modal-footer" style={{ flexWrap: 'wrap', gap: 8 }}>
                   <button

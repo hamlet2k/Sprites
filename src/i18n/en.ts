@@ -300,7 +300,7 @@ const en: MessageTree = {
     leaveRoom: 'Leave session',
     status: 'Status:',
     createHint:
-      'Start a new shared session with only your seat (empty slots for friends), or join a teammate’s code.',
+      'Start a new shared session with only your seat (add friends with + Add Player), or join a teammate’s code.',
     createRoom: 'Start session',
     working: 'Working…',
     roomPlaceholder: 'Session code',
@@ -332,15 +332,17 @@ const en: MessageTree = {
   seat: {
     chooseTitle: 'Who are you?',
     chooseBody:
-      'Pick your seat on this device. You can view others, but only your collection can be edited.',
+      'Pick your seat on this device. You can view others, but only your collection can be edited. Seats marked Taken already belong to someone else.',
     chooseJoinBody:
-      'You joined a session. Choose your seat so we know who you are — collections for other seats stay read-only.',
+      'You joined a session. Choose your seat so we know who you are — Taken seats are other people (read-only for you).',
     createNew: 'I am a new player',
     switch: 'Switch seat',
     youHint: 'Your seat — you can edit this collection',
     viewOnlyHint: 'Viewing {name} (read-only)',
     viewingOther:
       'Viewing {name} — read only. Switch to your seat (or use Switch seat) to edit.',
+    takenBadge: 'Taken',
+    takenHint: '{name} is taken by another player (read-only for you)',
     lockedTitle: 'Not your seat',
     lockedImport: 'You can only import into your own seat.',
     cannotRemoveSelf: 'Switch seat first if you need to remove this player.',
@@ -406,7 +408,7 @@ const en: MessageTree = {
     seats2:
       'Use Switch seat if you need to become a different player on this device (rare).',
     seats3:
-      'Leaving a session keeps only your seat locally. Starting a new session seeds the room with you + empty slots, not the last full roster.',
+      'Leaving a session keeps only your seat locally. Starting a new session seeds the room with only you — add more players on the Squad tab as needed.',
 
     accountTitle: 'Optional account',
     account1:

@@ -79,8 +79,8 @@ Plan + outcomes live on `SquadState.suggestion` so **live rooms** sync greying f
 
 - Every device must choose a **seat** (`actorSeatId` in localStorage). Only that seat’s **collection** is editable; others are view-only.
 - **Source of truth for sprites (logged in):** `user_collections`. Guests: local actor seat only.
-- **Create session:** seeds room with **actor only + empty seats** (not the previous full roster).
-- **Leave session:** stops sync; local draft keeps **only the actor** (+ empty fillers); other seats dropped locally.
+- **Create session:** seeds room with **actor only** (add more seats on demand).
+- **Leave session:** stops sync; local draft keeps **only the actor**; other seats dropped locally.
 - **Join:** reclaim seat by id / account, else **Who are you?** picker.
 - On login: `resolveUserSeatInSquad` may **prompt to link** an unlinked seat (no auto-duplicate).
 

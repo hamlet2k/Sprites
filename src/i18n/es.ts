@@ -310,7 +310,7 @@ const es: MessageTree = {
     leaveRoom: 'Salir de la sesión',
     status: 'Estado:',
     createHint:
-      'Inicia una sesión nueva solo con tu asiento (huecos vacíos para amigos), o únete al código de un compañero.',
+      'Inicia una sesión nueva solo con tu asiento (añade amigos con + Agregar Jugador), o únete al código de un compañero.',
     createRoom: 'Crear escuadra',
     working: 'Trabajando…',
     roomPlaceholder: 'Código de sesión',
@@ -344,15 +344,17 @@ const es: MessageTree = {
   seat: {
     chooseTitle: '¿Quién eres?',
     chooseBody:
-      'Elige tu asiento en este dispositivo. Puedes ver a los demás, pero solo se edita tu colección.',
+      'Elige tu asiento en este dispositivo. Puedes ver a los demás, pero solo se edita tu colección. Los asientos Ocupado ya son de otra persona.',
     chooseJoinBody:
-      'Te uniste a una sesión. Elige tu asiento para saber quién eres: las colecciones de los demás son solo lectura.',
+      'Te uniste a una sesión. Elige tu asiento: los marcados Ocupado son de otros (solo lectura para ti).',
     createNew: 'Soy un jugador nuevo',
     switch: 'Cambiar asiento',
     youHint: 'Tu asiento — puedes editar esta colección',
     viewOnlyHint: 'Viendo a {name} (solo lectura)',
     viewingOther:
       'Viendo a {name} — solo lectura. Cambia a tu asiento (o usa Cambiar asiento) para editar.',
+    takenBadge: 'Ocupado',
+    takenHint: '{name} está ocupado por otro jugador (solo lectura para ti)',
     lockedTitle: 'No es tu asiento',
     lockedImport: 'Solo puedes importar en tu propio asiento.',
     cannotRemoveSelf: 'Cambia de asiento primero si necesitas eliminar a este jugador.',
@@ -418,7 +420,7 @@ const es: MessageTree = {
     seats2:
       'Usa Cambiar asiento si necesitas ser otro jugador en este dispositivo (poco frecuente).',
     seats3:
-      'Salir de una sesión deja solo tu asiento en local. Crear una sesión nueva empieza contigo + huecos vacíos, no con la escuadra anterior completa.',
+      'Salir de una sesión deja solo tu asiento en local. Crear una sesión nueva empieza solo contigo — añade más jugadores en Escuadra cuando haga falta.',
 
     accountTitle: 'Cuenta opcional',
     account1:

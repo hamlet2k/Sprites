@@ -25,16 +25,33 @@ export function createPlayer(
   }
 }
 
-/** Default roster size (who can be ticked for Exchanges). Add more anytime via Squad. */
-export const DEFAULT_SQUAD_SEATS = 8
-
 export function emptySquad(): SquadState {
   return {
-    players: Array.from({ length: DEFAULT_SQUAD_SEATS }, (_, i) =>
-      createPlayer(`Player ${i + 1}`, i),
-    ),
+    players: [createPlayer('Player 1', 0)],
     activePlayerIds: [],
   }
+}
+
+/** Seat has any ownership / mastery marked. */
+export function playerHasProgress(p: Player): boolean {
+  return Object.values(p.sprites ?? {}).some(
+    (st) => st.mastered || st.status !== 'none',
+  )
+}
+
+/**
+ * True if this seat is claimed by someone else (not this device's actor).
+ * Linked accounts (userId) or non-empty guest collections count as taken.
+ */
+export function isSeatTakenByOther(
+  p: Player,
+  actorSeatId: string | null,
+  myUserId?: string | null,
+): boolean {
+  if (actorSeatId && p.id === actorSeatId) return false
+  if (myUserId && p.userId === myUserId) return false
+  if (p.userId) return true
+  return playerHasProgress(p)
 }
 
 export function loadSquad(): SquadState {
@@ -87,18 +104,9 @@ export function saveActorSeatId(id: string | null): void {
   }
 }
 
-/** Empty filler seats for a local draft or new room (not the actor). */
-export function makeEmptySeats(count: number, startIndex: number): Player[] {
-  const out: Player[] = []
-  for (let i = 0; i < count; i++) {
-    out.push(createPlayer(`Player ${startIndex + i + 1}`, startIndex + i))
-  }
-  return out
-}
-
 /**
  * After leaving a session: keep only this device's actor collection locally.
- * Drops other seats' data so the next "create session" does not re-upload them.
+ * Drops other seats so the next create does not re-upload them.
  */
 export function localDraftFromActor(
   state: SquadState,
@@ -113,14 +121,13 @@ export function localDraftFromActor(
     sprites: { ...(actor.sprites ?? {}) },
   }
   return {
-    players: [me, ...makeEmptySeats(DEFAULT_SQUAD_SEATS - 1, 1)],
+    players: [me],
     activePlayerIds: [],
-    // no shared plan / revision outside a room
   }
 }
 
 /**
- * New shared session seed: actor only + empty seats (no old teammates).
+ * New shared session seed: actor only (add friends with + Add Player).
  */
 export function freshSquadForCreate(
   actor: Player,
@@ -134,7 +141,7 @@ export function freshSquadForCreate(
     ...(actor.userId ? { userId: actor.userId } : {}),
   }
   return {
-    players: [me, ...makeEmptySeats(DEFAULT_SQUAD_SEATS - 1, 1)],
+    players: [me],
     activePlayerIds: [],
     ...(squadName?.trim() ? { name: squadName.trim() } : {}),
   }
