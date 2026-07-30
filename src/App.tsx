@@ -2078,6 +2078,25 @@ export default function App() {
                   {t('squad.roomCode')} <strong className="room-code">{roomCode}</strong>
                 </p>
                 <p className="muted">{t('squad.roomHint')}</p>
+                <label className="squad-name-field">
+                  <span>{t('squad.squadName')}</span>
+                  <input
+                    type="text"
+                    className="squad-name-input"
+                    value={squadNameDraft}
+                    onChange={(e) => {
+                      const name = e.target.value
+                      setSquadNameDraft(name)
+                      bumpEdit()
+                      setState((s) => ({
+                        ...s,
+                        name: name.trim() || undefined,
+                      }))
+                    }}
+                    placeholder={t('squad.squadNamePlaceholder')}
+                    maxLength={48}
+                  />
+                </label>
                 <div className="header-actions" style={{ marginTop: 10 }}>
                   <button type="button" className="btn btn-primary" onClick={() => void copyShareLink()}>
                     {t('squad.copyLink')}
@@ -2094,11 +2113,11 @@ export default function App() {
             ) : (
               <>
                 <p className="muted">{t('squad.createHint')}</p>
-                <label className="auth-field" style={{ marginTop: 10 }}>
+                <label className="squad-name-field">
                   <span>{t('squad.squadName')}</span>
                   <input
                     type="text"
-                    className="search"
+                    className="squad-name-input"
                     value={squadNameDraft}
                     onChange={(e) => setSquadNameDraft(e.target.value)}
                     placeholder={t('squad.squadNamePlaceholder')}
@@ -2162,30 +2181,6 @@ export default function App() {
                   ))}
                 </ul>
               )}
-            </div>
-          )}
-
-          {roomCode && (
-            <div className="help-box">
-              <label className="auth-field">
-                <span>{t('squad.squadName')}</span>
-                <input
-                  type="text"
-                  className="search"
-                  value={squadNameDraft}
-                  onChange={(e) => {
-                    const name = e.target.value
-                    setSquadNameDraft(name)
-                    bumpEdit()
-                    setState((s) => ({
-                      ...s,
-                      name: name.trim() || undefined,
-                    }))
-                  }}
-                  placeholder={t('squad.squadNamePlaceholder')}
-                  maxLength={48}
-                />
-              </label>
             </div>
           )}
 

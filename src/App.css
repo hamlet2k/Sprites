@@ -1728,6 +1728,36 @@ button {
   font-weight: 700;
 }
 
+/* Compact squad alias — lives inside Sync with Squad, not a full-width search bar */
+.squad-name-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  max-width: 280px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.squad-name-input {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 280px;
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.squad-name-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 1px;
+}
+
 .error-text {
   color: var(--danger);
   font-size: 0.85rem;
