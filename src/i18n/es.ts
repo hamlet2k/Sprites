@@ -340,6 +340,9 @@ const es: MessageTree = {
     recentJoin: 'Abrir',
     unnamedSquad: 'Escuadra sin nombre',
     youBadge: 'Tú',
+    copyCodeTitle: 'Copiar código de sesión',
+    codeCopiedTitle: 'Código copiado',
+    codeCopiedMsg: 'Código de sesión {code} copiado al portapapeles.',
   },
   seat: {
     chooseTitle: '¿Quién eres?',

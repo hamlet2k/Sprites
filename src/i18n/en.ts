@@ -328,6 +328,9 @@ const en: MessageTree = {
     recentJoin: 'Open',
     unnamedSquad: 'Unnamed squad',
     youBadge: 'You',
+    copyCodeTitle: 'Copy session code',
+    codeCopiedTitle: 'Code copied',
+    codeCopiedMsg: 'Session code {code} copied to the clipboard.',
   },
   seat: {
     chooseTitle: 'Who are you?',

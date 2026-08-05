@@ -2350,9 +2350,34 @@ export default function App() {
                 <ul className="recent-squads-list">
                   {recentSquads.map((s) => (
                     <li key={s.roomCode}>
-                      <div>
+                      <div className="recent-squad-meta">
                         <strong>{s.roomName || t('squad.unnamedSquad')}</strong>
-                        <span className="muted room-code-inline">{s.roomCode}</span>
+                        <button
+                          type="button"
+                          className="room-code-bubble"
+                          title={t('squad.copyCodeTitle')}
+                          aria-label={t('squad.copyCodeTitle')}
+                          onClick={() => {
+                            void (async () => {
+                              try {
+                                await navigator.clipboard.writeText(s.roomCode)
+                                showInfoModal(
+                                  t('squad.codeCopiedTitle'),
+                                  t('squad.codeCopiedMsg', { code: s.roomCode }),
+                                  'success',
+                                )
+                              } catch {
+                                showInfoModal(
+                                  t('squad.copyCodeTitle'),
+                                  s.roomCode,
+                                  'info',
+                                )
+                              }
+                            })()
+                          }}
+                        >
+                          {s.roomCode}
+                        </button>
                       </div>
                       <button
                         type="button"
