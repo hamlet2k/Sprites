@@ -738,13 +738,6 @@ export default function App() {
     setStatusFilter((prev) => (prev === next ? 'all' : next))
   }
 
-  function onLegendTapCycle() {
-    // Green legend: toggle Ready ↔ Missing+Lost
-    setStatusFilter((prev) =>
-      prev === 'available' ? 'need' : prev === 'need' ? 'available' : 'available',
-    )
-  }
-
   function onSyncPillClick() {
     if (syncStatus === 'error') {
       window.location.reload()
@@ -752,19 +745,43 @@ export default function App() {
   }
 
   const stats = useMemo(() => {
-    if (!selectedPlayer) return { owned: 0, available: 0, lost: 0, mastered: 0 }
+    if (!selectedPlayer) {
+      return {
+        owned: 0,
+        available: 0,
+        lost: 0,
+        missing: 0,
+        mastered: 0,
+        need: 0,
+        unmastered: 0,
+      }
+    }
     let owned = 0
     let available = 0
     let lost = 0
+    let missing = 0
     let mastered = 0
+    let unmastered = 0
     for (const s of SPRITES) {
       const st = getPlayerSprite(selectedPlayer, s.id)
-      if (st.status !== 'none') owned++
-      if (st.status === 'available') available++
-      if (st.status === 'lost') lost++
+      if (st.status === 'none') missing++
+      else {
+        owned++
+        if (st.status === 'available') available++
+        if (st.status === 'lost') lost++
+        if (!st.mastered) unmastered++
+      }
       if (st.mastered) mastered++
     }
-    return { owned, available, lost, mastered }
+    return {
+      owned,
+      available,
+      lost,
+      missing,
+      mastered,
+      need: missing + lost,
+      unmastered,
+    }
   }, [selectedPlayer])
 
   const filteredByFamily = useMemo(() => {
@@ -1602,6 +1619,7 @@ export default function App() {
             </p>
           )}
 
+          {/* Row 1: inventory status */}
           <div className="stats-bar" role="toolbar" aria-label={t('collection.statsFilterLabel')}>
             <button
               type="button"
@@ -1631,6 +1649,15 @@ export default function App() {
             </button>
             <button
               type="button"
+              className={`stat-chip${statusFilter === 'missing' ? ' active' : ''}`}
+              onClick={() => setStatusFilterSmart('missing')}
+              title={t('collection.filterMissingTitle')}
+            >
+              <strong style={{ color: 'var(--none)' }}>{stats.missing}</strong>{' '}
+              {t('status.missing')}
+            </button>
+            <button
+              type="button"
               className={`stat-chip${statusFilter === 'mastered' ? ' active' : ''}`}
               onClick={() => setStatusFilterSmart('mastered')}
               title={t('collection.filterMasteredTitle')}
@@ -1640,37 +1667,24 @@ export default function App() {
             </button>
           </div>
 
-          <div className="legend" role="toolbar" aria-label={t('collection.legendFilterLabel')}>
+          {/* Row 2: in-game quick presets */}
+          <div className="preset-bar" role="toolbar" aria-label={t('collection.presetFilterLabel')}>
             <button
               type="button"
-              className={`legend-chip${
-                statusFilter === 'available' || statusFilter === 'need' ? ' active' : ''
-              }`}
-              onClick={onLegendTapCycle}
-              title={t('collection.legendTapTitle')}
+              className={`stat-chip preset-chip${statusFilter === 'need' ? ' active' : ''}`}
+              onClick={() => setStatusFilterSmart('need')}
+              title={t('collection.filterNeedTitle')}
             >
-              {t('collection.legendTapPrefix')}{' '}
-              <span className="legend-ready">{t('status.ready')}</span>
-              {' ↔ '}
-              <span className="legend-lost">{t('status.lost')}</span>
+              <strong>{stats.need}</strong> {t('collection.needFilter')}
             </button>
             <button
               type="button"
-              className={`legend-chip${statusFilter === 'missing' ? ' active' : ''}`}
-              onClick={() => setStatusFilterSmart('missing')}
-              title={t('collection.legendMissingTitle')}
+              className={`stat-chip preset-chip${statusFilter === 'unmastered' ? ' active' : ''}`}
+              onClick={() => setStatusFilterSmart('unmastered')}
+              title={t('collection.filterUnmasteredTitle')}
             >
-              <i className="swatch" style={{ background: 'var(--none)' }} />{' '}
-              {t('collection.legendMissing')}
-            </button>
-            <button
-              type="button"
-              className={`legend-chip${statusFilter === 'mastered' ? ' active' : ''}`}
-              onClick={() => setStatusFilterSmart('mastered')}
-              title={t('collection.legendMasteredTitle')}
-            >
-              <i className="swatch" style={{ background: 'var(--master-gold)' }} />{' '}
-              {t('collection.legendMastered')}
+              <strong style={{ color: 'var(--master-gold)' }}>{stats.unmastered}</strong>{' '}
+              {t('collection.levelUpFilter')}
             </button>
           </div>
 
@@ -1709,12 +1723,12 @@ export default function App() {
               onChange={(e) => setStatusFilter(e.target.value)}
             >
               <option value="all">{t('collection.allStatus')}</option>
-              <option value="need">{t('collection.needFilter')}</option>
-              <option value="missing">{t('status.missing')}</option>
               <option value="available">{t('status.available')}</option>
               <option value="lost">{t('status.lost')}</option>
+              <option value="missing">{t('status.missing')}</option>
               <option value="mastered">{t('status.mastered')}</option>
-              <option value="unmastered">{t('status.notMastered')}</option>
+              <option value="need">{t('collection.needFilter')}</option>
+              <option value="unmastered">{t('collection.levelUpFilter')}</option>
             </select>
           </div>
 

@@ -587,21 +587,26 @@ button {
   background: var(--bg-elevated);
 }
 
-.stats-bar {
+.stats-bar,
+.preset-bar {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   font-size: 0.8rem;
   color: var(--text-muted);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
-.stats-bar strong {
+.preset-bar {
+  margin-bottom: 12px;
+}
+
+.stats-bar strong,
+.preset-bar strong {
   color: var(--text);
 }
 
-.stat-chip,
-.legend-chip {
+.stat-chip {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -615,41 +620,25 @@ button {
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
+  min-height: 34px;
   transition: border-color 0.12s, background 0.12s, color 0.12s;
 }
 
-.stat-chip:hover,
-.legend-chip:hover {
+.preset-chip {
+  border-style: dashed;
+}
+
+.stat-chip:hover {
   border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
   color: var(--text);
 }
 
-.stat-chip.active,
-.legend-chip.active {
+.stat-chip.active {
   border-color: var(--accent);
+  border-style: solid;
   background: color-mix(in srgb, var(--accent) 16%, var(--bg-elevated));
   color: var(--text);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
-}
-
-/* Legend */
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin-bottom: 12px;
-}
-
-.legend-chip {
-  font-size: 0.75rem;
-}
-
-.legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
 }
 
 .swatch {
