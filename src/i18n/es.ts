@@ -344,7 +344,7 @@ const es: MessageTree = {
   seat: {
     chooseTitle: '¿Quién eres?',
     chooseBody:
-      'Elige tu asiento en este dispositivo. Puedes ver a los demás, pero solo se edita tu colección.',
+      'Elige tu asiento en este dispositivo. Puedes ver a los demás, pero solo se edita tu colección. (Tras importar una escuadra, elige quién eres.)',
     chooseJoinBody:
       'Te uniste a una sesión. Elige tu asiento — los marcados Ocupado ya son de otra persona.',
     createNew: 'Soy un jugador nuevo',
@@ -371,6 +371,9 @@ const es: MessageTree = {
     copyLinkTitle: 'Copia este enlace',
     importFailed: 'Error al importar',
     importSquadInvalid: 'No se pudo importar el archivo — JSON de escuadra no válido.',
+    squadImportedTitle: 'Escuadra importada',
+    squadImportedMsg:
+      'Se cargaron {n} jugadores. Elige tu asiento y continúa. Se salió de la sesión en vivo para que la nube no sobrescriba la importación.',
     playerImportedTitle: 'Jugador importado',
     playerImportedMsg:
       'Solo se actualizó la colección de {name}. El resto de la escuadra no cambió.',

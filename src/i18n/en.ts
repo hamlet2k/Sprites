@@ -332,7 +332,7 @@ const en: MessageTree = {
   seat: {
     chooseTitle: 'Who are you?',
     chooseBody:
-      'Pick your seat on this device. You can view others, but only your collection can be edited.',
+      'Pick your seat on this device. You can view others, but only your collection can be edited. (After importing a squad file, pick who you are.)',
     chooseJoinBody:
       'You joined a session. Choose your seat so we know who you are — seats marked Taken already belong to someone else.',
     createNew: 'I am a new player',
@@ -359,6 +359,9 @@ const en: MessageTree = {
     copyLinkTitle: 'Copy this link',
     importFailed: 'Import failed',
     importSquadInvalid: 'Could not import file — invalid squad JSON.',
+    squadImportedTitle: 'Squad imported',
+    squadImportedMsg:
+      'Loaded {n} players. Pick your seat, then continue. Left any live session so the cloud does not overwrite this import.',
     playerImportedTitle: 'Player imported',
     playerImportedMsg:
       'Updated {name} collection only. Other squad members were not changed.',

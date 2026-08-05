@@ -362,7 +362,7 @@ const FAMILY_VARIANTS: Record<string, Partial<Record<Variant, number>>> = {
     galaxy: 0.005,
     cube: 0.001,
     holofoil: 0.0005,
-    gem: 0.0004,
+    // gem: unreleased (fortnite.gg) — omit until live
   },
   air: { base: 10, gold: 0.75, gummy: 0.62, galaxy: 0.5, holofoil: 0.25 },
   seven: { base: 6.98, gold: 0.31, gummy: 0.23, galaxy: 0.12, holofoil: 0.05 },
@@ -512,7 +512,6 @@ const ICONS: Record<string, Partial<Record<Variant, string>>> = {
     galaxy: 'T_Icon_BR_GrimReaper_Galaxy_L.webp',
     cube: 'T_Icon_BR_GrimReaper_Cube_L.webp',
     holofoil: 'T_Icon_BR_GrimReaper_Holofoil_L.webp',
-    gem: 'T_Icon_BR_GrimReaper_Gem_L.webp',
   },
   air: {
     base: 'T_Icon_BR_Air_Default_L.webp',

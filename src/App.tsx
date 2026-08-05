@@ -1415,20 +1415,35 @@ export default function App() {
   function doImport() {
     const input = document.createElement('input')
     input.type = 'file'
-    input.accept = 'application/json'
+    input.accept = 'application/json,.json'
     input.onchange = async () => {
       const file = input.files?.[0]
       if (!file) return
       try {
         const text = await file.text()
         const data = importSquad(text)
+        // Leave any live room so cloud sync cannot overwrite the import
+        skipPushRef.current = true
+        setRoomHydrated(false)
+        setRoomCode(null)
+        saveRoomCode(null)
+        writeRoomToUrl(null)
+        setSyncStatus('local')
+        setSyncError(null)
+        setSquadNameDraft(data.name ?? '')
+        // Force seat pick — imported player ids differ from previous actor
+        setActorSeatId(null)
         setState(data)
         stateRef.current = data
         setSelectedPlayerId(data.players[0]?.id ?? '')
-      } catch {
+        // Seat picker is required after import (actor cleared); message explains success
+        setModal({ kind: 'choose-seat', reason: 'needed' })
+      } catch (err) {
         showInfoModal(
           t('importExport.importFailed'),
-          t('importExport.importSquadInvalid'),
+          err instanceof Error
+            ? err.message
+            : t('importExport.importSquadInvalid'),
           'error',
         )
       }

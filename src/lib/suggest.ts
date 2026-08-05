@@ -285,14 +285,17 @@ export function buildSuggestionPlan(
       matchResidualFair(false)
     }
 
-    // Pure lost-restore thrash → mastery
+    // Skip only pure "repurchase thrash": every exchange restores Lost AND the
+    // bringer also needs dust. Ready gifts that restore a Lost collection stay —
+    // they were incorrectly wiped before, which skipped useful Fredek→Jars style trades.
     let skippedPureLostRestores = false
     const roundExchanges = assignments.filter(
       (a) => a.round === round && isExchangeAssignment(a),
     )
     if (
       roundExchanges.length > 0 &&
-      roundExchanges.every((a) => a.needKind === 'lost')
+      roundExchanges.every((a) => a.needKind === 'lost') &&
+      roundExchanges.every((a) => a.needsRepurchase)
     ) {
       skippedPureLostRestores = true
       for (const a of roundExchanges) {
@@ -309,7 +312,8 @@ export function buildSuggestionPlan(
         if (
           a.round === round &&
           isExchangeAssignment(a) &&
-          a.needKind === 'lost'
+          a.needKind === 'lost' &&
+          a.needsRepurchase
         ) {
           assignments.splice(i, 1)
         }
@@ -407,8 +411,9 @@ function buildEdges(active: Player[], mode: SuggestMode): Edge[] {
         if (!needKind) continue
         if (g.status === 'none') continue
 
+        // Priority: Missing >> Lost restore; Ready gift >> bringer repurchase (last option, never skipped).
         const needTier = needKind === 'missing' ? 1_000_000 : 1_000
-        const readyTier = g.status === 'available' ? 10_000 : 0
+        const readyTier = g.status === 'available' ? 100_000 : 0
         // Completion: rarity tiny. Fair: rarity matters more for "cool" trades.
         const rarity =
           mode === 'completion'
@@ -418,8 +423,7 @@ function buildEdges(active: Player[], mode: SuggestMode): Edge[] {
           needTier +
           readyTier +
           rarity +
-          (g.mastered ? (mode === 'fair' ? 2 : 0.001) : 0) -
-          (g.status === 'lost' ? 50 : 0)
+          (g.mastered ? (mode === 'fair' ? 2 : 0.001) : 0)
 
         edges.push({
           giver,

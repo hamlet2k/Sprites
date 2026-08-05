@@ -160,9 +160,45 @@ export function exportSquad(state: SquadState): string {
 }
 
 export function importSquad(json: string): SquadState {
-  const data = JSON.parse(json) as SquadState
-  if (!Array.isArray(data.players)) throw new Error('Invalid squad data')
-  return data
+  const text = json.replace(/^\uFEFF/, '') // strip BOM
+  const data = JSON.parse(text) as SquadState
+  if (!Array.isArray(data.players) || data.players.length === 0) {
+    throw new Error('Invalid squad data')
+  }
+  const players: Player[] = data.players.map((p, i) => {
+    if (!p || typeof p !== 'object') {
+      throw new Error('Invalid player in squad file')
+    }
+    const name =
+      typeof p.name === 'string' && p.name.trim()
+        ? p.name.trim()
+        : `Player ${i + 1}`
+    return {
+      id: typeof p.id === 'string' && p.id ? p.id : crypto.randomUUID(),
+      name,
+      color:
+        typeof p.color === 'string' && p.color
+          ? p.color
+          : COLORS[i % COLORS.length],
+      sprites:
+        p.sprites && typeof p.sprites === 'object' && !Array.isArray(p.sprites)
+          ? (p.sprites as Record<string, PlayerSpriteState>)
+          : {},
+      ...(typeof p.userId === 'string' && p.userId
+        ? { userId: p.userId }
+        : {}),
+    }
+  })
+  // Fresh local import: no cloud revision / stale plan from the export
+  return {
+    players,
+    activePlayerIds: Array.isArray(data.activePlayerIds)
+      ? data.activePlayerIds.filter((id) => players.some((p) => p.id === id))
+      : [],
+    ...(typeof data.name === 'string' && data.name.trim()
+      ? { name: data.name.trim() }
+      : {}),
+  }
 }
 
 /** Single-player backup (keeps squad import separate). */
