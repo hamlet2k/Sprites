@@ -213,6 +213,36 @@ button {
 .auth-oauth-btn {
   width: 100%;
   justify-content: center;
+  gap: 10px;
+  min-height: 44px;
+  font-weight: 700;
+}
+
+.auth-oauth-icon {
+  flex-shrink: 0;
+  display: block;
+}
+
+.auth-oauth-google {
+  background: #fff;
+  color: #1f1f1f;
+  border-color: #dadce0;
+}
+
+.auth-oauth-google:hover:not(:disabled) {
+  background: #f8f9fa;
+  filter: none;
+}
+
+.auth-oauth-discord {
+  background: #5865f2;
+  color: #fff;
+  border-color: transparent;
+}
+
+.auth-oauth-discord:hover:not(:disabled) {
+  background: #4752c4;
+  filter: none;
 }
 
 .auth-divider {

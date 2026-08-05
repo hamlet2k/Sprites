@@ -2997,6 +2997,20 @@ export default function App() {
               {t('help.supportButton')}
             </a>
           </section>
+
+          <section className="help-section help-opensource">
+            <h3>{t('help.openSourceTitle')}</h3>
+            <p>{t('help.openSourceBody')}</p>
+            <a
+              className="btn help-support-btn"
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={t('help.openSourceLinkHint')}
+            >
+              {t('help.openSourceButton')}
+            </a>
+          </section>
         </div>
       )}
     </div>
@@ -3005,6 +3019,7 @@ export default function App() {
 
 /** Optional voluntary tips — never gates features. */
 const KOFI_URL = 'https://ko-fi.com/hamlet2k'
+const GITHUB_URL = 'https://github.com/hamlet2k/Sprites'
 
 /** Stable key for tracking which plan exchanges were already applied. */
 function exchangeKey(a: BringAssignment): string {

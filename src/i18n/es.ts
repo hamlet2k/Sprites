@@ -406,6 +406,12 @@ const es: MessageTree = {
     supportButton: 'Apoyar en Ko-fi',
     supportLinkHint: 'Abre ko-fi.com en una pestaña nueva',
 
+    openSourceTitle: 'Código abierto',
+    openSourceBody:
+      'Sprite Squad es gratis y de código abierto (MIT). El código, incidencias y contribuciones están en GitHub. Es un proyecto de fans — no relacionado con Epic Games.',
+    openSourceButton: 'Ver en GitHub',
+    openSourceLinkHint: 'Abre el repositorio de GitHub en una pestaña nueva',
+
     startTitle: 'Empezar (primera vez)',
     start1:
       'Elige tu asiento cuando te lo pida (“¿Quién eres?”). Solo se puede editar la colección de ese asiento.',
