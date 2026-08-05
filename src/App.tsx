@@ -1467,7 +1467,16 @@ export default function App() {
                 type="button"
                 className="btn btn-sm header-account"
                 title={t('auth.signedInAs', { name: authUser.displayName })}
-                onClick={() => void signOut().then(() => setAuthUser(null))}
+                onClick={() => {
+                  void signOut().then(() => {
+                    // Sign-out is account-only: stay in the live room / keep local
+                    // squad state. Detach portable account from this seat's userId
+                    // is NOT done — room seats keep their userId links for when
+                    // you sign back in. Clear account UI + recent list only.
+                    setAuthUser(null)
+                    setRecentSquads([])
+                  })
+                }}
               >
                 {authUser.displayName}
                 <span className="header-account-action">{t('app.signOut')}</span>

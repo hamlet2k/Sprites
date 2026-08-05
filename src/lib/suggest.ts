@@ -140,35 +140,45 @@ export function buildSuggestionPlan(
       return best
     }
 
-    // --- completion mode: maximize new acquisitions ---
+    /**
+     * Completion packing: maximize Missing fills this round (1 give / 1 receive).
+     * Chains allowed (A→B and B→C). Ready preferred via edge score; repurchase
+     * stays in the search (not a separate later pass that can block better packs).
+     */
     const packMaxCompletion = (
       readyOnly: boolean | null,
       missingOnly: boolean,
     ) => {
-      const free = active.filter(
-        (p) => !giveThisRound.has(p.id) && !receiveThisRound.has(p.id),
-      )
-      const n = free.length
-      if (n < 2) return
+      // Anyone who has not given yet can still give; not-yet-receivers can receive.
+      // (Previously required "fully free", which blocked residual givers after a
+      // partial pack — and ready-only-first packing could lock a 1-fill over a
+      // 2-fill chain that needed one repurchase.)
+      const givers = active.filter((p) => !giveThisRound.has(p.id))
+      const n = givers.length
+      if (n === 0) return
 
-      const matrix: (Edge | null)[][] = Array.from({ length: n }, () =>
-        Array.from({ length: n }, () => null),
-      )
+      // Best edge per (giverId → receiverId) under filters
+      const bestTo = new Map<string, Edge>()
       for (const e of edges) {
         if (!isOpen(e, readyOnly)) continue
         if (missingOnly && e.needKind !== 'missing') continue
-        const i = free.findIndex((p) => p.id === e.giver.id)
-        const j = free.findIndex((p) => p.id === e.receiver.id)
-        if (i < 0 || j < 0 || i === j) continue
-        const cur = matrix[i][j]
-        if (!cur || e.score > cur.score) matrix[i][j] = e
+        if (giveThisRound.has(e.giver.id)) continue
+        if (receiveThisRound.has(e.receiver.id)) continue
+        const key = `${e.giver.id}>>${e.receiver.id}`
+        const cur = bestTo.get(key)
+        if (!cur || e.score > cur.score) bestTo.set(key, e)
       }
+      if (bestTo.size === 0) return
 
       type Pack = { edges: Edge[]; missing: number; total: number; weight: number }
       let best: Pack = { edges: [], missing: 0, total: 0, weight: 0 }
 
       const better = (a: Pack, b: Pack) => {
         if (a.missing !== b.missing) return a.missing > b.missing
+        // Prefer fewer repurchases when missing count ties (faster real completion)
+        const aRep = a.edges.filter((e) => e.needsRepurchase).length
+        const bRep = b.edges.filter((e) => e.needsRepurchase).length
+        if (aRep !== bRep) return aRep < bRep
         if (a.total !== b.total) return a.total > b.total
         return a.weight > b.weight
       }
@@ -183,26 +193,30 @@ export function buildSuggestionPlan(
         return { edges: [...chosen], missing, total: chosen.length, weight }
       }
 
-      const dfs = (giverIdx: number, usedRecv: boolean[], chosen: Edge[]) => {
+      const dfs = (giverIdx: number, usedRecv: Set<string>, chosen: Edge[]) => {
         if (giverIdx === n) {
           const pack = evaluate(chosen)
           if (better(pack, best)) best = pack
           return
         }
+        // Skip this giver
         dfs(giverIdx + 1, usedRecv, chosen)
-        for (let j = 0; j < n; j++) {
-          if (giverIdx === j || usedRecv[j]) continue
-          const e = matrix[giverIdx][j]
-          if (!e) continue
-          usedRecv[j] = true
+        const g = givers[giverIdx]
+        for (const e of bestTo.values()) {
+          if (e.giver.id !== g.id) continue
+          if (usedRecv.has(e.receiver.id)) continue
+          if (receiveThisRound.has(e.receiver.id)) continue
+          // isOpen again in case state changed mid-search (shouldn't)
+          if (!isOpen(e, readyOnly)) continue
+          usedRecv.add(e.receiver.id)
           chosen.push(e)
           dfs(giverIdx + 1, usedRecv, chosen)
           chosen.pop()
-          usedRecv[j] = false
+          usedRecv.delete(e.receiver.id)
         }
       }
 
-      dfs(0, Array.from({ length: n }, () => false), [])
+      dfs(0, new Set(), [])
       for (const e of best.edges) {
         if (isOpen(e, readyOnly)) tryTake(e)
       }
@@ -274,10 +288,11 @@ export function buildSuggestionPlan(
     }
 
     if (mode === 'completion') {
-      packMaxCompletion(true, true)
-      packMaxCompletion(false, true)
-      packMaxCompletion(true, false)
-      packMaxCompletion(false, false)
+      // One search for Missing (ready + repurchase scored), then remaining needs.
+      // Do NOT pack ready-only first — that can lock Fredek→Antequera (1 fill)
+      // and block Fredek→Jars (repurchase) + Jars→Antequera (2 fills).
+      packMaxCompletion(null, true)
+      packMaxCompletion(null, false)
     } else {
       matchMutualPairs(true)
       matchResidualFair(true)
