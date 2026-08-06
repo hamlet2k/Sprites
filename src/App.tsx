@@ -143,6 +143,7 @@ export default function App() {
   const [squadNameDraft, setSquadNameDraft] = useState('')
   const [recentSquads, setRecentSquads] = useState<RecentSquad[]>([])
   const [newPassword, setNewPassword] = useState('')
+  const headerRef = useRef<HTMLElement>(null)
 
   /** Shared plan + outcomes live on SquadState so the room syncs them. */
   const plan = state.suggestion?.plan ?? null
@@ -373,6 +374,27 @@ export default function App() {
   useEffect(() => {
     saveSquad(state)
   }, [state])
+
+  // Sticky collection filters sit just under the sticky header
+  useEffect(() => {
+    const el = headerRef.current
+    if (!el) return
+    const apply = () => {
+      const h = Math.ceil(el.getBoundingClientRect().height)
+      document.documentElement.style.setProperty(
+        '--header-sticky-offset',
+        `${h}px`,
+      )
+    }
+    apply()
+    const ro = new ResizeObserver(apply)
+    ro.observe(el)
+    window.addEventListener('resize', apply)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', apply)
+    }
+  }, [])
 
   // Join room from URL / saved code on first load — never push until this finishes
   useEffect(() => {
@@ -1475,7 +1497,7 @@ export default function App() {
           <span className="sync-busy-label">{t('sync.pleaseWait')}</span>
         </div>
       )}
-      <header className="header">
+      <header className="header" ref={headerRef}>
         <h1>{t('app.title')}</h1>
         <div className="header-actions">
           {cloudReady && (
@@ -1619,73 +1641,75 @@ export default function App() {
             </p>
           )}
 
-          {/* Row 1: inventory status */}
-          <div className="stats-bar" role="toolbar" aria-label={t('collection.statsFilterLabel')}>
-            <button
-              type="button"
-              className={`stat-chip${statusFilter === 'all' ? ' active' : ''}`}
-              onClick={() => setStatusFilterSmart('all')}
-              title={t('collection.filterOwnedTitle')}
-            >
-              <strong>{stats.owned}</strong> / {SPRITES.length} {t('collection.owned')}
-            </button>
-            <button
-              type="button"
-              className={`stat-chip${statusFilter === 'available' ? ' active' : ''}`}
-              onClick={() => setStatusFilterSmart('available')}
-              title={t('collection.filterAvailableTitle')}
-            >
-              <strong style={{ color: 'var(--available)' }}>{stats.available}</strong>{' '}
-              {t('collection.available')}
-            </button>
-            <button
-              type="button"
-              className={`stat-chip${statusFilter === 'lost' ? ' active' : ''}`}
-              onClick={() => setStatusFilterSmart('lost')}
-              title={t('collection.filterLostTitle')}
-            >
-              <strong style={{ color: 'var(--lost)' }}>{stats.lost}</strong>{' '}
-              {t('collection.lost')}
-            </button>
-            <button
-              type="button"
-              className={`stat-chip${statusFilter === 'missing' ? ' active' : ''}`}
-              onClick={() => setStatusFilterSmart('missing')}
-              title={t('collection.filterMissingTitle')}
-            >
-              <strong style={{ color: 'var(--none)' }}>{stats.missing}</strong>{' '}
-              {t('status.missing')}
-            </button>
-            <button
-              type="button"
-              className={`stat-chip${statusFilter === 'mastered' ? ' active' : ''}`}
-              onClick={() => setStatusFilterSmart('mastered')}
-              title={t('collection.filterMasteredTitle')}
-            >
-              <strong style={{ color: 'var(--master-gold)' }}>{stats.mastered}</strong>{' '}
-              {t('collection.mastered')}
-            </button>
-          </div>
+          <div className="collection-filters-sticky">
+            {/* Row 1: inventory status */}
+            <div className="stats-bar" role="toolbar" aria-label={t('collection.statsFilterLabel')}>
+              <button
+                type="button"
+                className={`stat-chip${statusFilter === 'all' ? ' active' : ''}`}
+                onClick={() => setStatusFilterSmart('all')}
+                title={t('collection.filterOwnedTitle')}
+              >
+                <strong>{stats.owned}</strong> / {SPRITES.length} {t('collection.owned')}
+              </button>
+              <button
+                type="button"
+                className={`stat-chip${statusFilter === 'available' ? ' active' : ''}`}
+                onClick={() => setStatusFilterSmart('available')}
+                title={t('collection.filterAvailableTitle')}
+              >
+                <strong style={{ color: 'var(--available)' }}>{stats.available}</strong>{' '}
+                {t('collection.available')}
+              </button>
+              <button
+                type="button"
+                className={`stat-chip${statusFilter === 'lost' ? ' active' : ''}`}
+                onClick={() => setStatusFilterSmart('lost')}
+                title={t('collection.filterLostTitle')}
+              >
+                <strong style={{ color: 'var(--lost)' }}>{stats.lost}</strong>{' '}
+                {t('collection.lost')}
+              </button>
+              <button
+                type="button"
+                className={`stat-chip${statusFilter === 'missing' ? ' active' : ''}`}
+                onClick={() => setStatusFilterSmart('missing')}
+                title={t('collection.filterMissingTitle')}
+              >
+                <strong style={{ color: 'var(--none)' }}>{stats.missing}</strong>{' '}
+                {t('status.missing')}
+              </button>
+              <button
+                type="button"
+                className={`stat-chip${statusFilter === 'mastered' ? ' active' : ''}`}
+                onClick={() => setStatusFilterSmart('mastered')}
+                title={t('collection.filterMasteredTitle')}
+              >
+                <strong style={{ color: 'var(--master-gold)' }}>{stats.mastered}</strong>{' '}
+                {t('collection.mastered')}
+              </button>
+            </div>
 
-          {/* Row 2: in-game quick presets */}
-          <div className="preset-bar" role="toolbar" aria-label={t('collection.presetFilterLabel')}>
-            <button
-              type="button"
-              className={`stat-chip preset-chip${statusFilter === 'need' ? ' active' : ''}`}
-              onClick={() => setStatusFilterSmart('need')}
-              title={t('collection.filterNeedTitle')}
-            >
-              <strong>{stats.need}</strong> {t('collection.needFilter')}
-            </button>
-            <button
-              type="button"
-              className={`stat-chip preset-chip${statusFilter === 'unmastered' ? ' active' : ''}`}
-              onClick={() => setStatusFilterSmart('unmastered')}
-              title={t('collection.filterUnmasteredTitle')}
-            >
-              <strong style={{ color: 'var(--master-gold)' }}>{stats.unmastered}</strong>{' '}
-              {t('collection.levelUpFilter')}
-            </button>
+            {/* Row 2: in-game quick presets */}
+            <div className="preset-bar" role="toolbar" aria-label={t('collection.presetFilterLabel')}>
+              <button
+                type="button"
+                className={`stat-chip preset-chip${statusFilter === 'need' ? ' active' : ''}`}
+                onClick={() => setStatusFilterSmart('need')}
+                title={t('collection.filterNeedTitle')}
+              >
+                <strong>{stats.need}</strong> {t('collection.needFilter')}
+              </button>
+              <button
+                type="button"
+                className={`stat-chip preset-chip${statusFilter === 'unmastered' ? ' active' : ''}`}
+                onClick={() => setStatusFilterSmart('unmastered')}
+                title={t('collection.filterUnmasteredTitle')}
+              >
+                <strong style={{ color: 'var(--master-gold)' }}>{stats.unmastered}</strong>{' '}
+                {t('collection.levelUpFilter')}
+              </button>
+            </div>
           </div>
 
           <div className="toolbar">

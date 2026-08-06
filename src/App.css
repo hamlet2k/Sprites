@@ -21,6 +21,8 @@
   --special: #5ce1e6;
   --radius: 12px;
   --touch: 44px;
+  /* Updated from JS to match sticky header height */
+  --header-sticky-offset: 58px;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   line-height: 1.4;
   font-weight: 450;
@@ -634,6 +636,23 @@ button {
   background: var(--bg-elevated);
 }
 
+.collection-filters-sticky {
+  position: sticky;
+  top: var(--header-sticky-offset);
+  z-index: 15;
+  margin: 0 -4px 10px;
+  padding: 8px 4px 10px;
+  background: linear-gradient(
+    180deg,
+    var(--bg) 0%,
+    var(--bg) 78%,
+    color-mix(in srgb, var(--bg) 70%, transparent) 100%
+  );
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
 .stats-bar,
 .preset-bar {
   display: flex;
@@ -645,7 +664,7 @@ button {
 }
 
 .preset-bar {
-  margin-bottom: 12px;
+  margin-bottom: 0;
 }
 
 .stats-bar strong,
