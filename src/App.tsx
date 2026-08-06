@@ -1621,7 +1621,9 @@ export default function App() {
         </div>
       )}
       <header
-        className={`header${pageScrolled ? ' header-scrolled' : ''}`}
+        className={`header${pageScrolled ? ' header-scrolled' : ''}${
+          headerMenuOpen ? ' header-menu-open' : ''
+        }`}
         ref={headerRef}
       >
         {/* Hamburger: always on mobile; also on desktop after scroll for tab access */}
@@ -1663,39 +1665,42 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              <div className="header-menu-divider" aria-hidden />
-              <label className="header-menu-row lang-select-wrap">
-                <span className="header-menu-label">{t('lang.label')}</span>
-                <select
-                  className="lang-select header-menu-select"
-                  value={locale}
-                  onChange={(e) => {
-                    setLocale(e.target.value as 'en' | 'es')
-                    setHeaderMenuOpen(false)
-                  }}
-                  aria-label={t('lang.label')}
+              {/* Support + language: mobile hamburger only (desktop has them in the header). */}
+              <div className="header-menu-mobile-only">
+                <div className="header-menu-divider" aria-hidden />
+                <label className="header-menu-row lang-select-wrap">
+                  <span className="header-menu-label">{t('lang.label')}</span>
+                  <select
+                    className="lang-select header-menu-select"
+                    value={locale}
+                    onChange={(e) => {
+                      setLocale(e.target.value as 'en' | 'es')
+                      setHeaderMenuOpen(false)
+                    }}
+                    aria-label={t('lang.label')}
+                  >
+                    {locales.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.native}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <a
+                  className="header-menu-item header-menu-support-item"
+                  href={KOFI_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={t('app.supportTitle')}
+                  role="menuitem"
+                  onClick={() => setHeaderMenuOpen(false)}
                 >
-                  {locales.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.native}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <a
-                className="header-menu-item header-menu-support-item"
-                href={KOFI_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                title={t('app.supportTitle')}
-                role="menuitem"
-                onClick={() => setHeaderMenuOpen(false)}
-              >
-                <span className="header-support-icon" aria-hidden>
-                  ♥
-                </span>
-                {t('app.support')}
-              </a>
+                  <span className="header-support-icon" aria-hidden>
+                    ♥
+                  </span>
+                  {t('app.support')}
+                </a>
+              </div>
             </div>
           )}
         </div>
@@ -2092,8 +2097,12 @@ export default function App() {
                   </label>
                 </div>
 
-                {/* Row 4: sort / variant / status — same hierarchy as chips */}
-                <div className="toolbar filter-toolbar">
+                {/* Row 4: sort / variant / status — at top always; on mobile hide when force-expanded while scrolled */}
+                <div
+                  className={`toolbar filter-toolbar${
+                    filtersScrolled ? ' hide-on-scroll-expand-mobile' : ''
+                  }`}
+                >
                   <select
                     className="filter-select"
                     value={sortMode}
@@ -2829,7 +2838,30 @@ export default function App() {
                   ↓
                 </button>
               </div>
-              <span className="dot" style={{ background: p.color, width: 16, height: 16 }} />
+              {p.id === actorSeatId ? (
+                <span
+                  className="dot dot-you"
+                  style={{ ['--chip-color' as string]: p.color }}
+                  title={t('squad.youBadge')}
+                  aria-label={t('squad.youBadge')}
+                >
+                  <svg
+                    className="icon-person"
+                    viewBox="0 0 24 24"
+                    width="12"
+                    height="12"
+                    fill="currentColor"
+                    aria-hidden
+                  >
+                    <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v1.2h19.2v-1.2c0-3.2-6.4-4.8-9.6-4.8z" />
+                  </svg>
+                </span>
+              ) : (
+                <span
+                  className="dot"
+                  style={{ background: p.color, width: 16, height: 16 }}
+                />
+              )}
               <input
                 type="text"
                 value={p.name}
@@ -2837,13 +2869,10 @@ export default function App() {
                 onChange={(e) => renamePlayer(p.id, e.target.value)}
                 title={
                   p.id === actorSeatId
-                    ? undefined
+                    ? t('seat.youHint')
                     : t('seat.viewOnlyHint', { name: p.name })
                 }
               />
-              {p.id === actorSeatId && (
-                <span className="you-badge">{t('squad.youBadge')}</span>
-              )}
               {isSeatTakenByOther(p, actorSeatId, authUser?.id) && (
                 <span className="taken-badge">{t('seat.takenBadge')}</span>
               )}
