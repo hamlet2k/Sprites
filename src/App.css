@@ -665,6 +665,61 @@ button {
 
 .preset-bar {
   margin-bottom: 0;
+  align-items: center;
+}
+
+.sticky-search-wrap {
+  position: relative;
+  flex: 1 1 140px;
+  min-width: 120px;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.sticky-search {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 32px 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.sticky-search::placeholder {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.sticky-search:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 1px;
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+}
+
+.sticky-search-clear {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sticky-search-clear:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--text-muted) 18%, transparent);
 }
 
 .stats-bar strong,

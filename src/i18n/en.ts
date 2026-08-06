@@ -141,6 +141,7 @@ const en: MessageTree = {
     filterNeedTitle: 'Missing + Lost — grab or bring candidates',
     filterUnmasteredTitle: 'Owned but not mastered — level these up',
     searchPlaceholder: 'Search sprites…',
+    clearSearch: 'Clear search',
     sortTitle: 'Sort families',
     sortType: 'Sort: Type',
     sortRarity: 'Sort: Rarity',

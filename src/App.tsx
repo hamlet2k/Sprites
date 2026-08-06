@@ -1690,7 +1690,7 @@ export default function App() {
               </button>
             </div>
 
-            {/* Row 2: in-game quick presets */}
+            {/* Row 2: in-game quick presets + sticky search */}
             <div className="preset-bar" role="toolbar" aria-label={t('collection.presetFilterLabel')}>
               <button
                 type="button"
@@ -1709,16 +1709,33 @@ export default function App() {
                 <strong style={{ color: 'var(--master-gold)' }}>{stats.unmastered}</strong>{' '}
                 {t('collection.levelUpFilter')}
               </button>
+              <label className="sticky-search-wrap">
+                <span className="visually-hidden">{t('collection.searchPlaceholder')}</span>
+                <input
+                  className="sticky-search"
+                  type="search"
+                  placeholder={t('collection.searchPlaceholder')}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  enterKeyHint="search"
+                  autoComplete="off"
+                />
+                {query ? (
+                  <button
+                    type="button"
+                    className="sticky-search-clear"
+                    onClick={() => setQuery('')}
+                    title={t('collection.clearSearch')}
+                    aria-label={t('collection.clearSearch')}
+                  >
+                    ×
+                  </button>
+                ) : null}
+              </label>
             </div>
           </div>
 
           <div className="toolbar">
-            <input
-              className="search"
-              placeholder={t('collection.searchPlaceholder')}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
             <select
               className="filter-select"
               value={sortMode}

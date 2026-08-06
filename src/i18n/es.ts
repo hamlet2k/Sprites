@@ -147,6 +147,7 @@ const es: MessageTree = {
     filterNeedTitle: 'Falta + Perdidos — candidatos a coger o traer',
     filterUnmasteredTitle: 'Conseguidos sin maestría — súbelos de nivel',
     searchPlaceholder: 'Buscar espíritus…',
+    clearSearch: 'Borrar búsqueda',
     sortTitle: 'Ordenar familias',
     sortType: 'Orden: Tipo',
     sortRarity: 'Orden: Rareza',
