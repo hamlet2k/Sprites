@@ -143,7 +143,14 @@ export default function App() {
   const [squadNameDraft, setSquadNameDraft] = useState('')
   const [recentSquads, setRecentSquads] = useState<RecentSquad[]>([])
   const [newPassword, setNewPassword] = useState('')
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false)
+  /** User forced filter pills open while scrolled down. */
+  const [filtersForceExpanded, setFiltersForceExpanded] = useState(false)
+  /** True once the collection filter sentinel has left the top of the viewport. */
+  const [filtersScrolled, setFiltersScrolled] = useState(false)
   const headerRef = useRef<HTMLElement>(null)
+  const headerMenuRef = useRef<HTMLDivElement>(null)
+  const filtersSentinelRef = useRef<HTMLDivElement>(null)
 
   /** Shared plan + outcomes live on SquadState so the room syncs them. */
   const plan = state.suggestion?.plan ?? null
@@ -394,7 +401,56 @@ export default function App() {
       ro.disconnect()
       window.removeEventListener('resize', apply)
     }
-  }, [])
+  }, [headerMenuOpen, roomCode, authUser, locale])
+
+  // Close header ⋮ menu on outside click / Escape
+  useEffect(() => {
+    if (!headerMenuOpen) return
+    const onPointer = (e: MouseEvent | PointerEvent) => {
+      const root = headerMenuRef.current
+      if (root && !root.contains(e.target as Node)) setHeaderMenuOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setHeaderMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointer)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onPointer)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [headerMenuOpen])
+
+  // Collapse collection filter pills once the sentinel scrolls under the sticky header
+  useEffect(() => {
+    if (tab !== 'collection') {
+      setFiltersScrolled(false)
+      setFiltersForceExpanded(false)
+      return
+    }
+    const update = () => {
+      const sentinel = filtersSentinelRef.current
+      if (!sentinel) return
+      const headerH =
+        parseInt(
+          getComputedStyle(document.documentElement).getPropertyValue(
+            '--header-sticky-offset',
+          ) || '58',
+          10,
+        ) || 58
+      // Collapsed once the sentinel is at/above the sticky header bottom
+      const past = sentinel.getBoundingClientRect().top <= headerH + 2
+      setFiltersScrolled((prev) => (prev === past ? prev : past))
+      if (!past) setFiltersForceExpanded(false)
+    }
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
+    return () => {
+      window.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [tab, selectedPlayerId])
 
   // Join room from URL / saved code on first load — never push until this finishes
   useEffect(() => {
@@ -760,6 +816,8 @@ export default function App() {
     setStatusFilter((prev) => (prev === next ? 'all' : next))
   }
 
+  const filtersCollapsed = filtersScrolled && !filtersForceExpanded
+
   function onSyncPillClick() {
     if (syncStatus === 'error') {
       window.location.reload()
@@ -805,6 +863,25 @@ export default function App() {
       unmastered,
     }
   }, [selectedPlayer])
+
+  const statusFilterSummaryLabel = useMemo(() => {
+    switch (statusFilter) {
+      case 'available':
+        return `${stats.available} ${t('collection.available')}`
+      case 'lost':
+        return `${stats.lost} ${t('collection.lost')}`
+      case 'missing':
+        return `${stats.missing} ${t('status.missing')}`
+      case 'mastered':
+        return `${stats.mastered} ${t('collection.mastered')}`
+      case 'need':
+        return `${stats.need} ${t('collection.needFilterShort')}`
+      case 'unmastered':
+        return `${stats.unmastered} ${t('collection.levelUpFilter')}`
+      default:
+        return t('collection.filtersLabel')
+    }
+  }, [statusFilter, stats, t])
 
   const filteredByFamily = useMemo(() => {
     if (!selectedPlayer) return []
@@ -1530,8 +1607,9 @@ export default function App() {
               </button>
             )
           )}
+          {/* Desktop: Support + language inline. Mobile: moved into ⋮ menu. */}
           <a
-            className="btn btn-sm header-support"
+            className="btn btn-sm header-support header-desktop-only"
             href={KOFI_URL}
             target="_blank"
             rel="noopener noreferrer"
@@ -1543,7 +1621,7 @@ export default function App() {
             </span>
             {t('app.support')}
           </a>
-          <label className="lang-select-wrap">
+          <label className="lang-select-wrap header-desktop-only">
             <span className="visually-hidden">{t('lang.label')}</span>
             <select
               className="lang-select"
@@ -1559,6 +1637,55 @@ export default function App() {
               ))}
             </select>
           </label>
+          <div className="header-overflow" ref={headerMenuRef}>
+            <button
+              type="button"
+              className="btn btn-sm header-overflow-btn"
+              aria-haspopup="menu"
+              aria-expanded={headerMenuOpen}
+              aria-label={t('app.moreMenu')}
+              title={t('app.moreMenu')}
+              onClick={() => setHeaderMenuOpen((o) => !o)}
+            >
+              ⋮
+            </button>
+            {headerMenuOpen && (
+              <div className="header-overflow-menu" role="menu">
+                <label className="header-menu-row lang-select-wrap">
+                  <span className="header-menu-label">{t('lang.label')}</span>
+                  <select
+                    className="lang-select"
+                    value={locale}
+                    onChange={(e) => {
+                      setLocale(e.target.value as 'en' | 'es')
+                      setHeaderMenuOpen(false)
+                    }}
+                    aria-label={t('lang.label')}
+                  >
+                    {locales.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.native}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <a
+                  className="btn btn-sm header-support header-menu-support"
+                  href={KOFI_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={t('app.supportTitle')}
+                  role="menuitem"
+                  onClick={() => setHeaderMenuOpen(false)}
+                >
+                  <span className="header-support-icon" aria-hidden>
+                    ♥
+                  </span>
+                  {t('app.support')}
+                </a>
+              </div>
+            )}
+          </div>
           {roomCode && (
             <button
               type="button"
@@ -1641,98 +1768,198 @@ export default function App() {
             </p>
           )}
 
-          <div className="collection-filters-sticky">
-            {/* Row 1: inventory status */}
-            <div className="stats-bar" role="toolbar" aria-label={t('collection.statsFilterLabel')}>
-              <button
-                type="button"
-                className={`stat-chip${statusFilter === 'all' ? ' active' : ''}`}
-                onClick={() => setStatusFilterSmart('all')}
-                title={t('collection.filterOwnedTitle')}
+          {/* Sentinel: when it leaves the top (under sticky header), collapse pills */}
+          <div
+            className="collection-filters-sentinel"
+            ref={filtersSentinelRef}
+            aria-hidden
+          />
+          <div
+            className={`collection-filters-sticky${
+              filtersCollapsed ? ' is-collapsed' : ''
+            }`}
+          >
+            {filtersCollapsed ? (
+              <div
+                className="filters-collapsed-bar"
+                role="toolbar"
+                aria-label={t('collection.statsFilterLabel')}
               >
-                <strong>{stats.owned}</strong> / {SPRITES.length} {t('collection.owned')}
-              </button>
-              <button
-                type="button"
-                className={`stat-chip${statusFilter === 'available' ? ' active' : ''}`}
-                onClick={() => setStatusFilterSmart('available')}
-                title={t('collection.filterAvailableTitle')}
-              >
-                <strong style={{ color: 'var(--available)' }}>{stats.available}</strong>{' '}
-                {t('collection.available')}
-              </button>
-              <button
-                type="button"
-                className={`stat-chip${statusFilter === 'lost' ? ' active' : ''}`}
-                onClick={() => setStatusFilterSmart('lost')}
-                title={t('collection.filterLostTitle')}
-              >
-                <strong style={{ color: 'var(--lost)' }}>{stats.lost}</strong>{' '}
-                {t('collection.lost')}
-              </button>
-              <button
-                type="button"
-                className={`stat-chip${statusFilter === 'missing' ? ' active' : ''}`}
-                onClick={() => setStatusFilterSmart('missing')}
-                title={t('collection.filterMissingTitle')}
-              >
-                <strong style={{ color: 'var(--none)' }}>{stats.missing}</strong>{' '}
-                {t('status.missing')}
-              </button>
-              <button
-                type="button"
-                className={`stat-chip${statusFilter === 'mastered' ? ' active' : ''}`}
-                onClick={() => setStatusFilterSmart('mastered')}
-                title={t('collection.filterMasteredTitle')}
-              >
-                <strong style={{ color: 'var(--master-gold)' }}>{stats.mastered}</strong>{' '}
-                {t('collection.mastered')}
-              </button>
-            </div>
-
-            {/* Row 2: in-game quick presets + sticky search */}
-            <div className="preset-bar" role="toolbar" aria-label={t('collection.presetFilterLabel')}>
-              <button
-                type="button"
-                className={`stat-chip preset-chip${statusFilter === 'need' ? ' active' : ''}`}
-                onClick={() => setStatusFilterSmart('need')}
-                title={t('collection.filterNeedTitle')}
-              >
-                <strong>{stats.need}</strong> {t('collection.needFilter')}
-              </button>
-              <button
-                type="button"
-                className={`stat-chip preset-chip${statusFilter === 'unmastered' ? ' active' : ''}`}
-                onClick={() => setStatusFilterSmart('unmastered')}
-                title={t('collection.filterUnmasteredTitle')}
-              >
-                <strong style={{ color: 'var(--master-gold)' }}>{stats.unmastered}</strong>{' '}
-                {t('collection.levelUpFilter')}
-              </button>
-              <label className="sticky-search-wrap">
-                <span className="visually-hidden">{t('collection.searchPlaceholder')}</span>
-                <input
-                  className="sticky-search"
-                  type="search"
-                  placeholder={t('collection.searchPlaceholder')}
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  enterKeyHint="search"
-                  autoComplete="off"
-                />
-                {query ? (
+                <label className="sticky-search-wrap">
+                  <span className="visually-hidden">
+                    {t('collection.searchPlaceholder')}
+                  </span>
+                  <input
+                    className="sticky-search"
+                    type="search"
+                    placeholder={t('collection.searchPlaceholder')}
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    enterKeyHint="search"
+                    autoComplete="off"
+                  />
+                  {query ? (
+                    <button
+                      type="button"
+                      className="sticky-search-clear"
+                      onClick={() => setQuery('')}
+                      title={t('collection.clearSearch')}
+                      aria-label={t('collection.clearSearch')}
+                    >
+                      ×
+                    </button>
+                  ) : null}
+                </label>
+                <button
+                  type="button"
+                  className={`stat-chip filters-expand-btn${
+                    statusFilter !== 'all' ? ' active' : ''
+                  }`}
+                  onClick={() => setFiltersForceExpanded(true)}
+                  title={t('collection.expandFilters')}
+                  aria-expanded={false}
+                >
+                  {statusFilterSummaryLabel}
+                  <span className="filters-chevron" aria-hidden>
+                    ▾
+                  </span>
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* Row 1: inventory status */}
+                <div
+                  className="stats-bar"
+                  role="toolbar"
+                  aria-label={t('collection.statsFilterLabel')}
+                >
                   <button
                     type="button"
-                    className="sticky-search-clear"
-                    onClick={() => setQuery('')}
-                    title={t('collection.clearSearch')}
-                    aria-label={t('collection.clearSearch')}
+                    className={`stat-chip${statusFilter === 'all' ? ' active' : ''}`}
+                    onClick={() => setStatusFilterSmart('all')}
+                    title={t('collection.filterOwnedTitle')}
                   >
-                    ×
+                    <strong>{stats.owned}</strong> / {SPRITES.length}{' '}
+                    {t('collection.owned')}
                   </button>
-                ) : null}
-              </label>
-            </div>
+                  <button
+                    type="button"
+                    className={`stat-chip${
+                      statusFilter === 'available' ? ' active' : ''
+                    }`}
+                    onClick={() => setStatusFilterSmart('available')}
+                    title={t('collection.filterAvailableTitle')}
+                  >
+                    <strong style={{ color: 'var(--available)' }}>
+                      {stats.available}
+                    </strong>{' '}
+                    {t('collection.available')}
+                  </button>
+                  <button
+                    type="button"
+                    className={`stat-chip${statusFilter === 'lost' ? ' active' : ''}`}
+                    onClick={() => setStatusFilterSmart('lost')}
+                    title={t('collection.filterLostTitle')}
+                  >
+                    <strong style={{ color: 'var(--lost)' }}>{stats.lost}</strong>{' '}
+                    {t('collection.lost')}
+                  </button>
+                  <button
+                    type="button"
+                    className={`stat-chip${
+                      statusFilter === 'missing' ? ' active' : ''
+                    }`}
+                    onClick={() => setStatusFilterSmart('missing')}
+                    title={t('collection.filterMissingTitle')}
+                  >
+                    <strong style={{ color: 'var(--none)' }}>{stats.missing}</strong>{' '}
+                    {t('status.missing')}
+                  </button>
+                  <button
+                    type="button"
+                    className={`stat-chip${
+                      statusFilter === 'mastered' ? ' active' : ''
+                    }`}
+                    onClick={() => setStatusFilterSmart('mastered')}
+                    title={t('collection.filterMasteredTitle')}
+                  >
+                    <strong style={{ color: 'var(--master-gold)' }}>
+                      {stats.mastered}
+                    </strong>{' '}
+                    {t('collection.mastered')}
+                  </button>
+                  {filtersScrolled && (
+                    <button
+                      type="button"
+                      className="stat-chip filters-collapse-btn"
+                      onClick={() => setFiltersForceExpanded(false)}
+                      title={t('collection.collapseFilters')}
+                      aria-label={t('collection.collapseFilters')}
+                    >
+                      <span className="filters-chevron" aria-hidden>
+                        ▴
+                      </span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Row 2: in-game quick presets + sticky search */}
+                <div
+                  className="preset-bar"
+                  role="toolbar"
+                  aria-label={t('collection.presetFilterLabel')}
+                >
+                  <button
+                    type="button"
+                    className={`stat-chip preset-chip${
+                      statusFilter === 'need' ? ' active' : ''
+                    }`}
+                    onClick={() => setStatusFilterSmart('need')}
+                    title={t('collection.filterNeedTitle')}
+                  >
+                    <strong>{stats.need}</strong> {t('collection.needFilter')}
+                  </button>
+                  <button
+                    type="button"
+                    className={`stat-chip preset-chip${
+                      statusFilter === 'unmastered' ? ' active' : ''
+                    }`}
+                    onClick={() => setStatusFilterSmart('unmastered')}
+                    title={t('collection.filterUnmasteredTitle')}
+                  >
+                    <strong style={{ color: 'var(--master-gold)' }}>
+                      {stats.unmastered}
+                    </strong>{' '}
+                    {t('collection.levelUpFilter')}
+                  </button>
+                  <label className="sticky-search-wrap">
+                    <span className="visually-hidden">
+                      {t('collection.searchPlaceholder')}
+                    </span>
+                    <input
+                      className="sticky-search"
+                      type="search"
+                      placeholder={t('collection.searchPlaceholder')}
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      enterKeyHint="search"
+                      autoComplete="off"
+                    />
+                    {query ? (
+                      <button
+                        type="button"
+                        className="sticky-search-clear"
+                        onClick={() => setQuery('')}
+                        title={t('collection.clearSearch')}
+                        aria-label={t('collection.clearSearch')}
+                      >
+                        ×
+                      </button>
+                    ) : null}
+                  </label>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="toolbar">

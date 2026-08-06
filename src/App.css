@@ -81,6 +81,7 @@ button {
   font-weight: 700;
   letter-spacing: -0.02em;
   flex: 1 1 auto;
+  min-width: 0;
 }
 
 .header-actions {
@@ -88,6 +89,58 @@ button {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+}
+
+/* Mobile: Support + language live in the ⋮ menu (always visible on desktop). */
+.header-overflow {
+  display: none;
+  position: relative;
+}
+
+.header-overflow-btn {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0 10px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.header-overflow-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  min-width: 200px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.header-menu-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.header-menu-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.header-menu-support {
+  width: 100%;
+  justify-content: center;
 }
 
 .header-support {
@@ -636,6 +689,14 @@ button {
   background: var(--bg-elevated);
 }
 
+.collection-filters-sentinel {
+  height: 1px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  pointer-events: none;
+}
+
 .collection-filters-sticky {
   position: sticky;
   top: var(--header-sticky-offset);
@@ -651,6 +712,42 @@ button {
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.collection-filters-sticky.is-collapsed {
+  padding: 6px 4px 8px;
+}
+
+.filters-collapsed-bar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.filters-collapsed-bar .sticky-search-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.filters-expand-btn,
+.filters-collapse-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.filters-collapse-btn {
+  min-width: 36px;
+  padding-left: 8px;
+  padding-right: 8px;
+  margin-left: auto;
+}
+
+.filters-chevron {
+  margin-left: 4px;
+  opacity: 0.85;
+  font-size: 0.75em;
 }
 
 .stats-bar,
@@ -1879,7 +1976,8 @@ button {
 
 .app-sync-busy .header .btn,
 .app-sync-busy .header .header-support,
-.app-sync-busy .header .lang-select-wrap {
+.app-sync-busy .header .lang-select-wrap,
+.app-sync-busy .header .header-overflow {
   pointer-events: none;
 }
 
@@ -2018,13 +2116,67 @@ button {
   font-size: 1rem;
 }
 
+/* Compact sticky header: one row on phones (Support + language → ⋮ menu). */
+@media (max-width: 640px) {
+  .header {
+    flex-wrap: nowrap;
+    gap: 6px;
+    margin-bottom: 10px;
+    padding: 6px 0 8px;
+  }
+
+  .header h1 {
+    font-size: 1.05rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header-actions {
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    gap: 6px;
+  }
+
+  .header-desktop-only {
+    display: none !important;
+  }
+
+  .header-overflow {
+    display: inline-flex;
+  }
+
+  .header-account {
+    max-width: 110px;
+    min-height: 36px;
+    padding: 0 10px;
+  }
+
+  .header-account-action {
+    display: none;
+  }
+
+  .header-overflow-btn {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0 8px;
+  }
+
+  .sync-pill {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 @media (max-width: 480px) {
   .variant-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 
   .header h1 {
-    font-size: 1.1rem;
+    font-size: 1rem;
   }
 }
 
