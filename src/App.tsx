@@ -1575,6 +1575,60 @@ export default function App() {
         </div>
       )}
       <header className="header" ref={headerRef}>
+        {/* Mobile: hamburger left of title (Support + language). Desktop: inline. */}
+        <div className="header-overflow" ref={headerMenuRef}>
+          <button
+            type="button"
+            className="btn btn-sm header-overflow-btn"
+            aria-haspopup="menu"
+            aria-expanded={headerMenuOpen}
+            aria-label={t('app.moreMenu')}
+            title={t('app.moreMenu')}
+            onClick={() => setHeaderMenuOpen((o) => !o)}
+          >
+            <span className="icon-hamburger" aria-hidden>
+              <span />
+              <span />
+              <span />
+            </span>
+          </button>
+          {headerMenuOpen && (
+            <div className="header-overflow-menu" role="menu">
+              <label className="header-menu-row lang-select-wrap">
+                <span className="header-menu-label">{t('lang.label')}</span>
+                <select
+                  className="lang-select"
+                  value={locale}
+                  onChange={(e) => {
+                    setLocale(e.target.value as 'en' | 'es')
+                    setHeaderMenuOpen(false)
+                  }}
+                  aria-label={t('lang.label')}
+                >
+                  {locales.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.native}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <a
+                className="btn btn-sm header-support header-menu-support"
+                href={KOFI_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={t('app.supportTitle')}
+                role="menuitem"
+                onClick={() => setHeaderMenuOpen(false)}
+              >
+                <span className="header-support-icon" aria-hidden>
+                  ♥
+                </span>
+                {t('app.support')}
+              </a>
+            </div>
+          )}
+        </div>
         <h1>{t('app.title')}</h1>
         <div className="header-actions">
           {cloudReady && (
@@ -1607,7 +1661,6 @@ export default function App() {
               </button>
             )
           )}
-          {/* Desktop: Support + language inline. Mobile: moved into ⋮ menu. */}
           <a
             className="btn btn-sm header-support header-desktop-only"
             href={KOFI_URL}
@@ -1637,55 +1690,6 @@ export default function App() {
               ))}
             </select>
           </label>
-          <div className="header-overflow" ref={headerMenuRef}>
-            <button
-              type="button"
-              className="btn btn-sm header-overflow-btn"
-              aria-haspopup="menu"
-              aria-expanded={headerMenuOpen}
-              aria-label={t('app.moreMenu')}
-              title={t('app.moreMenu')}
-              onClick={() => setHeaderMenuOpen((o) => !o)}
-            >
-              ⋮
-            </button>
-            {headerMenuOpen && (
-              <div className="header-overflow-menu" role="menu">
-                <label className="header-menu-row lang-select-wrap">
-                  <span className="header-menu-label">{t('lang.label')}</span>
-                  <select
-                    className="lang-select"
-                    value={locale}
-                    onChange={(e) => {
-                      setLocale(e.target.value as 'en' | 'es')
-                      setHeaderMenuOpen(false)
-                    }}
-                    aria-label={t('lang.label')}
-                  >
-                    {locales.map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.native}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <a
-                  className="btn btn-sm header-support header-menu-support"
-                  href={KOFI_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title={t('app.supportTitle')}
-                  role="menuitem"
-                  onClick={() => setHeaderMenuOpen(false)}
-                >
-                  <span className="header-support-icon" aria-hidden>
-                    ♥
-                  </span>
-                  {t('app.support')}
-                </a>
-              </div>
-            )}
-          </div>
           {roomCode && (
             <button
               type="button"
@@ -1746,20 +1750,49 @@ export default function App() {
                     : t('seat.viewOnlyHint', { name: p.name })
                 }
               >
-                <span className="dot" />
-                {p.name}
-                {isYou && (
-                  <span className="chip-you">{t('squad.youBadge')}</span>
+                {isYou ? (
+                  <span className="dot dot-you" aria-hidden title={t('squad.youBadge')}>
+                    <svg
+                      className="icon-person"
+                      viewBox="0 0 24 24"
+                      width="12"
+                      height="12"
+                      fill="currentColor"
+                    >
+                      <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v1.2h19.2v-1.2c0-3.2-6.4-4.8-9.6-4.8z" />
+                    </svg>
+                  </span>
+                ) : (
+                  <span className="dot" />
                 )}
+                {p.name}
               </button>
               )
             })}
             <button
               type="button"
-              className="btn btn-sm seat-switch-btn"
+              className="seat-switch-btn icon-btn"
               onClick={() => setModal({ kind: 'choose-seat', reason: 'needed' })}
+              title={t('seat.switch')}
+              aria-label={t('seat.switch')}
             >
-              {t('seat.switch')}
+              <svg
+                className="icon-svg"
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="M16 3h5v5" />
+                <path d="M8 21H3v-5" />
+                <path d="M21 3l-7 7" />
+                <path d="M3 21l7-7" />
+              </svg>
             </button>
           </div>
           {!isViewingOwnCollection && (
@@ -1777,7 +1810,7 @@ export default function App() {
           <div
             className={`collection-filters-sticky${
               filtersCollapsed ? ' is-collapsed' : ''
-            }`}
+            }${filtersScrolled && !filtersCollapsed ? ' is-expanded-scroll' : ''}`}
           >
             {filtersCollapsed ? (
               <div
@@ -1785,6 +1818,31 @@ export default function App() {
                 role="toolbar"
                 aria-label={t('collection.statsFilterLabel')}
               >
+                <button
+                  type="button"
+                  className="icon-btn tab-swap-btn"
+                  onClick={() => setTab('suggest')}
+                  title={t('collection.swapToExchanges')}
+                  aria-label={t('collection.swapToExchanges')}
+                >
+                  <svg
+                    className="icon-svg"
+                    viewBox="0 0 24 24"
+                    width="18"
+                    height="18"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <path d="M7 4v12" />
+                    <path d="M3 8l4-4 4 4" />
+                    <path d="M17 20V8" />
+                    <path d="M13 16l4 4 4-4" />
+                  </svg>
+                </button>
                 <label className="sticky-search-wrap">
                   <span className="visually-hidden">
                     {t('collection.searchPlaceholder')}
@@ -1812,21 +1870,54 @@ export default function App() {
                 </label>
                 <button
                   type="button"
-                  className={`stat-chip filters-expand-btn${
-                    statusFilter !== 'all' ? ' active' : ''
+                  className={`icon-btn filters-icon-btn${
+                    statusFilter !== 'all' ? ' has-filter' : ''
                   }`}
                   onClick={() => setFiltersForceExpanded(true)}
-                  title={t('collection.expandFilters')}
+                  title={
+                    statusFilter !== 'all'
+                      ? statusFilterSummaryLabel
+                      : t('collection.expandFilters')
+                  }
+                  aria-label={
+                    statusFilter !== 'all'
+                      ? statusFilterSummaryLabel
+                      : t('collection.expandFilters')
+                  }
                   aria-expanded={false}
                 >
-                  {statusFilterSummaryLabel}
-                  <span className="filters-chevron" aria-hidden>
-                    ▾
-                  </span>
+                  <svg
+                    className="icon-svg"
+                    viewBox="0 0 24 24"
+                    width="18"
+                    height="18"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+                  </svg>
+                  {statusFilter !== 'all' && (
+                    <span className="filters-active-dot" aria-hidden />
+                  )}
                 </button>
               </div>
             ) : (
               <>
+                {filtersScrolled && (
+                  <button
+                    type="button"
+                    className="filters-close-btn"
+                    onClick={() => setFiltersForceExpanded(false)}
+                    title={t('collection.collapseFilters')}
+                    aria-label={t('collection.collapseFilters')}
+                  >
+                    ×
+                  </button>
+                )}
                 {/* Row 1: inventory status */}
                 <div
                   className="stats-bar"
@@ -1888,19 +1979,6 @@ export default function App() {
                     </strong>{' '}
                     {t('collection.mastered')}
                   </button>
-                  {filtersScrolled && (
-                    <button
-                      type="button"
-                      className="stat-chip filters-collapse-btn"
-                      onClick={() => setFiltersForceExpanded(false)}
-                      title={t('collection.collapseFilters')}
-                      aria-label={t('collection.collapseFilters')}
-                    >
-                      <span className="filters-chevron" aria-hidden>
-                        ▴
-                      </span>
-                    </button>
-                  )}
                 </div>
 
                 {/* Row 2: in-game quick presets + sticky search */}

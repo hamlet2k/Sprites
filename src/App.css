@@ -91,26 +91,44 @@ button {
   align-items: center;
 }
 
-/* Mobile: Support + language live in the ⋮ menu (always visible on desktop). */
+/* Mobile: Support + language live in the hamburger menu (left of title). */
 .header-overflow {
   display: none;
   position: relative;
+  flex-shrink: 0;
 }
 
 .header-overflow-btn {
   min-width: 40px;
   min-height: 40px;
-  padding: 0 10px;
-  font-size: 1.25rem;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: 0.02em;
+  width: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 18px;
+  height: 14px;
+}
+
+.icon-hamburger span {
+  display: block;
+  height: 2px;
+  width: 100%;
+  border-radius: 2px;
+  background: currentColor;
 }
 
 .header-overflow-menu {
   position: absolute;
   top: calc(100% + 6px);
-  right: 0;
+  left: 0;
   z-index: 40;
   min-width: 200px;
   padding: 10px;
@@ -421,15 +439,6 @@ button {
   opacity: 0.92;
 }
 
-.player-chip .chip-you,
-.player-chip .chip-taken {
-  margin-left: 4px;
-  font-size: 0.65rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  opacity: 0.9;
-}
-
 .player-chip .chip-taken,
 .taken-badge {
   font-size: 0.65rem;
@@ -455,6 +464,43 @@ button {
 .seat-switch-btn {
   flex-shrink: 0;
   align-self: center;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+
+.icon-btn.has-filter {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-elevated));
+}
+
+.icon-svg {
+  display: block;
+  flex-shrink: 0;
 }
 
 .seat-readonly-banner {
@@ -588,23 +634,24 @@ button {
   background: transparent;
 }
 
-/* Tabs */
+/* Tabs — primary nav hierarchy (above seat chips) */
 .tabs {
   display: flex;
-  gap: 6px;
-  margin-bottom: 14px;
+  gap: 8px;
+  margin-bottom: 12px;
   overflow-x: auto;
   padding-bottom: 2px;
 }
 
 .tab {
-  min-height: 40px;
-  padding: 0 14px;
+  min-height: 44px;
+  padding: 0 16px;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--bg-elevated);
-  font-weight: 600;
-  font-size: 0.85rem;
+  font-weight: 750;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
   white-space: nowrap;
   color: var(--text-muted);
 }
@@ -613,33 +660,38 @@ button {
   background: var(--accent);
   border-color: transparent;
   color: #fff;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
-/* Squad strip */
+/* Squad strip — secondary to tabs */
 .squad-strip {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   overflow-x: auto;
-  margin-bottom: 14px;
-  padding-bottom: 4px;
+  margin-bottom: 12px;
+  padding-bottom: 2px;
+  align-items: center;
 }
 
 .player-chip {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: var(--touch);
-  padding: 0 12px 0 8px;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px 0 7px;
   border-radius: 999px;
-  border: 2px solid var(--border);
+  border: 1.5px solid var(--border);
   background: var(--bg-card);
   flex-shrink: 0;
   font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--text-muted);
 }
 
 .player-chip.selected {
   border-color: var(--chip-color, var(--accent));
   box-shadow: 0 0 0 1px var(--chip-color, var(--accent));
+  color: var(--text);
 }
 
 .player-chip.active-play {
@@ -647,11 +699,26 @@ button {
 }
 
 .dot {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: var(--chip-color, var(--accent));
   flex-shrink: 0;
+}
+
+.dot.dot-you {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #0b0e14;
+  background: var(--chip-color, var(--accent));
+}
+
+.dot.dot-you .icon-person {
+  width: 11px;
+  height: 11px;
 }
 
 .player-chip input {
@@ -718,6 +785,38 @@ button {
   padding: 6px 4px 8px;
 }
 
+.collection-filters-sticky.is-expanded-scroll {
+  position: relative;
+  padding-top: 10px;
+  padding-right: 36px;
+}
+
+.filters-close-btn {
+  position: absolute;
+  top: 4px;
+  right: 2px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.filters-close-btn:hover {
+  color: var(--text);
+  background: var(--bg-card-hover);
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
+}
+
 .filters-collapsed-bar {
   display: flex;
   flex-wrap: nowrap;
@@ -730,24 +829,23 @@ button {
   min-width: 0;
 }
 
-.filters-expand-btn,
-.filters-collapse-btn {
-  flex: 0 0 auto;
-  white-space: nowrap;
-  font-weight: 700;
+.filters-icon-btn {
+  position: relative;
 }
 
-.filters-collapse-btn {
-  min-width: 36px;
-  padding-left: 8px;
-  padding-right: 8px;
-  margin-left: auto;
+.filters-active-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--bg-elevated);
 }
 
-.filters-chevron {
-  margin-left: 4px;
-  opacity: 0.85;
-  font-size: 0.75em;
+.tab-swap-btn {
+  color: var(--text);
 }
 
 .stats-bar,
@@ -2116,7 +2214,7 @@ button {
   font-size: 1rem;
 }
 
-/* Compact sticky header: one row on phones (Support + language → ⋮ menu). */
+/* Compact sticky header: one row on phones (Support + language → hamburger). */
 @media (max-width: 640px) {
   .header {
     flex-wrap: nowrap;
@@ -2159,7 +2257,7 @@ button {
   .header-overflow-btn {
     min-width: 36px;
     min-height: 36px;
-    padding: 0 8px;
+    width: 36px;
   }
 
   .sync-pill {
@@ -2167,6 +2265,17 @@ button {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .tab {
+    min-height: 42px;
+    padding: 0 14px;
+    font-size: 0.9rem;
+  }
+
+  .player-chip {
+    min-height: 32px;
+    font-size: 0.75rem;
   }
 }
 
