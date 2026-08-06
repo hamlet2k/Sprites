@@ -426,9 +426,15 @@ function buildEdges(active: Player[], mode: SuggestMode): Edge[] {
         if (!needKind) continue
         if (g.status === 'none') continue
 
-        // Priority: Missing >> Lost restore; Ready gift >> bringer repurchase (last option, never skipped).
+        // Priority:
+        // 1) Missing >> Lost restore
+        // 2) Ready gift >> bringer repurchase (last option, never skipped)
+        // 3) For Lost restores: prefer sprites the receiver has NOT mastered
+        //    (recovering a still-leveling sprite > one already crowned)
         const needTier = needKind === 'missing' ? 1_000_000 : 1_000
-        const readyTier = g.status === 'available' ? 100_000 : 0
+        const readyTiers = g.status === 'available' ? 100_000 : 0
+        const restoreUnmasteredBoost =
+          needKind === 'lost' && !r.mastered ? 5_000 : 0
         // Completion: rarity tiny. Fair: rarity matters more for "cool" trades.
         const rarity =
           mode === 'completion'
@@ -436,7 +442,8 @@ function buildEdges(active: Player[], mode: SuggestMode): Edge[] {
             : difficultyScore(sprite)
         const score =
           needTier +
-          readyTier +
+          readyTiers +
+          restoreUnmasteredBoost +
           rarity +
           (g.mastered ? (mode === 'fair' ? 2 : 0.001) : 0)
 
