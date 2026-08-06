@@ -73,7 +73,8 @@ const es: MessageTree = {
     special: 'Especial',
   },
   variant: {
-    all: 'Todas las variantes',
+    // Short: mobile selects wrap with the longer form
+    all: 'Todas',
     base: 'Base',
     gold: 'Oro',
     gummy: 'Gomoso',
@@ -155,7 +156,8 @@ const es: MessageTree = {
     sortType: 'Orden: Tipo',
     sortRarity: 'Orden: Rareza',
     sortDust: 'Orden: Coste',
-    allStatus: 'Todos los Estados',
+    // Short: mobile selects wrap with the longer form
+    allStatus: 'Todos',
     needFilter: 'Necesarios',
     needFilterShort: 'Necesarios',
     levelUpFilter: 'Subir nivel',
