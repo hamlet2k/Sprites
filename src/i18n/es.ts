@@ -9,7 +9,8 @@ const es: MessageTree = {
     account: 'Cuenta',
     signIn: 'Entrar',
     signOut: 'Salir',
-    moreMenu: 'Más opciones',
+    moreMenu: 'Menú',
+    navMenu: 'Navegación principal',
   },
   auth: {
     loginTitle: 'Iniciar sesión',
@@ -160,7 +161,6 @@ const es: MessageTree = {
     filtersLabel: 'Filtros',
     expandFilters: 'Mostrar filtros',
     collapseFilters: 'Cerrar filtros',
-    swapToExchanges: 'Ir a Intercambios',
     dustTitle: 'Polvo de Espíritu para reinvocar tras perderlo',
     dust: 'polvo',
     markMissing: 'Marcar como falta',

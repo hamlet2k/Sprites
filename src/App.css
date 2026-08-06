@@ -91,11 +91,15 @@ button {
   align-items: center;
 }
 
-/* Mobile: Support + language live in the hamburger menu (left of title). */
+/* Hamburger: mobile always; desktop when scrolled (.header-scrolled). */
 .header-overflow {
   display: none;
   position: relative;
   flex-shrink: 0;
+}
+
+.header.header-scrolled .header-overflow {
+  display: inline-flex;
 }
 
 .header-overflow-btn {
@@ -130,15 +134,55 @@ button {
   top: calc(100% + 6px);
   left: 0;
   z-index: 40;
-  min-width: 200px;
-  padding: 10px;
+  min-width: 220px;
+  padding: 8px;
   border-radius: 12px;
   border: 1px solid var(--border);
   background: var(--bg-elevated);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 4px;
+}
+
+.header-menu-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.header-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.header-menu-item:hover {
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-card));
+}
+
+.header-menu-item.active {
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-elevated));
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  color: #fff;
+}
+
+.header-menu-divider {
+  height: 1px;
+  margin: 6px 4px;
+  background: var(--border);
 }
 
 .header-menu-row {
@@ -146,19 +190,29 @@ button {
   flex-direction: column;
   gap: 4px;
   width: 100%;
+  padding: 4px 4px 0;
 }
 
 .header-menu-label {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  padding: 0 8px;
 }
 
-.header-menu-support {
+.header-menu-select {
   width: 100%;
-  justify-content: center;
+  min-height: 40px;
+}
+
+.header-menu-support-item {
+  color: var(--text);
+}
+
+.header-menu-support-item .header-support-icon {
+  color: color-mix(in srgb, #ff6b8a 70%, var(--accent));
 }
 
 .header-support {
@@ -731,11 +785,12 @@ button {
 }
 
 /* Filters */
-.toolbar {
+.toolbar,
+.filter-toolbar {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
   align-items: center;
 }
 
@@ -748,12 +803,24 @@ button {
   background: var(--bg-elevated);
 }
 
+/* Match quick-filter chip hierarchy (not full touch-height controls) */
 .filter-select {
-  min-height: var(--touch);
+  min-height: 32px;
   padding: 0 10px;
-  border-radius: 10px;
+  border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  max-width: 100%;
+}
+
+.filter-select:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 1px;
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+  color: var(--text);
 }
 
 .collection-filters-sentinel {
@@ -762,6 +829,7 @@ button {
   margin: 0;
   padding: 0;
   pointer-events: none;
+  overflow-anchor: none;
 }
 
 .collection-filters-sticky {
@@ -770,6 +838,7 @@ button {
   z-index: 15;
   margin: 0 -4px 10px;
   padding: 8px 4px 10px;
+  overflow-anchor: none;
   background: linear-gradient(
     180deg,
     var(--bg) 0%,
@@ -844,12 +913,10 @@ button {
   box-shadow: 0 0 0 2px var(--bg-elevated);
 }
 
-.tab-swap-btn {
-  color: var(--text);
-}
-
 .stats-bar,
-.preset-bar {
+.preset-bar,
+.filters-search-row,
+.filter-toolbar {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -859,8 +926,21 @@ button {
 }
 
 .preset-bar {
-  margin-bottom: 0;
   align-items: center;
+}
+
+.filters-search-row {
+  margin-bottom: 8px;
+}
+
+.filters-search-row .sticky-search-wrap {
+  flex: 1 1 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.filter-toolbar {
+  margin-bottom: 0;
 }
 
 .sticky-search-wrap {
@@ -2240,7 +2320,8 @@ button {
     display: none !important;
   }
 
-  .header-overflow {
+  .header-overflow,
+  .header.header-scrolled .header-overflow {
     display: inline-flex;
   }
 

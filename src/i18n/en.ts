@@ -9,7 +9,8 @@ const en: MessageTree = {
     account: 'Account',
     signIn: 'Sign in',
     signOut: 'Sign out',
-    moreMenu: 'More options',
+    moreMenu: 'Menu',
+    navMenu: 'Main navigation',
   },
   auth: {
     loginTitle: 'Sign in',
@@ -154,7 +155,6 @@ const en: MessageTree = {
     filtersLabel: 'Filters',
     expandFilters: 'Show filters',
     collapseFilters: 'Close filters',
-    swapToExchanges: 'Go to Exchanges',
     dustTitle: 'Sprite Dust to re-summon after loss',
     dust: 'dust',
     markMissing: 'Mark missing',

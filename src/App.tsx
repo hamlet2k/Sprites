@@ -144,6 +144,8 @@ export default function App() {
   const [recentSquads, setRecentSquads] = useState<RecentSquad[]>([])
   const [newPassword, setNewPassword] = useState('')
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false)
+  /** Page scrolled enough to show hamburger on desktop for quick nav. */
+  const [pageScrolled, setPageScrolled] = useState(false)
   /** User forced filter pills open while scrolled down. */
   const [filtersForceExpanded, setFiltersForceExpanded] = useState(false)
   /** True once the collection filter sentinel has left the top of the viewport. */
@@ -151,6 +153,7 @@ export default function App() {
   const headerRef = useRef<HTMLElement>(null)
   const headerMenuRef = useRef<HTMLDivElement>(null)
   const filtersSentinelRef = useRef<HTMLDivElement>(null)
+  const filtersForceExpandedRef = useRef(false)
 
   /** Shared plan + outcomes live on SquadState so the room syncs them. */
   const plan = state.suggestion?.plan ?? null
@@ -401,9 +404,9 @@ export default function App() {
       ro.disconnect()
       window.removeEventListener('resize', apply)
     }
-  }, [headerMenuOpen, roomCode, authUser, locale])
+  }, [headerMenuOpen, roomCode, authUser, locale, pageScrolled])
 
-  // Close header ⋮ menu on outside click / Escape
+  // Close header menu on outside click / Escape
   useEffect(() => {
     if (!headerMenuOpen) return
     const onPointer = (e: MouseEvent | PointerEvent) => {
@@ -421,10 +424,26 @@ export default function App() {
     }
   }, [headerMenuOpen])
 
+  // Desktop hamburger appears after a little scroll (mobile always has it)
+  useEffect(() => {
+    const update = () => {
+      const scrolled = window.scrollY > 24
+      setPageScrolled((prev) => (prev === scrolled ? prev : scrolled))
+    }
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
+    return () => {
+      window.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [])
+
   // Collapse collection filter pills once the sentinel scrolls under the sticky header
   useEffect(() => {
     if (tab !== 'collection') {
       setFiltersScrolled(false)
+      filtersForceExpandedRef.current = false
       setFiltersForceExpanded(false)
       return
     }
@@ -438,10 +457,17 @@ export default function App() {
           ) || '58',
           10,
         ) || 58
-      // Collapsed once the sentinel is at/above the sticky header bottom
-      const past = sentinel.getBoundingClientRect().top <= headerH + 2
-      setFiltersScrolled((prev) => (prev === past ? prev : past))
-      if (!past) setFiltersForceExpanded(false)
+      const top = sentinel.getBoundingClientRect().top
+      // Hysteresis: avoid expand→reflow→collapse thrash when sticky height changes
+      if (top > headerH + 36) {
+        setFiltersScrolled((prev) => (prev ? false : prev))
+        if (filtersForceExpandedRef.current) {
+          filtersForceExpandedRef.current = false
+          setFiltersForceExpanded(false)
+        }
+      } else if (top <= headerH + 2) {
+        setFiltersScrolled((prev) => (prev ? prev : true))
+      }
     }
     update()
     window.addEventListener('scroll', update, { passive: true })
@@ -817,6 +843,21 @@ export default function App() {
   }
 
   const filtersCollapsed = filtersScrolled && !filtersForceExpanded
+
+  function openFiltersExpanded() {
+    filtersForceExpandedRef.current = true
+    setFiltersForceExpanded(true)
+  }
+
+  function closeFiltersExpanded() {
+    filtersForceExpandedRef.current = false
+    setFiltersForceExpanded(false)
+  }
+
+  function goToTab(id: Tab) {
+    setTab(id)
+    setHeaderMenuOpen(false)
+  }
 
   function onSyncPillClick() {
     if (syncStatus === 'error') {
@@ -1574,8 +1615,11 @@ export default function App() {
           <span className="sync-busy-label">{t('sync.pleaseWait')}</span>
         </div>
       )}
-      <header className="header" ref={headerRef}>
-        {/* Mobile: hamburger left of title (Support + language). Desktop: inline. */}
+      <header
+        className={`header${pageScrolled ? ' header-scrolled' : ''}`}
+        ref={headerRef}
+      >
+        {/* Hamburger: always on mobile; also on desktop after scroll for tab access */}
         <div className="header-overflow" ref={headerMenuRef}>
           <button
             type="button"
@@ -1594,10 +1638,31 @@ export default function App() {
           </button>
           {headerMenuOpen && (
             <div className="header-overflow-menu" role="menu">
+              <div className="header-menu-nav" role="group" aria-label={t('app.navMenu')}>
+                {(
+                  [
+                    ['collection', 'tabs.collection'],
+                    ['suggest', 'tabs.suggest'],
+                    ['squad', 'tabs.squad'],
+                    ['help', 'tabs.help'],
+                  ] as const
+                ).map(([id, labelKey]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="menuitem"
+                    className={`header-menu-item${tab === id ? ' active' : ''}`}
+                    onClick={() => goToTab(id)}
+                  >
+                    {t(labelKey)}
+                  </button>
+                ))}
+              </div>
+              <div className="header-menu-divider" aria-hidden />
               <label className="header-menu-row lang-select-wrap">
                 <span className="header-menu-label">{t('lang.label')}</span>
                 <select
-                  className="lang-select"
+                  className="lang-select header-menu-select"
                   value={locale}
                   onChange={(e) => {
                     setLocale(e.target.value as 'en' | 'es')
@@ -1613,7 +1678,7 @@ export default function App() {
                 </select>
               </label>
               <a
-                className="btn btn-sm header-support header-menu-support"
+                className="header-menu-item header-menu-support-item"
                 href={KOFI_URL}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -1818,31 +1883,6 @@ export default function App() {
                 role="toolbar"
                 aria-label={t('collection.statsFilterLabel')}
               >
-                <button
-                  type="button"
-                  className="icon-btn tab-swap-btn"
-                  onClick={() => setTab('suggest')}
-                  title={t('collection.swapToExchanges')}
-                  aria-label={t('collection.swapToExchanges')}
-                >
-                  <svg
-                    className="icon-svg"
-                    viewBox="0 0 24 24"
-                    width="18"
-                    height="18"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden
-                  >
-                    <path d="M7 4v12" />
-                    <path d="M3 8l4-4 4 4" />
-                    <path d="M17 20V8" />
-                    <path d="M13 16l4 4 4-4" />
-                  </svg>
-                </button>
                 <label className="sticky-search-wrap">
                   <span className="visually-hidden">
                     {t('collection.searchPlaceholder')}
@@ -1873,7 +1913,7 @@ export default function App() {
                   className={`icon-btn filters-icon-btn${
                     statusFilter !== 'all' ? ' has-filter' : ''
                   }`}
-                  onClick={() => setFiltersForceExpanded(true)}
+                  onClick={openFiltersExpanded}
                   title={
                     statusFilter !== 'all'
                       ? statusFilterSummaryLabel
@@ -1911,7 +1951,7 @@ export default function App() {
                   <button
                     type="button"
                     className="filters-close-btn"
-                    onClick={() => setFiltersForceExpanded(false)}
+                    onClick={closeFiltersExpanded}
                     title={t('collection.collapseFilters')}
                     aria-label={t('collection.collapseFilters')}
                   >
@@ -1981,7 +2021,7 @@ export default function App() {
                   </button>
                 </div>
 
-                {/* Row 2: in-game quick presets + sticky search */}
+                {/* Row 2: in-game quick presets */}
                 <div
                   className="preset-bar"
                   role="toolbar"
@@ -2010,6 +2050,10 @@ export default function App() {
                     </strong>{' '}
                     {t('collection.levelUpFilter')}
                   </button>
+                </div>
+
+                {/* Row 3: search full width */}
+                <div className="filters-search-row">
                   <label className="sticky-search-wrap">
                     <span className="visually-hidden">
                       {t('collection.searchPlaceholder')}
@@ -2036,46 +2080,47 @@ export default function App() {
                     ) : null}
                   </label>
                 </div>
+
+                {/* Row 4: sort / variant / status — same hierarchy as chips */}
+                <div className="toolbar filter-toolbar">
+                  <select
+                    className="filter-select"
+                    value={sortMode}
+                    onChange={(e) => setSortMode(e.target.value as SortMode)}
+                    title={t('collection.sortTitle')}
+                  >
+                    <option value="type">{t('collection.sortType')}</option>
+                    <option value="rarity">{t('collection.sortRarity')}</option>
+                    <option value="dust">{t('collection.sortDust')}</option>
+                  </select>
+                  <select
+                    className="filter-select"
+                    value={variantFilter}
+                    onChange={(e) => setVariantFilter(e.target.value)}
+                  >
+                    <option value="all">{t('variant.all')}</option>
+                    {VARIANT_ORDER.map((v) => (
+                      <option key={v} value={v}>
+                        {t(`variant.${v}`)}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    className="filter-select"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <option value="all">{t('collection.allStatus')}</option>
+                    <option value="available">{t('status.available')}</option>
+                    <option value="lost">{t('status.lost')}</option>
+                    <option value="missing">{t('status.missing')}</option>
+                    <option value="mastered">{t('status.mastered')}</option>
+                    <option value="need">{t('collection.needFilter')}</option>
+                    <option value="unmastered">{t('collection.levelUpFilter')}</option>
+                  </select>
+                </div>
               </>
             )}
-          </div>
-
-          <div className="toolbar">
-            <select
-              className="filter-select"
-              value={sortMode}
-              onChange={(e) => setSortMode(e.target.value as SortMode)}
-              title={t('collection.sortTitle')}
-            >
-              <option value="type">{t('collection.sortType')}</option>
-              <option value="rarity">{t('collection.sortRarity')}</option>
-              <option value="dust">{t('collection.sortDust')}</option>
-            </select>
-            <select
-              className="filter-select"
-              value={variantFilter}
-              onChange={(e) => setVariantFilter(e.target.value)}
-            >
-              <option value="all">{t('variant.all')}</option>
-              {VARIANT_ORDER.map((v) => (
-                <option key={v} value={v}>
-                  {t(`variant.${v}`)}
-                </option>
-              ))}
-            </select>
-            <select
-              className="filter-select"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="all">{t('collection.allStatus')}</option>
-              <option value="available">{t('status.available')}</option>
-              <option value="lost">{t('status.lost')}</option>
-              <option value="missing">{t('status.missing')}</option>
-              <option value="mastered">{t('status.mastered')}</option>
-              <option value="need">{t('collection.needFilter')}</option>
-              <option value="unmastered">{t('collection.levelUpFilter')}</option>
-            </select>
           </div>
 
           {filteredByFamily.map(({ family, sprites }) => (
