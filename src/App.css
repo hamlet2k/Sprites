@@ -71,8 +71,20 @@ button {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: linear-gradient(180deg, var(--bg) 70%, transparent);
-  padding: 8px 0 12px;
+  /* Solid pad so controls never sit on the transparent fade */
+  background: var(--bg);
+  padding: 10px 0;
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 14px;
+  background: linear-gradient(180deg, var(--bg), transparent);
+  pointer-events: none;
 }
 
 .header h1 {
@@ -243,16 +255,33 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  max-width: 160px;
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.header-account-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .header-account-action {
   opacity: 0.7;
   font-size: 0.78rem;
   font-weight: 600;
+}
+
+.header-signout-icon {
+  flex-shrink: 0;
+  opacity: 0.85;
+  display: block;
+}
+
+.header-account:hover .header-signout-icon {
+  opacity: 1;
+  color: var(--danger);
 }
 
 .you-badge {
@@ -854,8 +883,8 @@ button {
   padding: 6px 4px 8px;
 }
 
+/* Stay sticky when open — do NOT switch to relative (that hid filters above the viewport). */
 .collection-filters-sticky.is-expanded-scroll {
-  position: relative;
   padding-top: 10px;
   padding-right: 36px;
 }
@@ -2088,12 +2117,11 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  cursor: default;
+  cursor: pointer;
 }
 
-.sync-pill:disabled {
-  opacity: 1;
-  cursor: default;
+.sync-pill:hover {
+  filter: brightness(1.08);
 }
 
 .sync-pill.sync-synced {
@@ -2107,8 +2135,7 @@ button {
   cursor: wait;
 }
 
-.sync-pill.sync-error,
-.sync-pill.sync-pill-clickable {
+.sync-pill.sync-error {
   color: var(--danger);
   border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
   cursor: pointer;
@@ -2173,6 +2200,21 @@ button {
 .app-sync-busy .sync-pill.sync-error {
   cursor: pointer;
   pointer-events: auto;
+}
+
+.cloud-box .room-code-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+.cloud-box .room-code-bubble {
+  font-size: 1rem;
+  min-height: 36px;
+  padding: 0 14px;
+  letter-spacing: 0.1em;
 }
 
 .cloud-box .room-code {
@@ -2300,7 +2342,7 @@ button {
     flex-wrap: nowrap;
     gap: 6px;
     margin-bottom: 10px;
-    padding: 6px 0 8px;
+    padding: 8px 0;
   }
 
   .header h1 {

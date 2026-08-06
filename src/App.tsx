@@ -862,6 +862,22 @@ export default function App() {
   function onSyncPillClick() {
     if (syncStatus === 'error') {
       window.location.reload()
+      return
+    }
+    void copyShareLink()
+  }
+
+  async function copyShareLinkForCode(code: string) {
+    const link = shareUrl(code)
+    try {
+      await navigator.clipboard.writeText(link)
+      showInfoModal(
+        t('importExport.linkCopiedTitle'),
+        t('importExport.linkCopiedMsg'),
+        'success',
+      )
+    } catch {
+      showInfoModal(t('importExport.copyLinkTitle'), link, 'info')
     }
   }
 
@@ -1545,18 +1561,7 @@ export default function App() {
 
   async function copyShareLink() {
     if (!roomCode) return
-    const link = shareUrl(roomCode)
-    try {
-      await navigator.clipboard.writeText(link)
-      setSyncError(null)
-      showInfoModal(
-        t('importExport.linkCopiedTitle'),
-        t('importExport.linkCopiedMsg'),
-        'success',
-      )
-    } catch {
-      showInfoModal(t('importExport.copyLinkTitle'), link, 'info')
-    }
+    await copyShareLinkForCode(roomCode)
   }
 
   function doExport() {
@@ -1701,7 +1706,8 @@ export default function App() {
               <button
                 type="button"
                 className="btn btn-sm header-account"
-                title={t('auth.signedInAs', { name: authUser.displayName })}
+                title={t('auth.signOutHint', { name: authUser.displayName })}
+                aria-label={t('auth.signOutHint', { name: authUser.displayName })}
                 onClick={() => {
                   void signOut().then(() => {
                     // Sign-out is account-only: stay in the live room / keep local
@@ -1713,8 +1719,23 @@ export default function App() {
                   })
                 }}
               >
-                {authUser.displayName}
-                <span className="header-account-action">{t('app.signOut')}</span>
+                <span className="header-account-name">{authUser.displayName}</span>
+                <svg
+                  className="header-signout-icon"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
               </button>
             ) : (
               <button
@@ -1758,16 +1779,13 @@ export default function App() {
           {roomCode && (
             <button
               type="button"
-              className={`sync-pill sync-${syncStatus}${
-                syncStatus === 'error' ? ' sync-pill-clickable' : ''
-              }`}
+              className={`sync-pill sync-${syncStatus}`}
               title={
                 syncStatus === 'error'
                   ? t('sync.errorTapRefresh')
-                  : (syncError ?? undefined)
+                  : t('sync.copyLinkHint', { code: roomCode })
               }
               onClick={onSyncPillClick}
-              disabled={syncStatus !== 'error'}
             >
               {syncLabel(syncStatus, roomCode, t)}
             </button>
@@ -1842,21 +1860,14 @@ export default function App() {
               aria-label={t('seat.switch')}
             >
               <svg
-                className="icon-svg"
+                className="icon-svg icon-person-switch"
                 viewBox="0 0 24 24"
                 width="18"
                 height="18"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+                fill="currentColor"
                 aria-hidden
               >
-                <path d="M16 3h5v5" />
-                <path d="M8 21H3v-5" />
-                <path d="M21 3l-7 7" />
-                <path d="M3 21l7-7" />
+                <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v1.2h19.2v-1.2c0-3.2-6.4-4.8-9.6-4.8z" />
               </svg>
             </button>
           </div>
@@ -2669,9 +2680,18 @@ export default function App() {
               <p>{t('squad.cloudUnavailable')}</p>
             ) : roomCode ? (
               <>
-                <p>
-                  {t('squad.roomCode')} <strong className="room-code">{roomCode}</strong>
-                </p>
+                <div className="room-code-row">
+                  <span className="muted">{t('squad.roomCode')}</span>
+                  <button
+                    type="button"
+                    className="room-code-bubble"
+                    title={t('sync.copyLinkHint', { code: roomCode })}
+                    aria-label={t('sync.copyLinkHint', { code: roomCode })}
+                    onClick={() => void copyShareLink()}
+                  >
+                    {roomCode}
+                  </button>
+                </div>
                 <p className="muted">{t('squad.roomHint')}</p>
                 <div className="squad-name-row">
                   <label className="squad-name-field">
@@ -2697,17 +2717,11 @@ export default function App() {
                   </button>
                 </div>
                 <div className="header-actions" style={{ marginTop: 10 }}>
-                  <button type="button" className="btn btn-primary" onClick={() => void copyShareLink()}>
-                    {t('squad.copyLink')}
-                  </button>
                   <button type="button" className="btn" onClick={handleLeaveRoom}>
                     {t('squad.leaveRoom')}
                   </button>
                 </div>
-                <p className="sync-detail">
-                  {t('squad.status')} {syncLabel(syncStatus, roomCode, t)}
-                  {syncError ? ` — ${syncError}` : ''}
-                </p>
+                {syncError ? <p className="error-text">{syncError}</p> : null}
               </>
             ) : (
               <>
@@ -2769,26 +2783,9 @@ export default function App() {
                         <button
                           type="button"
                           className="room-code-bubble"
-                          title={t('squad.copyCodeTitle')}
-                          aria-label={t('squad.copyCodeTitle')}
-                          onClick={() => {
-                            void (async () => {
-                              try {
-                                await navigator.clipboard.writeText(s.roomCode)
-                                showInfoModal(
-                                  t('squad.codeCopiedTitle'),
-                                  t('squad.codeCopiedMsg', { code: s.roomCode }),
-                                  'success',
-                                )
-                              } catch {
-                                showInfoModal(
-                                  t('squad.copyCodeTitle'),
-                                  s.roomCode,
-                                  'info',
-                                )
-                              }
-                            })()
-                          }}
+                          title={t('sync.copyLinkHint', { code: s.roomCode })}
+                          aria-label={t('sync.copyLinkHint', { code: s.roomCode })}
+                          onClick={() => void copyShareLinkForCode(s.roomCode)}
                         >
                           {s.roomCode}
                         </button>

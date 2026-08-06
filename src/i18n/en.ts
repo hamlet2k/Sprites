@@ -36,6 +36,7 @@ const en: MessageTree = {
     checkEmail: 'Check your email to confirm the account, then sign in.',
     resetSent: 'If that email is registered, a reset link is on the way.',
     signedInAs: 'Signed in as {name}',
+    signOutHint: 'Signed in as {name} — tap to sign out',
     newPassword: 'Choose a new password',
     savePassword: 'Save new password',
     passwordUpdated: 'Password updated. You can keep using the app.',
@@ -300,7 +301,8 @@ const en: MessageTree = {
     cloudUnavailable:
       'Shared sessions are not available on this build. You can still track collections locally and use Export / Import (whole squad or per player) to share files.',
     roomCode: 'Session code:',
-    roomHint: 'Everyone opens the same link and edits the same collection live.',
+    roomHint:
+      'Tap the code (or the Live pill in the header) to copy the share link. Everyone who opens it edits the same collection live.',
     copyLink: 'Copy share link',
     leaveRoom: 'Leave session',
     status: 'Status:',
@@ -333,9 +335,9 @@ const en: MessageTree = {
     recentJoin: 'Open',
     unnamedSquad: 'Unnamed squad',
     youBadge: 'You',
-    copyCodeTitle: 'Copy session code',
-    codeCopiedTitle: 'Code copied',
-    codeCopiedMsg: 'Session code {code} copied to the clipboard.',
+    copyCodeTitle: 'Copy session link',
+    codeCopiedTitle: 'Link copied',
+    codeCopiedMsg: 'Share link for {code} copied to the clipboard.',
   },
   seat: {
     chooseTitle: 'Who are you?',
@@ -383,6 +385,7 @@ const en: MessageTree = {
     offline: 'Offline · {code}',
     pleaseWait: 'Saving to session… wait a moment',
     errorTapRefresh: 'Tap to refresh the page and re-sync',
+    copyLinkHint: 'Tap to copy share link for session {code}',
   },
   help: {
     introTitle: 'What is Sprite Squad?',
@@ -415,7 +418,7 @@ const en: MessageTree = {
     start3:
       'Optional: sign in (email, Google, or Discord) so your collection follows you across squads.',
     start4:
-      'Squad tab: start a session (only your seat is uploaded) or join a code. Share the link with friends.',
+      'Squad tab: start a session (only your seat is uploaded) or join a code. Tap the code bubble or the Live pill in the header to copy the share link.',
     start5:
       'When you queue up, open Exchanges, tick everyone in this match (any number of players), and generate a plan. Confirm trades after the match.',
 
@@ -423,7 +426,7 @@ const en: MessageTree = {
     seats1:
       'Every device picks one seat. You can view teammates’ collections, but only your seat is editable — this avoids accidental changes.',
     seats2:
-      'Use Switch seat if you need to become a different player on this device (rare).',
+      'Use the person icon next to the seats if you need to become a different player on this device (rare).',
     seats3:
       'Leaving a session keeps only your seat locally. Starting a new session seeds the room with only you — add more players on the Squad tab as needed.',
 
@@ -485,11 +488,11 @@ const en: MessageTree = {
 
     shareTitle: 'Playing with friends on the same list',
     share1:
-      'Squad tab → Start session (optional squad name + Update name later). Copy the share link or code.',
+      'Squad tab → Start session (optional squad name). Tap the session code bubble — or the Live · CODE pill in the header — to copy the share link.',
     share2:
       'Friends open the link, choose their seat, and everyone shares the same list live. Each person only edits their own seat.',
     share3:
-      'Leave session stops syncing; only your seat stays on this device. Join another code anytime (signed-in users see Recent squads).',
+      'Leave session stops syncing; only your seat stays on this device. Join another code anytime (signed-in users see Recent squads — tap a code there to copy its link).',
     shareNote:
       'If live rooms are not available on this build, use Export / Import files instead to share data.',
 

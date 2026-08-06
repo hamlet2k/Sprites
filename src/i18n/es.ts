@@ -36,6 +36,7 @@ const es: MessageTree = {
     checkEmail: 'Revisa tu email para confirmar la cuenta y luego entra.',
     resetSent: 'Si ese email está registrado, te enviamos un enlace de restablecimiento.',
     signedInAs: 'Sesión de {name}',
+    signOutHint: 'Sesión de {name} — toca para salir',
     newPassword: 'Elige una contraseña nueva',
     savePassword: 'Guardar contraseña',
     passwordUpdated: 'Contraseña actualizada. Puedes seguir usando la app.',
@@ -310,7 +311,8 @@ const es: MessageTree = {
     cloudUnavailable:
       'Las sesiones compartidas no están disponibles en esta versión. Aún puedes llevar colecciones en local y usar Exportar / Importar (escuadra o por jugador) para compartir archivos.',
     roomCode: 'Código de sesión:',
-    roomHint: 'Todos abren el mismo enlace y editan la misma colección en vivo.',
+    roomHint:
+      'Toca el código (o la pastilla En vivo en la cabecera) para copiar el enlace. Quien lo abra edita la misma colección en vivo.',
     copyLink: 'Copiar enlace',
     leaveRoom: 'Salir de la sesión',
     status: 'Estado:',
@@ -345,9 +347,9 @@ const es: MessageTree = {
     recentJoin: 'Abrir',
     unnamedSquad: 'Escuadra sin nombre',
     youBadge: 'Tú',
-    copyCodeTitle: 'Copiar código de sesión',
-    codeCopiedTitle: 'Código copiado',
-    codeCopiedMsg: 'Código de sesión {code} copiado al portapapeles.',
+    copyCodeTitle: 'Copiar enlace de sesión',
+    codeCopiedTitle: 'Enlace copiado',
+    codeCopiedMsg: 'Enlace de la sesión {code} copiado al portapapeles.',
   },
   seat: {
     chooseTitle: '¿Quién eres?',
@@ -395,6 +397,7 @@ const es: MessageTree = {
     offline: 'Sin conexión · {code}',
     pleaseWait: 'Guardando en la sesión… espera un momento',
     errorTapRefresh: 'Toca para recargar la página y re-sincronizar',
+    copyLinkHint: 'Toca para copiar el enlace de la sesión {code}',
   },
   help: {
     introTitle: '¿Qué es Sprite Squad?',
@@ -427,7 +430,7 @@ const es: MessageTree = {
     start3:
       'Opcional: inicia sesión (email, Google o Discord) para que tu colección te acompañe entre escuadras.',
     start4:
-      'Pestaña Escuadra: inicia una sesión (solo se sube tu asiento) o únete a un código. Comparte el enlace con amigos.',
+      'Pestaña Escuadra: inicia una sesión (solo se sube tu asiento) o únete a un código. Toca la pastilla del código o En vivo en la cabecera para copiar el enlace.',
     start5:
       'Cuando hagáis cola, abre Intercambios, marca a todos los de esa partida (sin límite de jugadores) y genera un plan. Confirma los trueques al terminar.',
 
@@ -435,7 +438,7 @@ const es: MessageTree = {
     seats1:
       'Cada dispositivo elige un asiento. Puedes ver las colecciones de los demás, pero solo editas la tuya — así se evitan cambios accidentales.',
     seats2:
-      'Usa Cambiar asiento si necesitas ser otro jugador en este dispositivo (poco frecuente).',
+      'Usa el icono de persona junto a los asientos si necesitas ser otro jugador en este dispositivo (poco frecuente).',
     seats3:
       'Salir de una sesión deja solo tu asiento en local. Crear una sesión nueva empieza solo contigo — añade más jugadores en Escuadra cuando haga falta.',
 
@@ -497,11 +500,11 @@ const es: MessageTree = {
 
     shareTitle: 'Jugar con amigos en la misma lista',
     share1:
-      'Pestaña Escuadra → Crear escuadra (nombre opcional; luego Actualizar nombre). Copia el enlace o el código.',
+      'Pestaña Escuadra → Crear escuadra (nombre opcional). Toca la pastilla del código — o En vivo · CÓDIGO en la cabecera — para copiar el enlace.',
     share2:
       'Los amigos abren el enlace, eligen su asiento y comparten la misma lista en vivo. Cada uno solo edita su asiento.',
     share3:
-      'Salir de la sesión deja de sincronizar; solo tu asiento se queda en el dispositivo. Puedes unirte a otro código (con cuenta verás Escuadras recientes).',
+      'Salir de la sesión deja de sincronizar; solo tu asiento se queda en el dispositivo. Puedes unirte a otro código (con cuenta verás Escuadras recientes — toca un código para copiar su enlace).',
     shareNote:
       'Si en esta versión no hay sesiones compartidas, usa Exportar / Importar archivos para compartir los datos.',
 
