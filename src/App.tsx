@@ -154,6 +154,9 @@ export default function App() {
   const headerMenuRef = useRef<HTMLDivElement>(null)
   const filtersSentinelRef = useRef<HTMLDivElement>(null)
   const filtersForceExpandedRef = useRef(false)
+  const collapsedSearchRef = useRef<HTMLInputElement>(null)
+  /** After mobile expand→collapse on search focus, refocus the slim search field. */
+  const focusCollapsedSearchRef = useRef(false)
 
   /** Shared plan + outcomes live on SquadState so the room syncs them. */
   const plan = state.suggestion?.plan ?? null
@@ -838,8 +841,19 @@ export default function App() {
     }
   }
 
+  function isMobileViewport() {
+    return (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(max-width: 640px)').matches
+    )
+  }
+
   function setStatusFilterSmart(next: string) {
     setStatusFilter((prev) => (prev === next ? 'all' : next))
+    // Mobile: after picking a filter while scrolled/expanded, free the screen
+    if (isMobileViewport() && filtersScrolled) {
+      closeFiltersExpanded()
+    }
   }
 
   const filtersCollapsed = filtersScrolled && !filtersForceExpanded
@@ -853,6 +867,32 @@ export default function App() {
     filtersForceExpandedRef.current = false
     setFiltersForceExpanded(false)
   }
+
+  /** Mobile: focus search in expanded panel → collapse and keep typing in slim bar. */
+  function onExpandedSearchFocus() {
+    if (!isMobileViewport() || !filtersScrolled) return
+    focusCollapsedSearchRef.current = true
+    closeFiltersExpanded()
+  }
+
+  // Restore search focus after mobile auto-collapse from expanded search focus
+  useEffect(() => {
+    if (!filtersCollapsed || !focusCollapsedSearchRef.current) return
+    focusCollapsedSearchRef.current = false
+    const el = collapsedSearchRef.current
+    if (!el) return
+    // Wait for collapsed input to mount
+    requestAnimationFrame(() => {
+      el.focus()
+      // Move caret to end
+      const len = el.value.length
+      try {
+        el.setSelectionRange(len, len)
+      } catch {
+        /* search inputs may not support selection on some browsers */
+      }
+    })
+  }, [filtersCollapsed])
 
   function goToTab(id: Tab) {
     setTab(id)
@@ -1904,6 +1944,7 @@ export default function App() {
                     {t('collection.searchPlaceholder')}
                   </span>
                   <input
+                    ref={collapsedSearchRef}
                     className="sticky-search"
                     type="search"
                     placeholder={t('collection.searchPlaceholder')}
@@ -2080,6 +2121,7 @@ export default function App() {
                       placeholder={t('collection.searchPlaceholder')}
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
+                      onFocus={onExpandedSearchFocus}
                       enterKeyHint="search"
                       autoComplete="off"
                     />
