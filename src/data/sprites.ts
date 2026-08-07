@@ -1,6 +1,6 @@
 /**
  * Fortnite Chapter 7 Season 3 — Sprite catalog
- * Type order matches in-game collection (fortnite.gg / client), July 2026.
+ * Type order matches in-game collection (fortnite.gg / client), Aug 2026.
  * Icons: https://fortnite.gg/img/x/sprites/icons/...
  */
 
@@ -55,7 +55,7 @@ const VARIANT_BONUS: Record<Exclude<Variant, 'base'>, string> = {
   galaxy: 'Bonus ammo when looting',
   holofoil: '+5% chance to find rare Sprite variants in chests (squad)',
   cube: 'Overdrive while in the Storm / extra shield on level-up',
-  gem: '30% less fall damage (upcoming)',
+  gem: '30% less fall damage',
   quack: 'Special Quack themed variant',
 }
 
@@ -315,6 +315,7 @@ const FAMILY_VARIANTS: Record<string, Partial<Record<Variant, number>>> = {
     gummy: 0.53,
     galaxy: 0.43,
     holofoil: 0.53,
+    gem: 0.37,
     quack: 0.01,
   },
   earth: {
@@ -323,6 +324,7 @@ const FAMILY_VARIANTS: Record<string, Partial<Record<Variant, number>>> = {
     gummy: 0.53,
     galaxy: 0.43,
     cube: 0.21,
+    gem: 0.37,
     quack: 0.01,
   },
   fire: {
@@ -334,10 +336,10 @@ const FAMILY_VARIANTS: Record<string, Partial<Record<Variant, number>>> = {
     cube: 0.21,
     quack: 0.01,
   },
-  duck: { base: 9, gold: 0.4, gummy: 0.3, galaxy: 0.16 },
+  duck: { base: 9, gold: 0.4, gummy: 0.3, galaxy: 0.16, gem: 0.1 },
   ghost: { base: 9, gold: 0.4, gummy: 0.3, galaxy: 0.16, holofoil: 0.06 },
   dream: { base: 6.98, gold: 0.31, gummy: 0.23, galaxy: 0.12, cube: 0.01 },
-  demon: { base: 9, gold: 0.4, gummy: 0.3, galaxy: 0.16 },
+  demon: { base: 9, gold: 0.4, gummy: 0.3, galaxy: 0.16, gem: 0.1 },
   punk: { base: 6.98, gold: 0.31, gummy: 0.23, galaxy: 0.12, cube: 0.01 },
   king: { base: 9, gold: 0.4, gummy: 0.3, galaxy: 0.16, holofoil: 0.06 },
   'burnt-peanut': { base: 0.5 },
@@ -349,11 +351,12 @@ const FAMILY_VARIANTS: Record<string, Partial<Record<Variant, number>>> = {
     galaxy: 0.000016,
     cube: 0.000005,
     holofoil: 0.000008,
+    gem: 0.00001,
     quack: 0.00001,
   },
   fishy: { base: 13.79, gold: 0.75, gummy: 0.62, galaxy: 0.5, cube: 0.01 },
   striker: { base: 6.98, gold: 0.31, gummy: 0.23, galaxy: 0.12, holofoil: 0.05 },
-  aura: { base: 6.98, gold: 0.31, gummy: 0.23, galaxy: 0.12 },
+  aura: { base: 6.98, gold: 0.31, gummy: 0.23, galaxy: 0.12, gem: 0.08 },
   boss: { base: 6.98, gold: 0.31, gummy: 0.23, galaxy: 0.12, cube: 0.01 },
   grim: {
     base: 0.09,
@@ -362,7 +365,7 @@ const FAMILY_VARIANTS: Record<string, Partial<Record<Variant, number>>> = {
     galaxy: 0.005,
     cube: 0.001,
     holofoil: 0.0005,
-    // gem: unreleased (fortnite.gg) — omit until live
+    gem: 0.00099,
   },
   air: { base: 10, gold: 0.75, gummy: 0.62, galaxy: 0.5, holofoil: 0.25 },
   seven: { base: 6.98, gold: 0.31, gummy: 0.23, galaxy: 0.12, holofoil: 0.05 },
@@ -404,6 +407,7 @@ const ICONS: Record<string, Partial<Record<Variant, string>>> = {
     gummy: 'T_Icon_BR_Creature_Sprite_Water_Candy_ui_L.webp',
     galaxy: 'T_Icon_BR_Creature_Sprite_Water_Galaxy_ui_L.webp',
     holofoil: 'T_Icon_BR_Creature_Sprite_Water_Holofoil_ui_L.webp',
+    gem: 'T_Icon_BR_Creature_Sprite_Water_Gem_ui_L.webp',
     quack: 'T_Icon_BR_Creature_Sprite_Water_Quack_ui_L.webp',
   },
   earth: {
@@ -412,6 +416,7 @@ const ICONS: Record<string, Partial<Record<Variant, string>>> = {
     gummy: 'T_Icon_BR_Creature_Sprite_Earth_Candy_ui_L.webp',
     galaxy: 'T_Icon_BR_Creature_Sprite_Earth_Galaxy_ui_L.webp',
     cube: 'T_Icon_BR_Creature_Sprite_Earth_Cube_ui_L.webp',
+    gem: 'T_Icon_BR_Creature_Sprite_Earth_Gem_ui_L.webp',
     quack: 'T_Icon_BR_Creature_Sprite_Earth_Quack_ui_L.webp',
   },
   fire: {
@@ -428,6 +433,7 @@ const ICONS: Record<string, Partial<Record<Variant, string>>> = {
     gold: 'T_Icon_BR_Duck_Gold_L.webp',
     gummy: 'T_Icon_BR_Duck_Candy_L.webp',
     galaxy: 'T_Icon_BR_Duck_Galaxy_L.webp',
+    gem: 'T_Icon_BR_Duck_Gem_L.webp',
   },
   ghost: {
     base: 'T_Icon_BR_Creature_Sprite_Ghost_Unvault_L.webp',
@@ -448,6 +454,7 @@ const ICONS: Record<string, Partial<Record<Variant, string>>> = {
     gold: 'T_Icon_BR_RedDemon_Gold_L.webp',
     gummy: 'T_Icon_BR_RedDemon_Candy_L.webp',
     galaxy: 'T_Icon_BR_RedDemon_Galaxy_L.webp',
+    gem: 'T_Icon_BR_RedDemon_Gem_L.webp',
   },
   punk: {
     base: 'T_Icon_BR_Creature_Sprite_Punk_ui_L.webp',
@@ -476,6 +483,7 @@ const ICONS: Record<string, Partial<Record<Variant, string>>> = {
     galaxy: 'T_Icon_BR_Creature_Sprite_ZeroPoint_Galaxy_ui_L.webp',
     cube: 'T_Icon_BR_Creature_Sprite_ZeroPoint_Cube_ui_L.webp',
     holofoil: 'T_Icon_BR_Creature_Sprite_ZeroPoint_Holofoil_ui_L.webp',
+    gem: 'T_Icon_BR_Creature_Sprite_ZeroPoint_Gem_ui_L.webp',
     quack: 'T_Icon_BR_Creature_Sprite_ZeroPoint_Quack_ui_L.webp',
   },
   fishy: {
@@ -497,6 +505,7 @@ const ICONS: Record<string, Partial<Record<Variant, string>>> = {
     gold: 'T_Icon_BR_Creature_Sprite_Drifter_Gold_ui_L.webp',
     gummy: 'T_Icon_BR_Creature_Sprite_Drifter_Candy_ui_L.webp',
     galaxy: 'T_Icon_BR_Creature_Sprite_Drifter_Galaxy_ui_L.webp',
+    gem: 'T_Icon_BR_Creature_Sprite_Drifter_Gem_ui_L.webp',
   },
   boss: {
     base: 'T_Icon_BR_Creature_Sprite_Boss_ui_L.webp',
@@ -512,6 +521,7 @@ const ICONS: Record<string, Partial<Record<Variant, string>>> = {
     galaxy: 'T_Icon_BR_GrimReaper_Galaxy_L.webp',
     cube: 'T_Icon_BR_GrimReaper_Cube_L.webp',
     holofoil: 'T_Icon_BR_GrimReaper_Holofoil_L.webp',
+    gem: 'T_Icon_BR_GrimReaper_Gem_L.webp',
   },
   air: {
     base: 'T_Icon_BR_Air_Default_L.webp',

@@ -125,7 +125,7 @@ const en: MessageTree = {
       galaxy: 'Bonus ammo when looting',
       holofoil: '+5% chance to find rare Sprite variants in chests (squad)',
       cube: 'Overdrive while in the Storm / extra shield on level-up',
-      gem: '30% less fall damage (upcoming)',
+      gem: '30% less fall damage',
       quack: 'Special Quack themed variant',
     },
   },

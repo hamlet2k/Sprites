@@ -132,7 +132,7 @@ const es: MessageTree = {
       holofoil:
         '+5% de probabilidad de encontrar variantes raras de espíritus en cofres (escuadra)',
       cube: 'Sobreaceleración en la tormenta / escudo extra al subir de nivel',
-      gem: '30% menos daño por caída (próximamente)',
+      gem: '30% menos daño por caída',
       quack: 'Variante especial temática Quack',
     },
   },
