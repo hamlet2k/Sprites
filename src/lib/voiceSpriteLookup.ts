@@ -65,7 +65,15 @@ const VARIANT_ALIASES: { variant: Exclude<Variant, 'base'>; aliases: string[] }[
     },
     {
       variant: 'galaxy',
-      aliases: ['galaxy', 'galaxia', 'espacial'],
+      aliases: [
+        'galaxy',
+        'galaxia',
+        'galactico',
+        'galactica',
+        'galáctico',
+        'galáctica',
+        'espacial',
+      ],
     },
     {
       variant: 'cube',
