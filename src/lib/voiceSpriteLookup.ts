@@ -95,7 +95,9 @@ const FAMILY_ALIASES: Record<string, string[]> = {
   batman: ['batman', 'bat man', 'murcielago', 'murciélago', 'bruce'],
   water: ['water', 'agua', 'aqua', 'h2o'],
   earth: ['earth', 'tree', 'tierra', 'arbol', 'árbol', 'forest', 'bosque'],
-  fire: ['fire', 'fuego', 'flame', 'llama fuego', 'flama'],
+  // Note: bare Spanish "llama" means flame, but in this game it is the Loot Llama sprite.
+  // Fire: use fuego / flama / flame / fire only — never bare "llama".
+  fire: ['fire', 'fuego', 'flame', 'flama', 'fuego sprite'],
   duck: ['duck', 'ducky', 'pato', 'patito', 'pato'],
   ghost: ['ghost', 'fantasma', 'spirit', 'espectro'],
   dream: [
@@ -192,7 +194,19 @@ const FAMILY_ALIASES: Record<string, string[]> = {
     'gallina',
     'pollito',
   ],
-  llama: ['llama', 'llamma', 'loot llama', 'pinata', 'piñata'],
+  llama: [
+    'llama',
+    'llamma',
+    'loot llama',
+    'lootin llama',
+    'looting llama',
+    'lootllama',
+    'llamma loot',
+    'pinata',
+    'piñata',
+    'piñata llama',
+    'pinata llama',
+  ],
   peely: [
     'peely',
     'peely',
@@ -270,24 +284,57 @@ function scoreFamilyText(text: string, familyId: string, name: string): number {
   let best = 0
   for (const alias of aliases) {
     if (!alias) continue
-    // Exact / contains
-    if (text === alias) best = Math.max(best, 1)
-    else if (text.includes(alias) && alias.length >= 3)
-      best = Math.max(best, 0.92)
-    else if (alias.includes(text) && text.length >= 3)
-      best = Math.max(best, 0.85)
-    else {
-      // Token-wise fuzzy
-      const tokens = text.split(' ')
-      for (const tok of tokens) {
-        if (tok.length < 2) continue
-        best = Math.max(best, similarity(tok, alias) * 0.95)
-        for (const at of alias.split(' ')) {
-          if (at.length < 2) continue
-          best = Math.max(best, similarity(tok, at) * 0.9)
-        }
+    // Exact whole phrase
+    if (text === alias) {
+      best = Math.max(best, 1)
+      continue
+    }
+    // Alias appears as a whole phrase inside the utterance
+    if (alias.length >= 3) {
+      const re = new RegExp(`(?:^|\\s)${escapeReg(alias)}(?:\\s|$)`)
+      if (re.test(text)) {
+        best = Math.max(best, 0.94)
+        continue
       }
-      best = Math.max(best, similarity(text, alias) * 0.88)
+    }
+    // Short nickname fully contains a long alias only if nearly the same length
+    // (avoids "llama" boosting fire via legacy "llama fuego"-style compounds)
+    if (
+      alias.includes(text) &&
+      text.length >= 3 &&
+      text.length >= Math.ceil(alias.length * 0.75)
+    ) {
+      best = Math.max(best, 0.86)
+      continue
+    }
+
+    // Fuzzy: whole phrase or single-token aliases only (not loose multi-word pieces)
+    const aliasTokens = alias.split(' ').filter((t) => t.length >= 2)
+    if (aliasTokens.length === 1) {
+      const a = aliasTokens[0]
+      best = Math.max(best, similarity(text, a) * 0.9)
+      for (const tok of text.split(' ')) {
+        if (tok.length < 3) continue
+        best = Math.max(best, similarity(tok, a) * 0.88)
+      }
+    } else {
+      // Multi-word: require most tokens to appear (fuzzy) in the utterance
+      const textTokens = text.split(' ').filter((t) => t.length >= 2)
+      if (textTokens.length === 0) continue
+      let hits = 0
+      for (const at of aliasTokens) {
+        let hit = false
+        for (const tok of textTokens) {
+          if (tok === at || similarity(tok, at) >= 0.86) {
+            hit = true
+            break
+          }
+        }
+        if (hit) hits++
+      }
+      const ratio = hits / aliasTokens.length
+      if (ratio >= 0.99) best = Math.max(best, 0.93)
+      else if (ratio >= 0.66) best = Math.max(best, 0.72 * ratio)
     }
   }
   return best
@@ -303,6 +350,16 @@ export function matchSpriteFromSpeech(raw: string): VoiceMatchResult {
 
   const { variant, rest } = extractVariant(cleaned)
   const familyText = rest || cleaned
+
+  // Hard preference: bare "llama" is always Loot Llama (not Spanish "flame"/Fire).
+  if (familyText === 'llama' || familyText === 'llamma') {
+    const sprite =
+      SPRITES.find((s) => s.familyId === 'llama' && s.variant === variant) ??
+      SPRITES.find((s) => s.familyId === 'llama' && s.variant === 'base')
+    if (sprite) {
+      return { ok: true, sprite, confidence: 1, heard }
+    }
+  }
 
   // Score each family
   type Cand = { familyId: string; score: number }
@@ -320,15 +377,18 @@ export function matchSpriteFromSpeech(raw: string): VoiceMatchResult {
     }
   }
 
-  familyScores.sort((a, b) => b.score - a.score)
-  const bestFamily = familyScores[0]
+  // Prefer exact-alias hits (score === 1) over fuzzy near-misses
+  const exact = familyScores.filter((c) => c.score >= 0.999)
+  const pool = exact.length > 0 ? exact : familyScores
+  pool.sort((a, b) => b.score - a.score)
+  const bestFamily = pool[0]
   if (!bestFamily || bestFamily.score < 0.55) {
     return { ok: false, heard, reason: 'no-match' }
   }
 
   // Prefer exact variant if it exists for this family; else best available
   const candidates = SPRITES.filter((s) => s.familyId === bestFamily.familyId)
-  let sprite =
+  const sprite =
     candidates.find((s) => s.variant === variant) ??
     candidates.find((s) => s.variant === 'base') ??
     candidates[0]
