@@ -8,6 +8,7 @@ import {
   type SpriteEntry,
 } from './data/sprites'
 import { AuthModal } from './components/AuthModal'
+import { VoiceSpriteLookup } from './components/VoiceSpriteLookup'
 import {
   getCurrentAuthUser,
   listRecentSquads,
@@ -773,6 +774,15 @@ export default function App() {
   const isViewingOwnCollection = Boolean(
     actorSeatId && selectedPlayer?.id === actorSeatId,
   )
+
+  /** Voice lookup checks your seat when set, otherwise the selected player. */
+  const voiceLookupPlayer = useMemo(() => {
+    if (actorSeatId) {
+      const mine = state.players.find((p) => p.id === actorSeatId)
+      if (mine) return mine
+    }
+    return selectedPlayer ?? null
+  }, [actorSeatId, state.players, selectedPlayer])
 
   const persistPortableCollection = useCallback(
     (player: Player) => {
@@ -2967,6 +2977,12 @@ export default function App() {
           </p>
         </div>
       )}
+
+      <VoiceSpriteLookup
+        t={t}
+        locale={locale}
+        player={voiceLookupPlayer}
+      />
 
       {authOpen && (
         <AuthModal

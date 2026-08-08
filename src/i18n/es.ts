@@ -401,6 +401,32 @@ const es: MessageTree = {
     errorTapRefresh: 'Toca para recargar la página y re-sincronizar',
     copyLinkHint: 'Toca para copiar el enlace de la sesión {code}',
   },
+  voice: {
+    micTitle: 'Mantén pulsado y di el nombre de un espíritu',
+    overlayTitle: 'Consulta por voz',
+    listening: 'Escuchando…',
+    listeningHint: 'Di el nombre del espíritu y suelta',
+    processing: 'Buscando…',
+    noSpeech: 'No se detectó voz. Mantén el micrófono e inténtalo de nuevo.',
+    noMatch: 'No se reconoció ningún espíritu. Prueba otra vez.',
+    noPlayer: 'Elige tu asiento primero para saber de quién es la colección.',
+    unsupported: 'El reconocimiento de voz no está disponible en este navegador.',
+    permissionDenied:
+      'Permiso de micrófono denegado. Actívalo para usar la consulta por voz.',
+    error: 'Error de voz: {msg}',
+    youSaid: 'Oí: “{heard}”',
+    forPlayer: 'Para {name}',
+    masteredYes: 'Maestría',
+    masteredNo: 'Sin maestría',
+    summaryMissing: 'Falta — nunca lo has conseguido.',
+    summaryReadyUnmastered: 'Listo para traer — aún sin maestría.',
+    summaryReadyMastered: 'Listo para traer — con maestría.',
+    summaryLostUnmastered:
+      'Perdido — necesita polvo para reinvocar; aún sin maestría.',
+    summaryLostMastered: 'Perdido — necesita polvo para reinvocar (con maestría).',
+    dismiss: 'Vale',
+    tryAgain: 'Mantén el micrófono y di el nombre otra vez.',
+  },
   help: {
     introTitle: '¿Qué es Sprite Squad?',
     introP1:

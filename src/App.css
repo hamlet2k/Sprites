@@ -2449,6 +2449,294 @@ button {
   }
 }
 
+/* Voice sprite lookup — floating PTT mic + overlay */
+.voice-mic-btn {
+  position: fixed;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  z-index: 90;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 88%, #0b0e14);
+  color: #fff;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45),
+    0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+}
+
+.voice-mic-btn:hover {
+  transform: scale(1.04);
+  background: color-mix(in srgb, var(--accent) 100%, #0b0e14);
+}
+
+.voice-mic-btn:active,
+.voice-mic-btn.is-listening {
+  transform: scale(1.08);
+  background: color-mix(in srgb, var(--danger) 75%, var(--accent));
+  border-color: color-mix(in srgb, var(--danger) 50%, var(--border));
+  box-shadow: 0 10px 32px rgba(232, 93, 117, 0.35);
+}
+
+.voice-mic-btn.is-unsupported {
+  opacity: 0.55;
+}
+
+.voice-mic-pulse {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--danger) 70%, #fff);
+  animation: voice-pulse 1.1s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes voice-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+.voice-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  background: rgba(4, 7, 14, 0.62);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px 16px max(24px, env(safe-area-inset-bottom));
+}
+
+@media (min-width: 641px) {
+  .voice-overlay-backdrop {
+    align-items: center;
+    padding: 24px;
+  }
+}
+
+.voice-overlay-card {
+  position: relative;
+  width: min(400px, 100%);
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  box-shadow: 0 20px 56px rgba(0, 0, 0, 0.5);
+  padding: 18px 16px 16px;
+  animation: voice-card-in 0.16s ease-out;
+}
+
+@keyframes voice-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.voice-overlay-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-size: 1.35rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.voice-overlay-close:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
+}
+
+.voice-overlay-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.voice-overlay-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.voice-overlay-hint {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.voice-error-title {
+  color: var(--danger);
+}
+
+.voice-heard {
+  margin: 0;
+  font-size: 0.85rem;
+  word-break: break-word;
+}
+
+.voice-listening-waves {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 36px;
+  margin-bottom: 4px;
+}
+
+.voice-listening-waves span {
+  width: 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  animation: voice-wave 0.9s ease-in-out infinite;
+}
+
+.voice-listening-waves span:nth-child(1) {
+  height: 12px;
+  animation-delay: 0s;
+}
+.voice-listening-waves span:nth-child(2) {
+  height: 28px;
+  animation-delay: 0.15s;
+}
+.voice-listening-waves span:nth-child(3) {
+  height: 18px;
+  animation-delay: 0.3s;
+}
+
+@keyframes voice-wave {
+  0%,
+  100% {
+    transform: scaleY(0.55);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.voice-result-art {
+  width: 96px;
+  height: 96px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.voice-result-img {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+}
+
+.voice-result-name {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.voice-result-for {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.voice-status-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 6px 0 2px;
+}
+
+.voice-status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.82rem;
+  font-weight: 750;
+  background: var(--bg-card);
+}
+
+.voice-status-pill.tone-missing {
+  color: var(--text-muted);
+  border-color: color-mix(in srgb, var(--none) 50%, var(--border));
+}
+
+.voice-status-pill.tone-ready {
+  color: var(--available);
+  border-color: color-mix(in srgb, var(--available) 45%, var(--border));
+  background: color-mix(in srgb, var(--available) 12%, var(--bg-card));
+}
+
+.voice-status-pill.tone-lost {
+  color: var(--lost);
+  border-color: color-mix(in srgb, var(--lost) 45%, var(--border));
+  background: color-mix(in srgb, var(--lost) 12%, var(--bg-card));
+}
+
+.voice-status-pill.tone-mastered {
+  color: var(--master-gold);
+  border-color: color-mix(in srgb, var(--master-gold) 45%, var(--border));
+  background: color-mix(in srgb, var(--master-gold) 12%, var(--bg-card));
+}
+
+.voice-status-pill.tone-unmastered {
+  color: var(--text-muted);
+}
+
+.voice-summary {
+  margin: 4px 0 0;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  color: var(--text);
+  max-width: 32ch;
+}
+
+.voice-dismiss-btn {
+  margin-top: 10px;
+  min-width: 140px;
+}
+
 /* App modals */
 .modal-backdrop {
   position: fixed;
