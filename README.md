@@ -17,6 +17,7 @@ Local-first web app for Fortnite **Chapter 7 Season 3** squads: track Sprite col
 - Optional **live rooms** (Supabase) so the squad shares one list
 - Optional **accounts** (email, Google, Discord) for portable collection + recent squads
 - **EN / ES** UI; catalog names stay English as in-game
+- **Installable PWA** — Add to Home Screen / install from browser for a standalone app feel (works offline for the app shell; live rooms still need network)
 
 Login is never required. Donations never unlock features.
 
@@ -38,9 +39,19 @@ npm run dev
 Open the URL Vite prints (usually `http://localhost:5173`). Progress is stored in the browser (`localStorage`). Use **Squad → Export / Import** to back up or move data.
 
 ```bash
-npm run build   # production build
+npm run build   # production build (includes service worker + web manifest)
 npm run lint
+npm run icons   # regenerate PWA icons in public/
 ```
+
+### Install as an app (PWA)
+
+After deploy (HTTPS):
+
+- **Android / Chrome / Edge:** browser menu → **Install app** / **Add to Home screen**
+- **iPhone / iPad (Safari):** Share → **Add to Home Screen**
+
+The service worker caches the app shell and sprite icons for quicker reloads. Collections still live in `localStorage` on that device.
 
 ## Share with teammates
 
