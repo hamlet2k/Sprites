@@ -29,81 +29,12 @@ const SPECIAL_SUMMON: Record<Exclude<Rarity, 'special'>, number> = {
 
 const FAMILIES: SpriteFamily[] = [
   {
-    id: 'jackrabbit',
-    name: 'Jackrabbit',
-    rarity: 'legendary',
-    ability: 'Perform another jump while mid-air',
-    summonCost: 4500,
-    sortOrder: 0,
-  },
-  {
-    id: 'shadow',
-    name: 'Shadow',
-    rarity: 'epic',
-    ability:
-      'Automatically reload weapons over time, even when unequipped',
-    summonCost: 3000,
-    sortOrder: 1,
-  },
-  {
-    id: 'bush',
-    name: 'Bush',
-    rarity: 'rare',
-    ability:
-      'Spawns a Bush on you after a duration. At max Level, gain a Bush on elimination',
-    summonCost: 100,
-    sortOrder: 2,
-  },
-  {
-    id: 'tails',
-    name: 'Tails',
-    rarity: 'epic',
-    ability: 'Hover with the help of Tails',
-    summonCost: 3000,
-    sortOrder: 3,
-  },
-  {
     id: 'killswitch',
     name: 'Killswitch',
     rarity: 'epic',
     ability: 'Enter Hangtime with improved accuracy',
     summonCost: 3000,
-    sortOrder: 4,
-  },
-  {
-    id: 'adventure',
-    name: 'Adventure',
-    rarity: 'rare',
-    ability: 'Upgrade a random item in your inventory at each level',
-    summonCost: 100,
-    sortOrder: 5,
-  },
-  {
-    id: 'klombo',
-    name: 'Klombo',
-    rarity: 'mythic',
-    ability:
-      'Grants random items at each level. Level up only by using Health/Shield consumables',
-    summonCost: 7500,
-    sortOrder: 6,
-    location: 'Very rare find',
-  },
-  {
-    id: 'jonesy',
-    name: 'Jonesy',
-    rarity: 'rare',
-    ability:
-      'After a short duration, recover some Health or Shield after being damaged',
-    summonCost: 100,
-    sortOrder: 7,
-  },
-  {
-    id: 'sonic',
-    name: 'Sonic',
-    rarity: 'epic',
-    ability: 'Gotta Go Fast! Sprint faster',
-    summonCost: 3000,
-    sortOrder: 8,
+    sortOrder: 0,
   },
   {
     id: 'crown',
@@ -112,7 +43,42 @@ const FAMILIES: SpriteFamily[] = [
     ability:
       'Gain extra Crown Wins after a Victory Royale. Level up only by winning matches',
     summonCost: 7500,
-    sortOrder: 9,
+    sortOrder: 1,
+  },
+  {
+    id: 'jonesy',
+    name: 'Jonesy',
+    rarity: 'rare',
+    ability:
+      'After a short duration, recover some Health or Shield after being damaged',
+    summonCost: 100,
+    sortOrder: 2,
+  },
+  {
+    id: 'klombo',
+    name: 'Klombo',
+    rarity: 'mythic',
+    ability:
+      'Grants random items at each level. Level up only by using Health/Shield consumables',
+    summonCost: 7500,
+    sortOrder: 3,
+    location: 'Very rare find',
+  },
+  {
+    id: 'tails',
+    name: 'Tails',
+    rarity: 'epic',
+    ability: 'Hover with the help of Tails',
+    summonCost: 3000,
+    sortOrder: 4,
+  },
+  {
+    id: 'sonic',
+    name: 'Sonic',
+    rarity: 'epic',
+    ability: 'Gotta Go Fast! Sprint faster',
+    summonCost: 3000,
+    sortOrder: 5,
   },
   {
     id: '8-bit',
@@ -120,6 +86,40 @@ const FAMILIES: SpriteFamily[] = [
     rarity: 'rare',
     ability:
       'Find an 8-Bit Shotgun in your first chest and gain a score multiplier for it',
+    summonCost: 100,
+    sortOrder: 6,
+  },
+  {
+    id: 'jackrabbit',
+    name: 'Jackrabbit',
+    rarity: 'legendary',
+    ability: 'Perform another jump while mid-air',
+    summonCost: 4500,
+    sortOrder: 7,
+  },
+  {
+    id: 'adventure',
+    name: 'Adventure',
+    rarity: 'rare',
+    ability: 'Upgrade a random item in your inventory at each level',
+    summonCost: 100,
+    sortOrder: 8,
+  },
+  {
+    id: 'shadow',
+    name: 'Shadow',
+    rarity: 'epic',
+    ability:
+      'Automatically reload weapons over time, even when unequipped',
+    summonCost: 3000,
+    sortOrder: 9,
+  },
+  {
+    id: 'bush',
+    name: 'Bush',
+    rarity: 'rare',
+    ability:
+      'Spawns a Bush on you after a duration. At max Level, gain a Bush on elimination',
     summonCost: 100,
     sortOrder: 10,
   },
