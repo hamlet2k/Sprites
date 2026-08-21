@@ -51,6 +51,8 @@ Env (optional cloud): see `.env.example` — `VITE_SUPABASE_URL`, `VITE_SUPABASE
 | `src/components/AuthModal.tsx` | Sign in / sign up / forgot password / OAuth |
 | `src/lib/squadScore.ts` | Sparse overwrite / room wipe guards |
 | `src/data/sprites.ts` | C7S3 catalog (names/abilities stay EN as game data) |
+| `src/data/c7s4.ts` | C7S4 Override catalog (Gold + Cheat Master at launch) |
+| `src/data/seasons.ts` | Season registry + active catalog (`c7s3` / `c7s4`) |
 | `src/i18n/` | `en.ts`, `es.ts`, `catalog.ts`, `I18nProvider` |
 | `src/types.ts` | `Player`, `SquadState`, `BringAssignment`, etc. |
 
