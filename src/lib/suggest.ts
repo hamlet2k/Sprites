@@ -1,4 +1,8 @@
-import { difficultyScore, SPRITE_BY_ID, SPRITES } from '../data/sprites'
+import {
+  ALL_SPRITE_BY_ID,
+  getActiveSprites,
+} from '../data/seasons'
+import { difficultyScore } from '../data/sprites'
 import { tLocale } from '../i18n/catalog'
 import type { Locale } from '../i18n/locales'
 import type {
@@ -73,7 +77,8 @@ export function buildSuggestionPlan(
     }
   }
 
-  const edges = buildEdges(active, mode)
+  const sprites = getActiveSprites()
+  const edges = buildEdges(active, mode, sprites)
   const assignments: BringAssignment[] = []
   const usedGift = new Set<string>()
   const coveredNeed = new Set<string>()
@@ -411,12 +416,16 @@ export function buildSuggestionPlan(
   }
 }
 
-function buildEdges(active: Player[], mode: SuggestMode): Edge[] {
+function buildEdges(
+  active: Player[],
+  mode: SuggestMode,
+  sprites = getActiveSprites(),
+): Edge[] {
   const edges: Edge[] = []
   for (const giver of active) {
     for (const receiver of active) {
       if (giver.id === receiver.id) continue
-      for (const sprite of SPRITES) {
+      for (const sprite of sprites) {
         const g = getPlayerSprite(giver, sprite.id)
         const r = getPlayerSprite(receiver, sprite.id)
 
@@ -472,7 +481,7 @@ function takeEdge(
   receiveThisRound: Set<string>,
   t: TFn,
 ): void {
-  const sprite = SPRITE_BY_ID[e.spriteId]
+  const sprite = ALL_SPRITE_BY_ID[e.spriteId]
   if (!sprite) return
 
   const giftKey = `${e.giver.id}::${e.spriteId}`
@@ -573,7 +582,7 @@ export function formatAssignmentSpriteName(
 }
 
 function rebuildTradeReason(a: BringAssignment, t: TFn): string {
-  const sprite = a.spriteId ? SPRITE_BY_ID[a.spriteId] : undefined
+  const sprite = a.spriteId ? ALL_SPRITE_BY_ID[a.spriteId] : undefined
   const difficultyKey = sprite
     ? difficultyKeyFor(difficultyScore(sprite))
     : 'suggest.difficulty.common'
@@ -726,14 +735,15 @@ function pickMasterySprite(
   context: 'no-trade' | 'pure-lost-round' = 'no-trade',
   t: TFn = (k) => k,
 ): BringAssignment | null {
-  const candidates = SPRITES.map((s) => {
+  const catalog = getActiveSprites()
+  const candidates = catalog.map((s) => {
     const st = getPlayerSprite(player, s.id)
     if (exclude.has(s.id)) return null
     if (st.status === 'none') return null
     if (st.mastered) return null
     return { sprite: s, st }
   }).filter(Boolean) as {
-    sprite: (typeof SPRITES)[number]
+    sprite: (typeof catalog)[number]
     st: PlayerSpriteState
   }[]
 

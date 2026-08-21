@@ -83,6 +83,11 @@ const es: MessageTree = {
     cube: 'Cubo',
     gem: 'Gema',
     quack: 'Quack',
+    'cheat-master': 'Cheat Master',
+  },
+  season: {
+    label: 'Temporada',
+    title: '{label} — {subtitle}',
   },
   effects: {
     family: {
@@ -134,6 +139,8 @@ const es: MessageTree = {
       cube: 'Sobreaceleración en la tormenta / escudo extra al subir de nivel',
       gem: '30% menos daño por caída',
       quack: 'Variante especial temática Quack',
+      'cheat-master':
+        'Todas las entradas cuentan como correctas al introducir códigos trampas del mapa',
     },
   },
   collection: {

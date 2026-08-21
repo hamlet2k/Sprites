@@ -3,11 +3,10 @@
  * Flexible aliases for variants + families in English and Spanish.
  */
 import {
-  SPRITE_FAMILIES,
-  SPRITES,
-  type SpriteEntry,
-  type Variant,
-} from '../data/sprites'
+  getActiveFamilies,
+  getActiveSprites,
+} from '../data/seasons'
+import type { SpriteEntry, Variant } from '../data/sprites'
 
 export type VoiceMatchResult =
   | { ok: true; sprite: SpriteEntry; confidence: number; heard: string }
@@ -86,6 +85,19 @@ const VARIANT_ALIASES: { variant: Exclude<Variant, 'base'>; aliases: string[] }[
     {
       variant: 'quack',
       aliases: ['quack', 'cuack', 'cuac'],
+    },
+    {
+      variant: 'cheat-master',
+      aliases: [
+        'cheat master',
+        'cheatmaster',
+        'cheat',
+        'cheater',
+        'tramposo',
+        'maestro del cheat',
+        'codigo',
+        'código',
+      ],
     },
   ]
 
@@ -215,6 +227,26 @@ const FAMILY_ALIASES: Record<string, string[]> = {
     'plátano',
     'banano',
     'peel',
+  ],
+  // C7S4 Override
+  jackrabbit: ['jackrabbit', 'jack rabbit', 'rabbit', 'conejo', 'jazz'],
+  shadow: ['shadow', 'sombra'],
+  bush: ['bush', 'arbusto', 'bushranger'],
+  tails: ['tails', 'miles', 'cola', 'fox'],
+  killswitch: ['killswitch', 'kill switch', 'hangtime', 'asesino'],
+  adventure: ['adventure', 'aventura', 'dwarf', 'enano'],
+  klombo: ['klombo', 'clombo'],
+  jonesy: ['jonesy', 'jones', 'agent'],
+  sonic: ['sonic', 'hedgehog', 'erizo'],
+  crown: ['crown', 'corona', 'crown wins'],
+  '8-bit': ['8-bit', '8bit', 'eight bit', '8 bit', 'pixel', 'shotgun sprite'],
+  'storm-scout': [
+    'storm scout',
+    'stormscout',
+    'storm',
+    'scout',
+    'tormenta',
+    'explorador',
   ],
 }
 
@@ -350,6 +382,9 @@ export function matchSpriteFromSpeech(raw: string): VoiceMatchResult {
 
   const { variant, rest } = extractVariant(cleaned)
   const familyText = rest || cleaned
+
+  const SPRITES = getActiveSprites()
+  const SPRITE_FAMILIES = getActiveFamilies()
 
   // Hard preference: bare "llama" is always Loot Llama (not Spanish "flame"/Fire).
   if (familyText === 'llama' || familyText === 'llamma') {

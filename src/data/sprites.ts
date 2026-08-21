@@ -14,6 +14,8 @@ export type Variant =
   | 'cube'
   | 'gem'
   | 'quack'
+  /** C7S4 Override — easier cheat-code entry */
+  | 'cheat-master'
 
 export type SortMode = 'type' | 'rarity' | 'dust'
 
@@ -57,6 +59,7 @@ const VARIANT_BONUS: Record<Exclude<Variant, 'base'>, string> = {
   cube: 'Overdrive while in the Storm / extra shield on level-up',
   gem: '30% less fall damage',
   quack: 'Special Quack themed variant',
+  'cheat-master': 'All inputs count as correct when entering world cheat codes',
 }
 
 const SPECIAL_SUMMON: Record<Exclude<Rarity, 'special'>, number> = {
@@ -636,6 +639,7 @@ function rarityWeight(sprite: SpriteEntry): number {
       cube: 20,
       gem: 22,
       quack: 24,
+      'cheat-master': 16,
     }
     return v[sprite.variant] + familyRarityWeight(sprite.familyId)
   }

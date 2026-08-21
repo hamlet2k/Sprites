@@ -9,7 +9,7 @@ Local-first web app for Fortnite **Chapter 7 Season 3** squads: track Sprite col
 
 ## Features
 
-- **Per-seat collection** for live sprite families × variants (catalog: `src/data/sprites.ts`)
+- **Per-seat collection** for live sprite families × variants — seasons **C7 S3 (Runners)** and **C7 S4 (Override)** via header selector (`src/data/seasons.ts`)
 - **Forced seat** on each device — only *your* seat is editable; others are view-only
 - Status: **Missing / Ready / Lost** + **Mastered** (Level 5 crown)
 - Quick filters: status row + in-game presets (**Need** = Missing+Lost, **Level up**)

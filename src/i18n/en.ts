@@ -82,6 +82,11 @@ const en: MessageTree = {
     cube: 'Cube',
     gem: 'Gem',
     quack: 'Quack',
+    'cheat-master': 'Cheat Master',
+  },
+  season: {
+    label: 'Season',
+    title: '{label} — {subtitle}',
   },
   effects: {
     family: {
@@ -127,6 +132,8 @@ const en: MessageTree = {
       cube: 'Overdrive while in the Storm / extra shield on level-up',
       gem: '30% less fall damage',
       quack: 'Special Quack themed variant',
+      'cheat-master':
+        'All inputs count as correct when entering world cheat codes',
     },
   },
   collection: {

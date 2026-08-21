@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   sortFamilies,
-  SPRITE_FAMILIES,
-  SPRITES,
-  VARIANT_ORDER,
   type SortMode,
   type SpriteEntry,
 } from './data/sprites'
+import {
+  getCatalog,
+  loadSeasonId,
+  saveSeasonId,
+  SEASONS,
+  setActiveSeasonId,
+  type SeasonId,
+} from './data/seasons'
 import { AuthModal } from './components/AuthModal'
 import { VoiceSpriteLookup } from './components/VoiceSpriteLookup'
 import {
@@ -135,6 +140,29 @@ export default function App() {
   const [variantFilter, setVariantFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [sortMode, setSortMode] = useState<SortMode>('type')
+  const [seasonId, setSeasonIdState] = useState<SeasonId>(() => {
+    const id = loadSeasonId()
+    setActiveSeasonId(id)
+    return id
+  })
+  const catalog = useMemo(() => getCatalog(seasonId), [seasonId])
+  const SPRITES = catalog.sprites
+  const SPRITE_FAMILIES = catalog.families
+  const VARIANT_ORDER = catalog.variantOrder
+
+  const setSeasonId = useCallback((id: SeasonId) => {
+    setSeasonIdState(id)
+    setActiveSeasonId(id)
+    saveSeasonId(id)
+    // Reset filters when switching seasons — variant sets differ
+    setVariantFilter('all')
+    setStatusFilter('all')
+    setQuery('')
+    // Drop in-memory plan — assignments are season-specific
+    setState((s) =>
+      s.suggestion ? { ...s, suggestion: undefined } : s,
+    )
+  }, [])
   const [suggestMode, setSuggestMode] = useState<SuggestMode>(() =>
     loadSuggestMode(),
   )
@@ -408,7 +436,7 @@ export default function App() {
       ro.disconnect()
       window.removeEventListener('resize', apply)
     }
-  }, [headerMenuOpen, roomCode, authUser, locale, pageScrolled])
+  }, [headerMenuOpen, roomCode, authUser, locale, pageScrolled, seasonId])
 
   // Close header menu on outside click / Escape
   useEffect(() => {
@@ -1756,6 +1784,26 @@ export default function App() {
         </div>
         <h1>{t('app.title')}</h1>
         <div className="header-actions">
+          <label className="season-select-wrap">
+            <span className="visually-hidden">{t('season.label')}</span>
+            <select
+              className="season-select"
+              value={seasonId}
+              onChange={(e) => setSeasonId(e.target.value as SeasonId)}
+              aria-label={t('season.label')}
+              title={t('season.title', {
+                label: SEASONS.find((s) => s.id === seasonId)?.label ?? '',
+                subtitle:
+                  SEASONS.find((s) => s.id === seasonId)?.subtitle ?? '',
+              })}
+            >
+              {SEASONS.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.shortLabel}
+                </option>
+              ))}
+            </select>
+          </label>
           {cloudReady && (
             authUser ? (
               <button
